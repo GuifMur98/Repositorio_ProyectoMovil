@@ -1,7 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto/services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  String? _userName;
+  String? _userEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userName = prefs.getString('user_name') ?? 'Nombre del Usuario';
+      _userEmail = prefs.getString('user_email') ?? 'usuario@email.com';
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,18 +51,18 @@ class ProfileScreen extends StatelessWidget {
                     child: Icon(Icons.person, size: 50, color: Colors.white),
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Nombre del Usuario',
-                    style: TextStyle(
+                  Text(
+                    _userName ?? 'Nombre del Usuario',
+                    style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF5C3D2E),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'usuario@email.com',
-                    style: TextStyle(color: Colors.grey),
+                  Text(
+                    _userEmail ?? 'usuario@email.com',
+                    style: const TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -112,8 +136,11 @@ class ProfileScreen extends StatelessWidget {
                       _buildSettingsTile(
                         Icons.logout,
                         'Cerrar sesión',
-                        () {
-                          Navigator.pushReplacementNamed(context, '/');
+                        () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.clear();
+                          if (!mounted) return;
+                          Navigator.pushReplacementNamed(context, '/login');
                         },
                         textColor: Colors.red,
                       ),

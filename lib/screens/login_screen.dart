@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/auth_service.dart';
+import 'package:proyecto/services/database_service.dart';
+import 'package:proyecto/models/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -30,27 +34,34 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
-      final success = await AuthService.login(
-        _emailController.text,
-        _passwordController.text,
-      );
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+      final user = await DatabaseService.getUserByEmail(email);
 
-      if (success) {
+      if (user != null && user.password == password) {
+        // Guardar sesión del usuario
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_logged_in', true);
+        await prefs.setString('user_name', user.name);
+        await prefs.setString('user_email', user.email);
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       } else {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Credenciales inválidas')),
-        );
+        setState(() {
+          _errorMessage = 'Credenciales inválidas';
+        });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al iniciar sesión')),
-      );
+      setState(() {
+        _errorMessage = 'Error al iniciar sesión';
+      });
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -115,6 +126,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 24),
+              if (_errorMessage != null)
+                ErrorMessage(message: _errorMessage!),
               ElevatedButton(
                 onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
@@ -132,6 +145,33 @@ class _LoginScreenState extends State<LoginScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class ErrorMessage extends StatelessWidget {
+  final String message;
+
+  const ErrorMessage({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.red[100],
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.red),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Colors.red,
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }

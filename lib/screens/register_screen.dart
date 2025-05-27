@@ -1,7 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto/services/database_service.dart';
+import 'package:proyecto/models/user.dart';
+import 'package:proyecto/widgets/error_message.dart';
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      setState(() {
+        _errorMessage = 'Por favor, completa todos los campos.';
+        _isLoading = false;
+      });
+      return;
+    }
+    if (password != confirmPassword) {
+      setState(() {
+        _errorMessage = 'Las contraseñas no coinciden.';
+        _isLoading = false;
+      });
+      return;
+    }
+    final existingUser = await DatabaseService.getUserByEmail(email);
+    if (existingUser != null) {
+      setState(() {
+        _errorMessage = 'El correo ya está registrado.';
+        _isLoading = false;
+      });
+      return;
+    }
+    final user = User(name: name, email: email, password: password);
+    await DatabaseService.insertUser(user);
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/login');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +89,7 @@ class RegisterScreen extends StatelessWidget {
               ),
               const SizedBox(height: 48),
               TextField(
+                controller: _nameController,
                 decoration: InputDecoration(
                   hintText: 'Nombre completo',
                   filled: true,
@@ -44,6 +106,7 @@ class RegisterScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _emailController,
                 decoration: InputDecoration(
                   hintText: 'Correo electrónico',
                   filled: true,
@@ -60,6 +123,7 @@ class RegisterScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Contraseña',
@@ -77,6 +141,7 @@ class RegisterScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               TextField(
+                controller: _confirmPasswordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   hintText: 'Confirmar contraseña',
@@ -93,8 +158,10 @@ class RegisterScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              if (_errorMessage != null)
+                ErrorMessage(message: _errorMessage!),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5C3D2E),
                   foregroundColor: Colors.white,
@@ -103,7 +170,9 @@ class RegisterScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
-                child: const Text('Registrarse'),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Registrarse'),
               ),
             ],
           ),
