@@ -6,6 +6,7 @@ class Product {
   final String imageUrl;
   final String category;
   final String sellerId;
+  final String address;
 
   // Para la base de datos local, id puede ser int (autoincremental)
   int? dbId;
@@ -18,6 +19,7 @@ class Product {
     required this.imageUrl,
     required this.category,
     required this.sellerId,
+    required this.address,
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +29,8 @@ class Product {
       'description': description,
       'price': price,
       'imageUrl': imageUrl,
+      'category': category,
+      'address': address,
     };
   }
 
@@ -37,7 +41,8 @@ class Product {
       description: map['description'] ?? '',
       price: map['price']?.toDouble() ?? 0.0,
       imageUrl: map['imageUrl'] ?? '',
-      category: '', // Puedes expandir el modelo y la tabla si lo necesitas
+      category: map['category'] ?? '',
+      address: map['address'] ?? '',
       sellerId: '',
     )..dbId = map['id'];
   }

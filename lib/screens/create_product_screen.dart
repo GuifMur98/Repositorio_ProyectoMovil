@@ -16,6 +16,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   final _priceController = TextEditingController();
   String? _category;
   final _imageUrlController = TextEditingController();
+  final _addressController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -25,6 +26,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     _descController.dispose();
     _priceController.dispose();
     _imageUrlController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
@@ -40,7 +42,12 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     final imageUrl = _imageUrlController.text.trim().isEmpty
         ? 'https://picsum.photos/200'
         : _imageUrlController.text.trim();
-    if (name.isEmpty || desc.isEmpty || price == null || category == null) {
+    final address = _addressController.text.trim();
+    if (name.isEmpty ||
+        desc.isEmpty ||
+        price == null ||
+        category == null ||
+        address.isEmpty) {
       setState(() {
         _errorMessage = 'Completa todos los campos obligatorios.';
         _isLoading = false;
@@ -57,6 +64,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       price: price,
       imageUrl: imageUrl,
       category: category,
+      address: address,
       sellerId: sellerId,
     );
     await DatabaseService.insertProduct(product);
@@ -181,6 +189,23 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               controller: _imageUrlController,
               decoration: InputDecoration(
                 labelText: 'URL de la imagen (opcional)',
+                filled: true,
+                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _addressController,
+              decoration: InputDecoration(
+                labelText: 'Dirección',
+                prefixIcon: const Icon(
+                  Icons.location_on,
+                  color: Color(0xFF5C3D2E),
+                ),
                 filled: true,
                 fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
                 border: OutlineInputBorder(

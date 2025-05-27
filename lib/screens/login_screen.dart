@@ -20,10 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    // Pre-llenar con credenciales de prueba
-    final testCredentials = AuthService.getTestCredentials();
-    _emailController.text = testCredentials['email']!;
-    _passwordController.text = testCredentials['password']!;
+    // Elimina el pre-llenado de credenciales de prueba
   }
 
   @override
@@ -71,10 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE1D4C2),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -101,10 +95,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: const Icon(
-                    Icons.email,
-                    color: Color(0xFF5C3D2E),
-                  ),
+                  prefixIcon: const Icon(Icons.email, color: Color(0xFF5C3D2E)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -119,15 +110,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: const Icon(
-                    Icons.lock,
-                    color: Color(0xFF5C3D2E),
-                  ),
+                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF5C3D2E)),
                 ),
               ),
               const SizedBox(height: 24),
-              if (_errorMessage != null)
-                ErrorMessage(message: _errorMessage!),
+              if (_errorMessage != null) ErrorMessage(message: _errorMessage!),
               ElevatedButton(
                 onPressed: _isLoading ? null : _login,
                 style: ElevatedButton.styleFrom(
@@ -167,10 +154,7 @@ class ErrorMessage extends StatelessWidget {
       ),
       child: Text(
         message,
-        style: const TextStyle(
-          color: Colors.red,
-          fontWeight: FontWeight.bold,
-        ),
+        style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
         textAlign: TextAlign.center,
       ),
     );

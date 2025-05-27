@@ -2,6 +2,7 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/product.dart';
 import '../models/user.dart';
+import 'dart:convert';
 
 class DatabaseService {
   static Database? _db;
@@ -27,12 +28,24 @@ class DatabaseService {
     ''');
   }
 
+  static Future<void> _createPurchasesTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE purchases(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId INTEGER,
+        products TEXT, -- JSON
+        total REAL,
+        date TEXT
+      )
+    ''');
+  }
+
   static Future<Database> _initDB() async {
     final dbPath = await getDatabasesPath();
     final path = join(dbPath, 'app_database.db');
     return await openDatabase(
       path,
-      version: 2,
+      version: 3, // subir versión para migración
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -49,14 +62,19 @@ class DatabaseService {
             description TEXT,
             price REAL,
             imageUrl TEXT,
-            category TEXT
+            category TEXT,
+            address TEXT
           )
         ''');
         await _createCartAndFavoritesTables(db);
+        await _createPurchasesTable(db);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
           await _createCartAndFavoritesTables(db);
+        }
+        if (oldVersion < 3) {
+          await _createPurchasesTable(db);
         }
       },
     );
@@ -146,6 +164,11 @@ class DatabaseService {
     return result.map((e) => e['productId'] as String).toList();
   }
 
+  static Future<void> clearCart() async {
+    final db = await database;
+    await db.delete('cart');
+  }
+
   // Métodos para favoritos
   static Future<void> addToFavorites(String productId) async {
     final db = await database;
@@ -165,5 +188,43 @@ class DatabaseService {
     final db = await database;
     final result = await db.query('favorites');
     return result.map((e) => e['productId'] as String).toList();
+  }
+
+  // Métodos para historial de compras
+  static Future<void> insertPurchase({
+    required int userId,
+    required List<Map<String, dynamic>> products,
+    required double total,
+  }) async {
+    final db = await database;
+    final date = DateTime.now().toIso8601String();
+    await db.insert('purchases', {
+      'userId': userId,
+      'products': jsonEncode(products), // Guardar como string JSON
+      'total': total,
+      'date': date,
+    });
+  }
+
+  static Future<List<Map<String, dynamic>>> getPurchasesByUser(
+    int userId,
+  ) async {
+    final db = await database;
+    final result = await db.query(
+      'purchases',
+      where: 'userId = ?',
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
+    return result
+        .map(
+          (row) => {
+            'id': row['id'],
+            'products': row['products'],
+            'total': row['total'],
+            'date': row['date'],
+          },
+        )
+        .toList();
   }
 }

@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/auth_service.dart';
+import 'package:proyecto/services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:proyecto/screens/purchase_history_screen.dart';
+import 'package:proyecto/screens/edit_profile_screen.dart';
+import 'package:proyecto/screens/addresses_screen.dart';
+import 'package:proyecto/screens/notifications_screen.dart';
+import 'package:proyecto/screens/user_products_screen.dart';
+import 'package:proyecto/screens/help_support_screen.dart';
+import 'package:proyecto/screens/privacy_security_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,6 +20,10 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   String? _userName;
   String? _userEmail;
+  int _publishedCount = 0;
+  int _salesCount = 0;
+  double _rating =
+      4.8; // Placeholder, puedes cambiarlo si tienes ratings reales
 
   @override
   void initState() {
@@ -21,10 +33,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('user_email');
     setState(() {
       _userName = prefs.getString('user_name') ?? 'Nombre del Usuario';
-      _userEmail = prefs.getString('user_email') ?? 'usuario@email.com';
+      _userEmail = email ?? 'usuario@email.com';
     });
+    if (email != null) {
+      final user = await DatabaseService.getUserByEmail(email);
+      if (user != null) {
+        // Productos publicados
+        final allProducts = await DatabaseService.getProducts();
+        final published = allProducts
+            .where((p) => p.sellerId == user.id.toString())
+            .toList();
+        // Ventas: productos vendidos por el usuario (si tienes esa lógica, aquí solo contamos compras realizadas)
+        final purchases = await DatabaseService.getPurchasesByUser(user.id!);
+        setState(() {
+          _publishedCount = published.length;
+          _salesCount = purchases.length;
+          // _rating = ... // Si tienes ratings, cámbialo aquí
+        });
+      }
+    }
   }
 
   @override
@@ -68,9 +98,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildStatColumn('Productos', '12'),
-                      _buildStatColumn('Valoración', '4.8'),
-                      _buildStatColumn('Ventas', '8'),
+                      _buildStatColumn('Productos', _publishedCount.toString()),
+                      _buildStatColumn(
+                        'Valoración',
+                        _rating.toStringAsFixed(1),
+                      ),
+                      _buildStatColumn('Compras', _salesCount.toString()),
                     ],
                   ),
                 ],
@@ -81,73 +114,117 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSettingsSection(
-                    'Configuración de la cuenta',
-                    [
-                      _buildSettingsTile(
-                        Icons.person_outline,
-                        'Editar perfil',
-                        () {},
-                      ),
-                      _buildSettingsTile(
-                        Icons.location_on_outlined,
-                        'Mis direcciones',
-                        () {},
-                      ),
-                      _buildSettingsTile(
-                        Icons.notifications_none,
-                        'Notificaciones',
-                        () {},
-                      ),
-                    ],
-                  ),
+                  _buildSettingsSection('Configuración de la cuenta', [
+                    _buildSettingsTile(
+                      Icons.person_outline,
+                      'Editar perfil',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EditProfileScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildSettingsTile(
+                      Icons.location_on_outlined,
+                      'Mis direcciones',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AddressesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildSettingsTile(
+                      Icons.notifications_none,
+                      'Notificaciones',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NotificationsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ]),
                   const SizedBox(height: 24),
-                  _buildSettingsSection(
-                    'Mis productos',
-                    [
-                      _buildSettingsTile(
-                        Icons.shopping_bag_outlined,
-                        'Productos publicados',
-                        () {},
-                      ),
-                      _buildSettingsTile(
-                        Icons.favorite_border,
-                        'Productos favoritos',
-                        () {
-                          Navigator.pushNamed(context, '/favorites');
-                        },
-                      ),
-                    ],
-                  ),
+                  _buildSettingsSection('Mis productos', [
+                    _buildSettingsTile(
+                      Icons.shopping_bag_outlined,
+                      'Productos publicados',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const UserProductsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildSettingsTile(
+                      Icons.favorite_border,
+                      'Productos favoritos',
+                      () {
+                        Navigator.pushNamed(context, '/favorites');
+                      },
+                    ),
+                  ]),
                   const SizedBox(height: 24),
-                  _buildSettingsSection(
-                    'Otros',
-                    [
-                      _buildSettingsTile(
-                        Icons.help_outline,
-                        'Ayuda y soporte',
-                        () {},
-                      ),
-                      _buildSettingsTile(
-                        Icons.privacy_tip_outlined,
-                        'Privacidad y seguridad',
-                        () {},
-                      ),
-                      _buildSettingsTile(
-                        Icons.logout,
-                        'Cerrar sesión',
-                        () async {
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setBool('is_logged_in', false);
-                          await prefs.remove('user_name');
-                          await prefs.remove('user_email');
-                          if (!mounted) return;
-                          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-                        },
-                        textColor: Colors.red,
-                      ),
-                    ],
-                  ),
+                  _buildSettingsSection('Otros', [
+                    _buildSettingsTile(
+                      Icons.history,
+                      'Historial de compras',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PurchaseHistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildSettingsTile(
+                      Icons.help_outline,
+                      'Ayuda y soporte',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const HelpSupportScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildSettingsTile(
+                      Icons.privacy_tip_outlined,
+                      'Privacidad y seguridad',
+                      () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PrivacySecurityScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildSettingsTile(Icons.logout, 'Cerrar sesión', () async {
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setBool('is_logged_in', false);
+                      await prefs.remove('user_name');
+                      await prefs.remove('user_email');
+                      if (!mounted) return;
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/login',
+                        (route) => false,
+                      );
+                    }, textColor: Colors.red),
+                  ]),
                 ],
               ),
             ),
@@ -161,8 +238,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favoritos'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: 'Publicar'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.favorite),
+            label: 'Favoritos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.add_circle_outline),
+            label: 'Publicar',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
         onTap: (index) {
@@ -194,10 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          title,
-          style: const TextStyle(color: Colors.grey),
-        ),
+        Text(title, style: const TextStyle(color: Colors.grey)),
       ],
     );
   }
@@ -220,9 +300,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: const Color(0xFFE1D4C2).withOpacity(0.3),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
-            children: tiles,
-          ),
+          child: Column(children: tiles),
         ),
       ],
     );
@@ -236,10 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return ListTile(
       leading: Icon(icon, color: const Color(0xFF5C3D2E)),
-      title: Text(
-        title,
-        style: TextStyle(color: textColor),
-      ),
+      title: Text(title, style: TextStyle(color: textColor)),
       trailing: const Icon(Icons.chevron_right, color: Color(0xFF5C3D2E)),
       onTap: onTap,
     );
