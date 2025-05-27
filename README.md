@@ -1,16 +1,7 @@
 # proyecto
 
-A new Flutter project.
+Bienvenidos chicos,
+En este repositorio encontrarán inicializado el proyecto de nuestra clase de programación móvil.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Instrucciones:
+1.	Deben de activar modo desarrollador en sus computadoras, debido a que se utiliza un plugin que lo requiere, en una terminal pueden correr este comando - ms-settings:developers –; Esto les abrirá una ventana de las settings donde deberán habilitar developer tools.
