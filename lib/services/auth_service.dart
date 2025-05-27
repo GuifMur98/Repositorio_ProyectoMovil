@@ -1,22 +1,19 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:proyecto/services/database_service.dart';
+import 'package:proyecto/models/user.dart';
 
 class AuthService {
   static const String _userKey = 'user_data';
   static const String _isLoggedInKey = 'is_logged_in';
 
-  // Usuario de prueba
-  static final Map<String, String> _testUser = {
-    'email': 'test@example.com',
-    'password': 'password123',
-    'name': 'Usuario de Prueba',
-  };
-
-  // Método para iniciar sesión
+  // Método para iniciar sesión usando la base de datos
   static Future<bool> login(String email, String password) async {
-    if (email == _testUser['email'] && password == _testUser['password']) {
+    final user = await DatabaseService.getUserByEmail(email);
+    if (user != null && user.password == password) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_isLoggedInKey, true);
-      await prefs.setString(_userKey, _testUser['name']!);
+      await prefs.setString(_userKey, user.name);
+      await prefs.setString('user_email', user.email);
       return true;
     }
     return false;
@@ -27,6 +24,7 @@ class AuthService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_isLoggedInKey);
     await prefs.remove(_userKey);
+    await prefs.remove('user_email');
   }
 
   // Método para verificar si el usuario está autenticado
@@ -41,11 +39,14 @@ class AuthService {
     return prefs.getString(_userKey);
   }
 
-  // Método para obtener las credenciales de prueba
+  // Método para obtener el email del usuario
+  static Future<String?> getUserEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('user_email');
+  }
+
+  // Método para obtener credenciales de prueba (solo para desarrollo)
   static Map<String, String> getTestCredentials() {
-    return {
-      'email': _testUser['email']!,
-      'password': _testUser['password']!,
-    };
+    return {'email': 'test@example.com', 'password': 'test1234'};
   }
 }

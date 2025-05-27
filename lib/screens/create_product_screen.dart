@@ -1,7 +1,68 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto/models/product.dart';
+import 'package:proyecto/services/database_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class CreateProductScreen extends StatelessWidget {
+class CreateProductScreen extends StatefulWidget {
   const CreateProductScreen({super.key});
+
+  @override
+  State<CreateProductScreen> createState() => _CreateProductScreenState();
+}
+
+class _CreateProductScreenState extends State<CreateProductScreen> {
+  final _nameController = TextEditingController();
+  final _descController = TextEditingController();
+  final _priceController = TextEditingController();
+  String? _category;
+  final _imageUrlController = TextEditingController();
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    _priceController.dispose();
+    _imageUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _publishProduct() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    final name = _nameController.text.trim();
+    final desc = _descController.text.trim();
+    final price = double.tryParse(_priceController.text.trim());
+    final category = _category;
+    final imageUrl = _imageUrlController.text.trim().isEmpty
+        ? 'https://picsum.photos/200'
+        : _imageUrlController.text.trim();
+    if (name.isEmpty || desc.isEmpty || price == null || category == null) {
+      setState(() {
+        _errorMessage = 'Completa todos los campos obligatorios.';
+        _isLoading = false;
+      });
+      return;
+    }
+    // Obtener sellerId (puedes usar el email del usuario logueado)
+    final prefs = await SharedPreferences.getInstance();
+    final sellerId = prefs.getString('user_email') ?? 'anonimo';
+    final product = Product(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: name,
+      description: desc,
+      price: price,
+      imageUrl: imageUrl,
+      category: category,
+      sellerId: sellerId,
+    );
+    await DatabaseService.insertProduct(product);
+    if (!mounted) return;
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +110,7 @@ class CreateProductScreen extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             TextField(
+              controller: _nameController,
               decoration: InputDecoration(
                 labelText: 'Nombre del producto',
                 filled: true,
@@ -61,6 +123,7 @@ class CreateProductScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: _descController,
               maxLines: 4,
               decoration: InputDecoration(
                 labelText: 'Descripción',
@@ -74,6 +137,7 @@ class CreateProductScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: _priceController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
                 labelText: 'Precio',
@@ -88,6 +152,12 @@ class CreateProductScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
+              value: _category,
+              onChanged: (String? value) {
+                setState(() {
+                  _category = value;
+                });
+              },
               decoration: InputDecoration(
                 labelText: 'Categoría',
                 filled: true,
@@ -97,25 +167,20 @@ class CreateProductScreen extends StatelessWidget {
                   borderSide: BorderSide.none,
                 ),
               ),
-              items: [
-                'Ropa',
-                'Tecnología',
-                'Hogar',
-                'Deportes',
-                'Libros',
-              ].map((String value) {
+              items: ['Ropa', 'Tecnología', 'Hogar', 'Deportes', 'Libros'].map((
+                String value,
+              ) {
                 return DropdownMenuItem<String>(
                   value: value,
                   child: Text(value),
                 );
               }).toList(),
-              onChanged: (String? value) {},
             ),
             const SizedBox(height: 16),
             TextField(
+              controller: _imageUrlController,
               decoration: InputDecoration(
-                labelText: 'Ubicación',
-                prefixIcon: const Icon(Icons.location_on, color: Color(0xFF5C3D2E)),
+                labelText: 'URL de la imagen (opcional)',
                 filled: true,
                 fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
                 border: OutlineInputBorder(
@@ -125,8 +190,23 @@ class CreateProductScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 32),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  _errorMessage!,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: _isLoading ? null : _publishProduct,
+              child: _isLoading
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Publicar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5C3D2E),
                 foregroundColor: Colors.white,
@@ -135,7 +215,6 @@ class CreateProductScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: const Text('Publicar'),
             ),
           ],
         ),

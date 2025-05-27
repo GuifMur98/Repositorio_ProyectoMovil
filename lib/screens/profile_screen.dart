@@ -138,9 +138,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         'Cerrar sesión',
                         () async {
                           final prefs = await SharedPreferences.getInstance();
-                          await prefs.clear();
+                          await prefs.setBool('is_logged_in', false);
+                          await prefs.remove('user_name');
+                          await prefs.remove('user_email');
                           if (!mounted) return;
-                          Navigator.pushReplacementNamed(context, '/login');
+                          Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                         },
                         textColor: Colors.red,
                       ),

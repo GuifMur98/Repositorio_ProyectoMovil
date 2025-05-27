@@ -9,6 +9,7 @@ import 'package:proyecto/screens/chat_screen.dart';
 import 'package:proyecto/screens/create_product_screen.dart';
 import 'package:proyecto/screens/product_detail_screen.dart';
 import 'package:proyecto/screens/category_screen.dart';
+import 'package:proyecto/screens/cart_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,7 +30,11 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.white,
           elevation: 0,
           iconTheme: IconThemeData(color: Color(0xFF5C3D2E)),
-          titleTextStyle: TextStyle(color: Color(0xFF5C3D2E), fontSize: 20, fontWeight: FontWeight.bold),
+          titleTextStyle: TextStyle(
+            color: Color(0xFF5C3D2E),
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
@@ -52,8 +57,12 @@ class MyApp extends StatelessWidget {
         '/favorites': (context) => const FavoritesScreen(),
         '/chat': (context) => const ChatScreen(chatId: null),
         '/create-product': (context) => const CreateProductScreen(),
-        '/product-detail': (context) => const ProductDetailScreen(productId: ''),
-        '/category': (context) => CategoryScreen(category: ModalRoute.of(context)?.settings.arguments as String),
+        '/product-detail': (context) =>
+            const ProductDetailScreen(productId: ''),
+        '/category': (context) => CategoryScreen(
+          category: ModalRoute.of(context)?.settings.arguments as String,
+        ),
+        '/cart': (context) => const CartScreen(),
       },
     );
   }
