@@ -11,7 +11,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Product> _products = [];
+  List<Product> _filteredProducts = [];
   bool _loading = true;
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -19,11 +21,37 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadProducts();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadProducts() async {
     final products = await DatabaseService.getProducts();
     setState(() {
       _products = products;
+      _filteredProducts = products;
       _loading = false;
+    });
+  }
+
+  void _filterProducts(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredProducts = _products;
+      } else {
+        _filteredProducts = _products.where((product) {
+          final titleLower = product.title.toLowerCase();
+          final descriptionLower = product.description.toLowerCase();
+          final categoryLower = product.category.toLowerCase();
+          final searchLower = query.toLowerCase();
+
+          return titleLower.contains(searchLower) ||
+              descriptionLower.contains(searchLower) ||
+              categoryLower.contains(searchLower);
+        }).toList();
+      }
     });
   }
 
@@ -48,12 +76,26 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterProducts,
                     decoration: InputDecoration(
                       hintText: 'Buscar productos...',
                       prefixIcon: const Icon(
                         Icons.search,
                         color: Color(0xFF5C3D2E),
                       ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(
+                                Icons.clear,
+                                color: Color(0xFF5C3D2E),
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                _filterProducts('');
+                              },
+                            )
+                          : null,
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -129,62 +171,92 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Categorías',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    if (_searchController.text.isEmpty) ...[
+                      const Text(
+                        'Categorías',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF5C3D2E),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 100,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: [
+                            _buildCategoryCard(
+                              context,
+                              'Ropa',
+                              Icons.checkroom,
+                            ),
+                            _buildCategoryCard(
+                              context,
+                              'Tecnología',
+                              Icons.devices,
+                            ),
+                            _buildCategoryCard(context, 'Hogar', Icons.home),
+                            _buildCategoryCard(
+                              context,
+                              'Deportes',
+                              Icons.sports_soccer,
+                            ),
+                            _buildCategoryCard(context, 'Libros', Icons.book),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Productos Destacados',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF5C3D2E),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ] else if (_filteredProducts.isEmpty) ...[
+                      const SizedBox(height: 32),
+                      const Icon(
+                        Icons.search_off,
+                        size: 80,
                         color: Color(0xFF5C3D2E),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 100,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _buildCategoryCard(context, 'Ropa', Icons.checkroom),
-                          _buildCategoryCard(
-                            context,
-                            'Tecnología',
-                            Icons.devices,
-                          ),
-                          _buildCategoryCard(context, 'Hogar', Icons.home),
-                          _buildCategoryCard(
-                            context,
-                            'Deportes',
-                            Icons.sports_soccer,
-                          ),
-                          _buildCategoryCard(context, 'Libros', Icons.book),
-                        ],
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No se encontraron productos',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Color(0xFF5C3D2E),
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Productos Destacados',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF5C3D2E),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Intenta con otra búsqueda',
+                        style: TextStyle(color: Colors.grey),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                      itemCount: _products.length,
-                      itemBuilder: (context, index) {
-                        final product = _products[index];
-                        return _buildProductCard(context, product);
-                      },
-                    ),
+                    ],
+                    if (_filteredProducts.isNotEmpty)
+                      GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.75,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                            ),
+                        itemCount: _filteredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _filteredProducts[index];
+                          return _buildProductCard(context, product);
+                        },
+                      ),
                   ],
                 ),
               ),
