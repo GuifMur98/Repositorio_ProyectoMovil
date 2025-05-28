@@ -10,6 +10,7 @@ import 'package:proyecto/screens/create_product_screen.dart';
 import 'package:proyecto/screens/product_detail_screen.dart';
 import 'package:proyecto/screens/category_screen.dart';
 import 'package:proyecto/screens/cart_screen.dart';
+import 'package:proyecto/screens/notifications_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -63,6 +64,7 @@ class MyApp extends StatelessWidget {
           category: ModalRoute.of(context)?.settings.arguments as String,
         ),
         '/cart': (context) => const CartScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
       },
     );
   }

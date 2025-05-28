@@ -54,9 +54,26 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       });
       return;
     }
-    // Obtener sellerId (puedes usar el email del usuario logueado)
+    // Obtener sellerId
     final prefs = await SharedPreferences.getInstance();
-    final sellerId = prefs.getString('user_email') ?? 'anonimo';
+    final userId = prefs.getString('user_id');
+    if (userId == null) {
+      setState(() {
+        _errorMessage = 'No se pudo identificar al usuario.';
+        _isLoading = false;
+      });
+      return;
+    }
+    print('ID del vendedor obtenido: $userId'); // Para debugging
+    final user = await DatabaseService.getUserById(userId);
+    if (user == null) {
+      setState(() {
+        _errorMessage = 'Usuario no encontrado.';
+        _isLoading = false;
+      });
+      return;
+    }
+    print('Vendedor encontrado: ${user.name} (${user.id})'); // Para debugging
     final product = Product(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: name,
@@ -65,11 +82,19 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       imageUrl: imageUrl,
       category: category,
       address: address,
-      sellerId: sellerId,
+      sellerId: userId,
     );
-    await DatabaseService.insertProduct(product);
-    if (!mounted) return;
-    Navigator.pop(context);
+    try {
+      await DatabaseService.insertProduct(product);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (e) {
+      print('Error al insertar producto: $e'); // Para debugging
+      setState(() {
+        _errorMessage = 'Error al publicar el producto.';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -79,11 +104,14 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       appBar: AppBar(
         title: const Text(
           'Publicar Producto',
-          style: TextStyle(color: Color(0xFF5C3D2E)),
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF5C3D2E),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFF5C3D2E)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),

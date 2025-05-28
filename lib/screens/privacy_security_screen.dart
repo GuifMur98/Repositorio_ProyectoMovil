@@ -7,8 +7,16 @@ class PrivacySecurityScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Privacidad y seguridad'),
-        backgroundColor: Color(0xFF5C3D2E),
+        title: const Text(
+          'Privacidad y Seguridad',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF5C3D2E),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: const Padding(
         padding: EdgeInsets.all(24),

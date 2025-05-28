@@ -34,9 +34,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
-    final password = _passwordController.text;
+    final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text;
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       setState(() {
         _errorMessage = 'Por favor, completa todos los campos.';
         _isLoading = false;
@@ -58,20 +61,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
       return;
     }
-    final user = User(name: name, email: email, password: password);
-    await DatabaseService.insertUser(user);
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/login');
+
+    final userId = DateTime.now().millisecondsSinceEpoch.toString();
+    print('Creando usuario con ID: $userId'); // Para debugging
+    final user = User(id: userId, name: name, email: email, password: password);
+
+    try {
+      final savedUserId = await DatabaseService.insertUser(user);
+      print('Usuario guardado con ID: $savedUserId'); // Para debugging
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/login');
+    } catch (e) {
+      print('Error al guardar usuario: $e'); // Para debugging
+      setState(() {
+        _errorMessage = 'Error al crear la cuenta.';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE1D4C2),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -115,10 +128,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: const Icon(
-                    Icons.email,
-                    color: Color(0xFF5C3D2E),
-                  ),
+                  prefixIcon: const Icon(Icons.email, color: Color(0xFF5C3D2E)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -133,10 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: const Icon(
-                    Icons.lock,
-                    color: Color(0xFF5C3D2E),
-                  ),
+                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF5C3D2E)),
                 ),
               ),
               const SizedBox(height: 16),
@@ -151,15 +158,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
-                  prefixIcon: const Icon(
-                    Icons.lock,
-                    color: Color(0xFF5C3D2E),
-                  ),
+                  prefixIcon: const Icon(Icons.lock, color: Color(0xFF5C3D2E)),
                 ),
               ),
               const SizedBox(height: 24),
-              if (_errorMessage != null)
-                ErrorMessage(message: _errorMessage!),
+              if (_errorMessage != null) ErrorMessage(message: _errorMessage!),
               ElevatedButton(
                 onPressed: _isLoading ? null : _register,
                 style: ElevatedButton.styleFrom(

@@ -20,6 +20,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Future<void> _loadFavorites() async {
+    setState(() {
+      _loading = true;
+    });
     final allProducts = await DatabaseService.getProducts();
     final favIds = await DatabaseService.getFavoriteProductIds();
     setState(() {
@@ -30,6 +33,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     });
   }
 
+  Future<void> _removeFromFavorites(String productId) async {
+    await DatabaseService.removeFromFavorites(productId);
+    await _loadFavorites();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,15 +45,24 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       appBar: AppBar(
         title: const Text(
           'Mis Favoritos',
-          style: TextStyle(color: Color(0xFF5C3D2E)),
+          style: TextStyle(color: Colors.white),
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF5C3D2E),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _favoriteProducts.isEmpty
-          ? const Center(child: Text('No tienes productos favoritos'))
+          ? const Center(
+              child: Text(
+                'No tienes productos favoritos',
+                style: TextStyle(fontSize: 18, color: Color(0xFF5C3D2E)),
+              ),
+            )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _favoriteProducts.length,
@@ -53,13 +70,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 final product = _favoriteProducts[index];
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: InkWell(
                     onTap: () {
                       Navigator.pushNamed(
                         context,
                         '/product-detail',
                         arguments: {'productId': product.id},
-                      );
+                      ).then((_) => _loadFavorites());
                     },
                     child: Row(
                       children: [
@@ -69,14 +89,20 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           decoration: const BoxDecoration(
                             color: Color(0xFFE1D4C2),
                             borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(4),
-                              bottomLeft: Radius.circular(4),
+                              topLeft: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
                             ),
                           ),
                           child: product.imageUrl.isNotEmpty
-                              ? Image.network(
-                                  product.imageUrl,
-                                  fit: BoxFit.cover,
+                              ? ClipRRect(
+                                  borderRadius: const BorderRadius.only(
+                                    topLeft: Radius.circular(16),
+                                    bottomLeft: Radius.circular(16),
+                                  ),
+                                  child: Image.network(
+                                    product.imageUrl,
+                                    fit: BoxFit.cover,
+                                  ),
                                 )
                               : const Center(
                                   child: Icon(
@@ -102,6 +128,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
+                                          color: Color(0xFF5C3D2E),
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -110,14 +137,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                     IconButton(
                                       icon: const Icon(
                                         Icons.favorite,
-                                        color: Color(0xFF5C3D2E),
+                                        color: Colors.red,
                                       ),
-                                      onPressed: () async {
-                                        await DatabaseService.removeFromFavorites(
-                                          product.id,
-                                        );
-                                        await _loadFavorites();
-                                      },
+                                      onPressed: () =>
+                                          _removeFromFavorites(product.id),
                                     ),
                                   ],
                                 ),
@@ -134,7 +157,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 Row(
                                   children: [
                                     const Icon(
-                                      Icons.location_on,
+                                      Icons.category,
                                       size: 16,
                                       color: Colors.grey,
                                     ),

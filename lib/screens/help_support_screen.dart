@@ -7,8 +7,16 @@ class HelpSupportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ayuda y soporte'),
-        backgroundColor: Color(0xFF5C3D2E),
+        title: const Text(
+          'Ayuda y Soporte',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF5C3D2E),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: const Padding(
         padding: EdgeInsets.all(24),

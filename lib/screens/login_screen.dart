@@ -42,9 +42,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final user = await DatabaseService.getUserByEmail(email);
 
       if (user != null && user.password == password) {
-        // Guardar sesión del usuario
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_logged_in', true);
+        print('Usuario encontrado con ID: ${user.id}'); // Para debugging
+        await prefs.setString('user_id', user.id);
         await prefs.setString('user_name', user.name);
         await prefs.setString('user_email', user.email);
         if (!mounted) return;
@@ -52,7 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         if (!mounted) return;
         setState(() {
-          _errorMessage = 'Credenciales inválidas';
+          _errorMessage = 'Credenciales incorrectas.';
+          _isLoading = false;
         });
       }
     } catch (e) {

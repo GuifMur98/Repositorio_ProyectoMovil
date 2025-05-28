@@ -33,25 +33,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('user_email');
     setState(() {
-      _userName = prefs.getString('user_name') ?? 'Nombre del Usuario';
-      _userEmail = email ?? 'usuario@email.com';
+      _userName = prefs.getString('user_name');
+      _userEmail = prefs.getString('user_email');
     });
-    if (email != null) {
-      final user = await DatabaseService.getUserByEmail(email);
+    if (_userEmail != null) {
+      final user = await DatabaseService.getUserByEmail(_userEmail!);
       if (user != null) {
-        // Productos publicados
-        final allProducts = await DatabaseService.getProducts();
-        final published = allProducts
-            .where((p) => p.sellerId == user.id.toString())
-            .toList();
-        // Ventas: productos vendidos por el usuario (si tienes esa lógica, aquí solo contamos compras realizadas)
-        final purchases = await DatabaseService.getPurchasesByUser(user.id!);
+        final products = await DatabaseService.getProducts();
         setState(() {
-          _publishedCount = published.length;
-          _salesCount = purchases.length;
-          // _rating = ... // Si tienes ratings, cámbialo aquí
+          _publishedCount = products.where((p) => p.sellerId == user.id).length;
+          // TODO: Implementar conteo real de ventas
+          _salesCount = 0;
         });
       }
     }
@@ -61,8 +54,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Mi Perfil', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF5C3D2E),
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(16, 60, 16, 24),

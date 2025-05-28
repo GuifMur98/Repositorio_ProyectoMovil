@@ -33,7 +33,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.category), centerTitle: true),
+      appBar: AppBar(
+        title: Text(
+          widget.category,
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF5C3D2E),
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : GridView.builder(

@@ -1,18 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/database_service.dart';
 import 'package:proyecto/models/product.dart';
+import 'package:proyecto/models/user.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final String productId;
   const ProductDetailScreen({super.key, required this.productId});
 
-  Future<Product?> _getProduct() async {
-    final products = await DatabaseService.getProducts();
-    try {
-      return products.firstWhere((p) => p.id == productId);
-    } catch (_) {
-      return null;
+  @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  bool _isFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkIfFavorite();
+  }
+
+  Future<void> _checkIfFavorite() async {
+    final isFavorite = await DatabaseService.isProductInFavorites(
+      widget.productId,
+    );
+    setState(() {
+      _isFavorite = isFavorite;
+    });
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_isFavorite) {
+      await DatabaseService.removeFromFavorites(widget.productId);
+    } else {
+      await DatabaseService.addToFavorites(widget.productId);
     }
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
   }
 
   @override
@@ -20,7 +45,7 @@ class ProductDetailScreen extends StatelessWidget {
     final args = ModalRoute.of(context)?.settings.arguments;
     final id = args is Map && args['productId'] != null
         ? args['productId'] as String
-        : productId;
+        : widget.productId;
     return FutureBuilder<Product?>(
       future: () async {
         final products = await DatabaseService.getProducts();
@@ -45,15 +70,23 @@ class ProductDetailScreen extends StatelessWidget {
         return Scaffold(
           backgroundColor: Colors.white,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            title: const Text(
+              'Detalles del Producto',
+              style: TextStyle(color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF5C3D2E),
             elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
             actions: [
               IconButton(
-                icon: const Icon(
-                  Icons.favorite_border,
-                  color: Color(0xFF5C3D2E),
+                icon: Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: Colors.white,
                 ),
-                onPressed: () {},
+                onPressed: _toggleFavorite,
               ),
             ],
           ),
@@ -119,20 +152,183 @@ class ProductDetailScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Color(0xFFE1D4C2),
-                          child: Icon(Icons.person, color: Color(0xFF5C3D2E)),
-                        ),
-                        title: Text('ID vendedor: ${product.sellerId}'),
-                        subtitle: const Text('Miembro desde: --'),
-                        trailing: IconButton(
-                          icon: const Icon(
-                            Icons.star,
-                            color: Color(0xFF5C3D2E),
-                          ),
-                          onPressed: () {},
-                        ),
+                      FutureBuilder<User?>(
+                        future: DatabaseService.getUserById(product.sellerId),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+
+                          final seller = snapshot.data;
+                          if (seller == null) {
+                            print(
+                              'No se encontró vendedor con ID: ${product.sellerId}',
+                            ); // Para debugging
+                            return const Card(
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Color(0xFFE1D4C2),
+                                  child: Icon(
+                                    Icons.person,
+                                    color: Color(0xFF5C3D2E),
+                                  ),
+                                ),
+                                title: Text('Vendedor no disponible'),
+                                subtitle: Text(
+                                  'No se pudo cargar la información del vendedor',
+                                ),
+                              ),
+                            );
+                          }
+
+                          return Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const CircleAvatar(
+                                        backgroundColor: Color(0xFFE1D4C2),
+                                        radius: 30,
+                                        child: Icon(
+                                          Icons.person,
+                                          color: Color(0xFF5C3D2E),
+                                          size: 30,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              seller.name,
+                                              style: const TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              seller.email,
+                                              style: const TextStyle(
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            if (seller.phone != null) ...[
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Teléfono: ${seller.phone}',
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    children: [
+                                      FutureBuilder<List<Product>>(
+                                        future: DatabaseService.getProducts(),
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return _buildSellerStat(
+                                              'Productos',
+                                              '0',
+                                            );
+                                          }
+                                          final products = snapshot.data!;
+                                          final publishedCount = products
+                                              .where(
+                                                (p) => p.sellerId == seller.id,
+                                              )
+                                              .length;
+                                          return _buildSellerStat(
+                                            'Productos',
+                                            publishedCount.toString(),
+                                          );
+                                        },
+                                      ),
+                                      FutureBuilder<List<Map<String, dynamic>>>(
+                                        future:
+                                            DatabaseService.getPurchasesByUser(
+                                              seller.id,
+                                            ),
+                                        builder: (context, snapshot) {
+                                          if (!snapshot.hasData) {
+                                            return _buildSellerStat(
+                                              'Ventas',
+                                              '0',
+                                            );
+                                          }
+                                          final purchases = snapshot.data!;
+                                          return _buildSellerStat(
+                                            'Ventas',
+                                            purchases.length.toString(),
+                                          );
+                                        },
+                                      ),
+                                      _buildSellerStat('Valoración', '4.8'),
+                                    ],
+                                  ),
+                                  if (seller.address != null &&
+                                      seller.address!.isNotEmpty) ...[
+                                    const SizedBox(height: 16),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.location_on,
+                                          color: Colors.grey,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            seller.address!,
+                                            style: const TextStyle(
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  const SizedBox(height: 16),
+                                  ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        '/chat',
+                                        arguments: {'sellerId': seller.id},
+                                      );
+                                    },
+                                    icon: const Icon(Icons.message),
+                                    label: const Text('Contactar al vendedor'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF5C3D2E),
+                                      foregroundColor: Colors.white,
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        45,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -140,39 +336,24 @@ class ProductDetailScreen extends StatelessWidget {
               ],
             ),
           ),
-          bottomNavigationBar: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 4,
-                  offset: Offset(0, -2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5C3D2E),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text('Chatear con el vendedor'),
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
+    );
+  }
+
+  Widget _buildSellerStat(String label, String value) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF5C3D2E),
+          ),
+        ),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      ],
     );
   }
 }
