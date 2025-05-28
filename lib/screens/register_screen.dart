@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/services/database_service.dart';
 import 'package:proyecto/models/user.dart';
 import 'package:proyecto/widgets/error_message.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -36,6 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirmPassword = _confirmPasswordController.text;
+
     if (name.isEmpty ||
         email.isEmpty ||
         password.isEmpty ||
@@ -46,6 +48,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
       return;
     }
+
     if (password != confirmPassword) {
       setState(() {
         _errorMessage = 'Las contraseñas no coinciden.';
@@ -53,28 +56,44 @@ class _RegisterScreenState extends State<RegisterScreen> {
       });
       return;
     }
-    final existingUser = await DatabaseService.getUserByEmail(email);
-    if (existingUser != null) {
-      setState(() {
-        _errorMessage = 'El correo ya está registrado.';
-        _isLoading = false;
-      });
-      return;
-    }
-
-    final userId = DateTime.now().millisecondsSinceEpoch.toString();
-    print('Creando usuario con ID: $userId'); // Para debugging
-    final user = User(id: userId, name: name, email: email, password: password);
 
     try {
+      final existingUser = await DatabaseService.getUserByEmail(email);
+      if (existingUser != null) {
+        setState(() {
+          _errorMessage = 'El correo ya está registrado.';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final userId = DateTime.now().millisecondsSinceEpoch.toString();
+      print('Creando usuario con ID: $userId'); // Para debugging
+
+      final user = User(
+        id: userId,
+        name: name,
+        email: email,
+        password: password,
+      );
+
+      print('Usuario a insertar: ${user.toMap()}'); // Para debugging
+
       final savedUserId = await DatabaseService.insertUser(user);
       print('Usuario guardado con ID: $savedUserId'); // Para debugging
+
+      // Verificar que el usuario se guardó correctamente
+      final savedUser = await DatabaseService.getUserByEmail(email);
+      print(
+        'Usuario guardado verificado: ${savedUser?.toMap()}',
+      ); // Para debugging
+
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       print('Error al guardar usuario: $e'); // Para debugging
       setState(() {
-        _errorMessage = 'Error al crear la cuenta.';
+        _errorMessage = 'Error al crear la cuenta: $e';
         _isLoading = false;
       });
     }

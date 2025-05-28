@@ -21,23 +21,35 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _loadProductsByCategory() async {
+    print('Cargando productos para la categoría: ${widget.category}');
     final allProducts = await DatabaseService.getProducts();
+    print('Total de productos encontrados: ${allProducts.length}');
+    print(
+      'Productos antes del filtrado: ${allProducts.map((p) => '${p.title} (${p.category})').join(', ')}',
+    );
+
     setState(() {
       _products = allProducts
           .where((p) => p.category == widget.category)
           .toList();
       _loading = false;
     });
+
+    print(
+      'Productos después del filtrado: ${_products.map((p) => '${p.title} (${p.category})').join(', ')}',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final category = args is Map && args['category'] != null
+        ? args['category'] as String
+        : widget.category;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.category,
-          style: const TextStyle(color: Colors.white),
-        ),
+        title: Text(category, style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF5C3D2E),
         elevation: 0,
         centerTitle: true,
@@ -48,6 +60,35 @@ class _CategoryScreenState extends State<CategoryScreen> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
+          : _products.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.category_outlined,
+                    size: 80,
+                    color: Color(0xFF5C3D2E),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No hay productos en la categoría $category',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Color(0xFF5C3D2E),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '¡Sé el primero en publicar un producto en esta categoría!',
+                    style: TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
           : GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

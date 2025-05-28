@@ -35,6 +35,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
+
     final name = _nameController.text.trim();
     final desc = _descController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
@@ -43,6 +44,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         ? 'https://picsum.photos/200'
         : _imageUrlController.text.trim();
     final address = _addressController.text.trim();
+
     if (name.isEmpty ||
         desc.isEmpty ||
         price == null ||
@@ -54,18 +56,19 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       });
       return;
     }
+
     // Obtener sellerId
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
-    if (userId == null) {
+    final userEmail = prefs.getString('user_email');
+    if (userEmail == null) {
       setState(() {
         _errorMessage = 'No se pudo identificar al usuario.';
         _isLoading = false;
       });
       return;
     }
-    print('ID del vendedor obtenido: $userId'); // Para debugging
-    final user = await DatabaseService.getUserById(userId);
+
+    final user = await DatabaseService.getUserByEmail(userEmail);
     if (user == null) {
       setState(() {
         _errorMessage = 'Usuario no encontrado.';
@@ -73,7 +76,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       });
       return;
     }
-    print('Vendedor encontrado: ${user.name} (${user.id})'); // Para debugging
+
     final product = Product(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: name,
@@ -82,14 +85,18 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       imageUrl: imageUrl,
       category: category,
       address: address,
-      sellerId: userId,
+      sellerId: user.id.toString(),
     );
+
     try {
       await DatabaseService.insertProduct(product);
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto publicado con éxito')),
+      );
       Navigator.pop(context);
     } catch (e) {
-      print('Error al insertar producto: $e'); // Para debugging
+      print('Error al insertar producto: $e');
       setState(() {
         _errorMessage = 'Error al publicar el producto.';
         _isLoading = false;

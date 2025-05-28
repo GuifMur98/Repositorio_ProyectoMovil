@@ -8,29 +8,35 @@ class AuthService {
 
   // Método para iniciar sesión usando la base de datos
   static Future<bool> login(String email, String password) async {
-    final user = await DatabaseService.getUserByEmail(email);
-    if (user != null && user.password == password) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_isLoggedInKey, true);
-      await prefs.setString(_userKey, user.name);
-      await prefs.setString('user_email', user.email);
-      return true;
-    }
-    return false;
+    final users = await DatabaseService.getUsers();
+    final user = users.firstWhere(
+      (u) => u.email == email && u.password == password,
+      orElse: () => throw Exception('Credenciales inválidas'),
+    );
+
+    // Guardar el estado de la sesión
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_logged_in', true);
+    await prefs.setString('user_email', user.email);
+    await prefs.setString('user_name', user.name);
+    await prefs.setString('user_id', user.id.toString());
+
+    return true;
   }
 
   // Método para cerrar sesión
   static Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_isLoggedInKey);
-    await prefs.remove(_userKey);
+    await prefs.setBool('is_logged_in', false);
     await prefs.remove('user_email');
+    await prefs.remove('user_name');
+    await prefs.remove('user_id');
   }
 
   // Método para verificar si el usuario está autenticado
-  static Future<bool> isAuthenticated() async {
+  static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_isLoggedInKey) ?? false;
+    return prefs.getBool('is_logged_in') ?? false;
   }
 
   // Método para obtener el nombre del usuario

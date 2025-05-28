@@ -47,6 +47,15 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('user_id', user.id);
         await prefs.setString('user_name', user.name);
         await prefs.setString('user_email', user.email);
+        await prefs.setBool('is_logged_in', true);
+
+        // Verificar que los datos se guardaron correctamente
+        print('Datos guardados en SharedPreferences:');
+        print('user_id: ${prefs.getString('user_id')}');
+        print('user_name: ${prefs.getString('user_name')}');
+        print('user_email: ${prefs.getString('user_email')}');
+        print('is_logged_in: ${prefs.getBool('is_logged_in')}');
+
         if (!mounted) return;
         Navigator.pushReplacementNamed(context, '/home');
       } else {
@@ -57,11 +66,11 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } catch (e) {
+      print('Error al iniciar sesión: $e'); // Para debugging
       setState(() {
-        _errorMessage = 'Error al iniciar sesión';
+        _errorMessage = 'Error al iniciar sesión: $e';
+        _isLoading = false;
       });
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 

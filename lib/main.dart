@@ -11,18 +11,39 @@ import 'package:proyecto/screens/product_detail_screen.dart';
 import 'package:proyecto/screens/category_screen.dart';
 import 'package:proyecto/screens/cart_screen.dart';
 import 'package:proyecto/screens/notifications_screen.dart';
+import 'package:proyecto/services/database_service.dart';
+import 'package:proyecto/services/auth_service.dart';
+import 'package:proyecto/screens/edit_profile_screen.dart';
+import 'package:proyecto/screens/addresses_screen.dart';
+import 'package:proyecto/screens/user_products_screen.dart';
+import 'package:proyecto/screens/purchase_history_screen.dart';
+import 'package:proyecto/screens/help_support_screen.dart';
+import 'package:proyecto/screens/privacy_security_screen.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Limpiar la base de datos existente
+  await DatabaseService.clearDatabase();
+
+  // Inicializar la base de datos
+  await DatabaseService.initDatabase();
+
+  // Verificar si el usuario está logueado
+  final isLoggedIn = await AuthService.isLoggedIn();
+
+  runApp(MyApp(isLoggedIn: isLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mi Aplicación',
+      title: 'MarketPlace',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: const Color(0xFF5C3D2E),
@@ -48,23 +69,44 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
+      initialRoute: isLoggedIn ? '/home' : '/welcome',
       routes: {
-        '/': (context) => const WelcomeScreen(),
+        '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
-        '/profile': (context) => const ProfileScreen(),
         '/favorites': (context) => const FavoritesScreen(),
-        '/chat': (context) => const ChatScreen(chatId: null),
         '/create-product': (context) => const CreateProductScreen(),
-        '/product-detail': (context) =>
-            const ProductDetailScreen(productId: ''),
-        '/category': (context) => CategoryScreen(
-          category: ModalRoute.of(context)?.settings.arguments as String,
-        ),
+        '/profile': (context) => const ProfileScreen(),
+        '/product-detail': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final productId = args is Map && args['productId'] != null
+              ? args['productId'] as String
+              : '';
+          return ProductDetailScreen(productId: productId);
+        },
+        '/category': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final category = args is Map && args['category'] != null
+              ? args['category'] as String
+              : '';
+          return CategoryScreen(category: category);
+        },
         '/cart': (context) => const CartScreen(),
+        '/edit-profile': (context) => const EditProfileScreen(),
+        '/addresses': (context) => const AddressesScreen(),
         '/notifications': (context) => const NotificationsScreen(),
+        '/user-products': (context) => const UserProductsScreen(),
+        '/purchase-history': (context) => const PurchaseHistoryScreen(),
+        '/help-support': (context) => const HelpSupportScreen(),
+        '/privacy-security': (context) => const PrivacySecurityScreen(),
+        '/chat': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final sellerId = args is Map && args['sellerId'] != null
+              ? args['sellerId'] as String
+              : null;
+          return ChatScreen(sellerId: sellerId);
+        },
       },
     );
   }

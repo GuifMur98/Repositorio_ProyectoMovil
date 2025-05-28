@@ -17,27 +17,70 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
+    print('ProductDetailScreen - ID del producto: ${widget.productId}');
     _checkIfFavorite();
   }
 
   Future<void> _checkIfFavorite() async {
+    print('Verificando si el producto ${widget.productId} está en favoritos');
     final isFavorite = await DatabaseService.isProductInFavorites(
       widget.productId,
     );
+    print('Resultado de verificación de favoritos: $isFavorite');
     setState(() {
       _isFavorite = isFavorite;
     });
   }
 
   Future<void> _toggleFavorite() async {
-    if (_isFavorite) {
-      await DatabaseService.removeFromFavorites(widget.productId);
-    } else {
-      await DatabaseService.addToFavorites(widget.productId);
+    try {
+      print(
+        'Intentando ${_isFavorite ? "remover" : "agregar"} el producto ${widget.productId} de favoritos',
+      );
+      if (_isFavorite) {
+        await DatabaseService.removeFromFavorites(widget.productId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Producto removido de favoritos'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        await DatabaseService.addToFavorites(widget.productId);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Producto agregado a favoritos'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+
+      // Verificar el estado actual después de la operación
+      final isFavorite = await DatabaseService.isProductInFavorites(
+        widget.productId,
+      );
+      print('Estado de favoritos después de la operación: $isFavorite');
+      if (mounted) {
+        setState(() {
+          _isFavorite = isFavorite;
+        });
+      }
+    } catch (e) {
+      print('Error al actualizar favoritos: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al actualizar favoritos'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
-    setState(() {
-      _isFavorite = !_isFavorite;
-    });
   }
 
   @override

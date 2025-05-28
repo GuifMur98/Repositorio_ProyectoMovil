@@ -13,39 +13,12 @@ class DatabaseService {
     return _db!;
   }
 
-  static Future<void> _createCartAndFavoritesTables(Database db) async {
-    await db.execute('''
-      CREATE TABLE cart(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        productId TEXT
-      )
-    ''');
-    await db.execute('''
-      CREATE TABLE favorites(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        productId TEXT
-      )
-    ''');
-  }
-
-  static Future<void> _createPurchasesTable(Database db) async {
-    await db.execute('''
-      CREATE TABLE purchases(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER,
-        products TEXT, -- JSON
-        total REAL,
-        date TEXT
-      )
-    ''');
-  }
-
   static Future<Database> _initDB() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'app_database.db');
+    final path = join(dbPath, 'marketplace.db');
     return await openDatabase(
       path,
-      version: 4, // Incrementamos la versión para forzar la recreación
+      version: 1,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -70,35 +43,33 @@ class DatabaseService {
             FOREIGN KEY (sellerId) REFERENCES users (id)
           )
         ''');
-        await _createCartAndFavoritesTables(db);
-        await _createPurchasesTable(db);
-      },
-      onUpgrade: (db, oldVersion, newVersion) async {
-        if (oldVersion < 2) {
-          await _createCartAndFavoritesTables(db);
-        }
-        if (oldVersion < 3) {
-          await _createPurchasesTable(db);
-        }
-        if (oldVersion < 4) {
-          // Recrear la tabla de productos con la nueva estructura
-          await db.execute('DROP TABLE IF EXISTS products');
-          await db.execute('''
-            CREATE TABLE products(
-              id TEXT PRIMARY KEY,
-              title TEXT NOT NULL,
-              description TEXT NOT NULL,
-              price REAL NOT NULL,
-              imageUrl TEXT NOT NULL,
-              category TEXT NOT NULL,
-              address TEXT NOT NULL,
-              sellerId TEXT NOT NULL,
-              FOREIGN KEY (sellerId) REFERENCES users (id)
-            )
-          ''');
-        }
+        await db.execute('''
+          CREATE TABLE cart(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            productId TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE favorites(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            productId TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE purchases(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId TEXT,
+            products TEXT,
+            total REAL,
+            date TEXT
+          )
+        ''');
       },
     );
+  }
+
+  static Future<void> initDatabase() async {
+    _db = await _initDB();
   }
 
   // CRUD para productos
@@ -143,23 +114,37 @@ class DatabaseService {
   static Future<String> insertUser(User user) async {
     final db = await database;
     print('Insertando usuario: ${user.toMap()}'); // Para debugging
-    await db.insert('users', user.toMap());
-    return user.id;
+
+    try {
+      final result = await db.insert(
+        'users',
+        user.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      print('Resultado de inserción: $result'); // Para debugging
+
+      // Verificar que el usuario se insertó correctamente
+      final insertedUser = await getUserByEmail(user.email);
+      print(
+        'Usuario insertado verificado: ${insertedUser?.toMap()}',
+      ); // Para debugging
+
+      return user.id;
+    } catch (e) {
+      print('Error al insertar usuario: $e'); // Para debugging
+      rethrow;
+    }
   }
 
   static Future<User?> getUserByEmail(String email) async {
     final db = await database;
-    final maps = await db.query(
+    final result = await db.query(
       'users',
       where: 'email = ?',
       whereArgs: [email],
     );
-    print('Buscando usuario por email: $email'); // Para debugging
-    print('Resultado: $maps'); // Para debugging
-    if (maps.isNotEmpty) {
-      return User.fromMap(maps.first);
-    }
-    return null;
+    if (result.isEmpty) return null;
+    return User.fromMap(result.first);
   }
 
   static Future<List<User>> getAllUsers() async {
@@ -208,34 +193,43 @@ class DatabaseService {
   // Métodos para favoritos
   static Future<void> addToFavorites(String productId) async {
     final db = await database;
+    print('Agregando producto $productId a favoritos');
     await db.insert('favorites', {
       'productId': productId,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    print('Producto agregado a favoritos exitosamente');
   }
 
   static Future<void> removeFromFavorites(String productId) async {
     final db = await database;
+    print('Removiendo producto $productId de favoritos');
     await db.delete(
       'favorites',
       where: 'productId = ?',
       whereArgs: [productId],
     );
+    print('Producto removido de favoritos exitosamente');
   }
 
   static Future<bool> isProductInFavorites(String productId) async {
     final db = await database;
+    print('Verificando si el producto $productId está en favoritos');
     final result = await db.query(
       'favorites',
       where: 'productId = ?',
       whereArgs: [productId],
     );
+    print('Resultado de la consulta de favoritos: ${result.isNotEmpty}');
     return result.isNotEmpty;
   }
 
   static Future<List<String>> getFavoriteProductIds() async {
     final db = await database;
+    print('Obteniendo lista de IDs de productos favoritos');
     final result = await db.query('favorites');
-    return result.map((row) => row['productId'] as String).toList();
+    final ids = result.map((row) => row['productId'] as String).toList();
+    print('IDs de productos favoritos: $ids');
+    return ids;
   }
 
   // Métodos para historial de compras
@@ -276,25 +270,11 @@ class DatabaseService {
         .toList();
   }
 
-  static Future<User?> getUserById(String userId) async {
+  static Future<User?> getUserById(String id) async {
     final db = await database;
-    print('Buscando usuario por ID: $userId'); // Para debugging
-    final List<Map<String, dynamic>> maps = await db.query(
-      'users',
-      where: 'id = ?',
-      whereArgs: [userId],
-    );
-    print('Resultado: $maps'); // Para debugging
-    if (maps.isEmpty) {
-      print('No se encontró usuario con ID: $userId');
-      return null;
-    }
-    try {
-      return User.fromMap(maps.first);
-    } catch (e) {
-      print('Error al convertir usuario: $e');
-      return null;
-    }
+    final result = await db.query('users', where: 'id = ?', whereArgs: [id]);
+    if (result.isEmpty) return null;
+    return User.fromMap(result.first);
   }
 
   static Future<void> clearDatabase() async {
@@ -306,5 +286,20 @@ class DatabaseService {
     await db.delete('products');
     await db.delete('users');
     print('Base de datos vaciada exitosamente'); // Para debugging
+  }
+
+  static Future<List<User>> getUsers() async {
+    final db = await database;
+    final List<Map<String, dynamic>> maps = await db.query('users');
+    return List.generate(maps.length, (i) {
+      return User(
+        id: maps[i]['id'],
+        name: maps[i]['name'],
+        email: maps[i]['email'],
+        password: maps[i]['password'],
+        phone: maps[i]['phone'],
+        address: maps[i]['address'],
+      );
+    });
   }
 }
