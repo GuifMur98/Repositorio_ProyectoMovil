@@ -210,18 +210,29 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(vertical: 10),
           child: Row(
             children: [
+              Image.asset('assets/images/Logo_PMiniatura.png', height: 40),
+              const SizedBox(width: 12),
               Expanded(
                 child: Container(
                   height: 40,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        spreadRadius: 1,
+                        blurRadius: 3,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: TextField(
                     controller: _searchController,
                     onChanged: _filterProducts,
                     decoration: InputDecoration(
                       hintText: 'Buscar productos...',
+                      hintStyle: const TextStyle(color: Colors.grey),
                       prefixIcon: const Icon(
                         Icons.search,
                         color: Color(0xFF5C3D2E),

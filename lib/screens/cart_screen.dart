@@ -16,6 +16,12 @@ class _CartScreenState extends State<CartScreen> {
   double _shippingCost = 0.0; // Costo de envío seleccionado
   String? _currentUserId;
 
+  List<Map<String, dynamic>> _userAddresses =
+      []; // Lista para almacenar direcciones del usuario
+  Map<String, dynamic>?
+  _selectedShippingAddress; // Dirección de envío seleccionada
+  bool _addressesLoading = true; // Estado de carga para las direcciones
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +35,7 @@ class _CartScreenState extends State<CartScreen> {
       if (userEmail == null) {
         setState(() {
           _loading = false;
+          _addressesLoading = false;
         });
         return;
       }
@@ -37,6 +44,7 @@ class _CartScreenState extends State<CartScreen> {
       if (user == null) {
         setState(() {
           _loading = false;
+          _addressesLoading = false;
         });
         return;
       }
@@ -45,11 +53,63 @@ class _CartScreenState extends State<CartScreen> {
         _currentUserId = user.id;
       });
 
+      // Cargar carrito y direcciones en paralelo o secuencia
       await _loadCart();
+      await _loadUserAddresses();
     } catch (e) {
       print('Error al inicializar datos: $e');
       setState(() {
         _loading = false;
+        _addressesLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al cargar datos iniciales'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadUserAddresses() async {
+    if (_currentUserId == null) {
+      setState(() {
+        _addressesLoading = false;
+      });
+      return; // No hay usuario logueado, no se cargan direcciones
+    }
+    try {
+      final addresses = await DatabaseService.getAddressesByUserId(
+        _currentUserId!,
+      ); // Obtener direcciones del usuario
+      setState(() {
+        _userAddresses = addresses;
+        if (_userAddresses.isNotEmpty) {
+          _selectedShippingAddress = _userAddresses
+              .first; // Seleccionar la primera por defecto si existen
+        }
+      });
+    } catch (e) {
+      print('Error al cargar direcciones del usuario en carrito: $e');
+      // Manejar el error
+      setState(() {
+        _userAddresses = [];
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al cargar tus direcciones guardadas.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _addressesLoading = false;
       });
     }
   }
@@ -278,6 +338,107 @@ class _CartScreenState extends State<CartScreen> {
         ),
       ),
     );
+  }
+
+  void _showAddressSelection() {
+    if (_userAddresses.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No tienes direcciones guardadas.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Selecciona una dirección de envío',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF5C3D2E),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _userAddresses.length,
+                itemBuilder: (context, index) {
+                  final address = _userAddresses[index];
+                  final isSelected =
+                      _selectedShippingAddress != null &&
+                      _selectedShippingAddress!['id'] == address['id'];
+
+                  return InkWell(
+                    onTap: () {
+                      setState(() {
+                        _selectedShippingAddress = address;
+                      });
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? const Color(0xFFE1D4C2)
+                            : Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isSelected
+                              ? const Color(0xFF5C3D2E)
+                              : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Text(
+                        _formatAddress(address), // Usar la función de formateo
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: isSelected
+                              ? const Color(0xFF5C3D2E)
+                              : Colors.black,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Función para formatear una dirección como String para mostrar
+  String _formatAddress(Map<String, dynamic> address) {
+    final street = address['street'] ?? '';
+    final city = address['city'] ?? '';
+    final state = address['state'] != null && address['state'].isNotEmpty
+        ? ', ${address['state']}'
+        : '';
+    final zipCode = address['zipCode'] ?? '';
+    final country = address['country'] ?? '';
+
+    return '$street, $city$state, $zipCode, $country';
   }
 
   @override
@@ -530,6 +691,51 @@ class _CartScreenState extends State<CartScreen> {
                           ),
                         ),
                         const Divider(height: 20),
+                        // Sección para mostrar y seleccionar dirección de envío
+                        if (_currentUserId != null && !_addressesLoading) ...[
+                          // Mostrar solo si hay usuario y direcciones cargadas
+                          const SizedBox(
+                            height: 8,
+                          ), // Espacio antes de la dirección
+                          InkWell(
+                            onTap:
+                                _showAddressSelection, // Mostrar modal de selección de dirección
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Dirección de Envío',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    _selectedShippingAddress != null
+                                        ? _formatAddress(
+                                            _selectedShippingAddress!,
+                                          )
+                                        : 'Seleccionar Dirección', // Mostrar dirección seleccionada o texto por defecto
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Color(0xFF5C3D2E),
+                                    ),
+                                    textAlign: TextAlign.right,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 14,
+                                  color: Color(0xFF5C3D2E),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 20), // Separador
+                        ],
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -555,27 +761,32 @@ class _CartScreenState extends State<CartScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _shippingCost > 0 ? _pay : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF5C3D2E),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
+                  Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).padding.bottom + 16,
+                    ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _shippingCost > 0 ? _pay : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5C3D2E),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          elevation: 2,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 2,
-                      ),
-                      icon: const Icon(Icons.payment, color: Colors.white),
-                      label: const Text(
-                        'Pagar',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                        icon: const Icon(Icons.payment, color: Colors.white),
+                        label: const Text(
+                          'Pagar',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -584,5 +795,10 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 }

@@ -18,7 +18,7 @@ class DatabaseService {
     final path = join(dbPath, 'marketplace.db');
     return await openDatabase(
       path,
-      version: 7,
+      version: 8,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE users(
@@ -27,7 +27,8 @@ class DatabaseService {
             email TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL,
             phone TEXT,
-            address TEXT
+            address TEXT,
+            imageUrl TEXT
           )
         ''');
         await db.execute('''
@@ -70,6 +71,19 @@ class DatabaseService {
             date TEXT
           )
         ''');
+        // Nueva tabla para direcciones
+        await db.execute('''
+          CREATE TABLE addresses(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            userId TEXT NOT NULL,
+            street TEXT NOT NULL,
+            city TEXT NOT NULL,
+            state TEXT,
+            zipCode TEXT,
+            country TEXT NOT NULL,
+            FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+          )
+        ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -97,6 +111,21 @@ class DatabaseService {
               userId TEXT NOT NULL,
               FOREIGN KEY (userId) REFERENCES users (id),
               UNIQUE(productId, userId)
+            )
+          ''');
+        }
+        if (oldVersion < 8) {
+          // Crear tabla addresses si no existe
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS addresses(
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              userId TEXT NOT NULL,
+              street TEXT NOT NULL,
+              city TEXT NOT NULL,
+              state TEXT,
+              zipCode TEXT,
+              country TEXT NOT NULL,
+              FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
             )
           ''');
         }
@@ -357,4 +386,60 @@ class DatabaseService {
       return User.fromMap(maps[i]);
     });
   }
+
+  // Métodos para direcciones
+  static Future<int> insertAddress(Map<String, dynamic> address) async {
+    final db = await database;
+    return await db.insert('addresses', address);
+  }
+
+  static Future<List<Map<String, dynamic>>> getAddressesByUserId(
+    String userId,
+  ) async {
+    final db = await database;
+    final maps = await db.query(
+      'addresses',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+    return maps;
+  }
+
+  static Future<Map<String, dynamic>?> getAddressById(int addressId) async {
+    final db = await database;
+    final maps = await db.query(
+      'addresses',
+      where: 'id = ?',
+      whereArgs: [addressId],
+      limit: 1,
+    );
+    if (maps.isEmpty) return null;
+    return maps.first;
+  }
+
+  static Future<int> updateAddress(int id, Map<String, dynamic> address) async {
+    final db = await database;
+    return await db.update(
+      'addresses',
+      address,
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  static Future<int> deleteAddress(int id) async {
+    final db = await database;
+    return await db.delete('addresses', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // Método para vaciar todas las tablas (solo para desarrollo)
+  // static Future<void> clearDatabase() async {
+  //   final db = await database;
+  //   await db.delete('users');
+  //   await db.delete('products');
+  //   await db.delete('cart');
+  //   await db.delete('favorites');
+  //   await db.delete('purchases');
+  //   await db.delete('addresses');
+  // }
 }

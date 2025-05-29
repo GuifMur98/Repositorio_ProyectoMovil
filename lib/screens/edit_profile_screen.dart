@@ -104,26 +104,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   TextField(
                     controller: _nameController,
-                    decoration: const InputDecoration(labelText: 'Nombre'),
+                    decoration: InputDecoration(
+                      labelText: 'Nombre',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      prefixIcon: const Icon(Icons.person_outline),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _emailController,
-                    decoration: const InputDecoration(labelText: 'Correo'),
+                    decoration: InputDecoration(
+                      labelText: 'Correo',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      prefixIcon: const Icon(Icons.email_outlined),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Nueva contraseña',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      prefixIcon: const Icon(Icons.lock_outline),
                     ),
                     obscureText: true,
                   ),
                   const SizedBox(height: 16),
                   TextField(
                     controller: _confirmPasswordController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Confirmar nueva contraseña',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      prefixIcon: const Icon(Icons.lock_outline),
                     ),
                     obscureText: true,
                   ),
@@ -131,7 +151,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ElevatedButton.icon(
                     onPressed: _save,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF5C3D2E),
+                      backgroundColor: const Color(0xFF5C3D2E),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32,
                         vertical: 16,

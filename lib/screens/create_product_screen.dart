@@ -26,12 +26,104 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   File? _selectedImage;
   final _picker = ImagePicker();
 
+  String? _currentUserId;
+  List<Map<String, dynamic>> _userAddresses =
+      []; // Lista para almacenar direcciones del usuario
+  Map<String, dynamic>? _selectedAddress; // Dirección seleccionada
+  bool _addressesLoading = true; // Estado de carga para las direcciones
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeData(); // Combinar inicialización de usuario y direcciones
+  }
+
+  Future<void> _initializeData() async {
+    // Obtener sellerId (userId)
+    final prefs = await SharedPreferences.getInstance();
+    final userEmail = prefs.getString('user_email');
+
+    if (userEmail != null) {
+      final user = await DatabaseService.getUserByEmail(userEmail);
+      if (user != null) {
+        setState(() {
+          _currentUserId = user.id;
+        });
+        await _loadUserAddresses(); // Cargar direcciones después de obtener el ID de usuario
+      }
+    }
+
+    // Iniciar carga de direcciones independientemente (manejar si no hay usuario logueado)
+    // await _loadUserAddresses(); // Movido dentro del if userEmail != null
+
+    // Finalizar carga general solo después de intentar cargar usuario y direcciones
+    setState(() {
+      // _isLoading = false; // Esto se maneja en _publishProduct ahora
+      _addressesLoading = false; // Finalizar carga de direcciones
+    });
+  }
+
+  Future<void> _loadUserAddresses() async {
+    if (_currentUserId == null) {
+      setState(() {
+        _addressesLoading = false;
+      });
+      return; // No hay usuario logueado, no se cargan direcciones
+    }
+    try {
+      final addresses = await DatabaseService.getAddressesByUserId(
+        _currentUserId!,
+      ); // Obtener direcciones del usuario
+      setState(() {
+        _userAddresses = addresses;
+        if (_userAddresses.isNotEmpty) {
+          _selectedAddress = _userAddresses
+              .first; // Seleccionar la primera por defecto si existen
+          _addressController.text = _formatAddress(
+            _selectedAddress!,
+          ); // Mostrarla en el controlador
+        }
+      });
+    } catch (e) {
+      print('Error al cargar direcciones del usuario: $e');
+      // Manejar el error, quizás mostrando un mensaje
+      setState(() {
+        _userAddresses = [];
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al cargar tus direcciones guardadas.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _addressesLoading = false;
+      });
+    }
+  }
+
+  // Función para formatear una dirección como String para mostrar en el TextField
+  String _formatAddress(Map<String, dynamic> address) {
+    final street = address['street'] ?? '';
+    final city = address['city'] ?? '';
+    final state = address['state'] != null && address['state'].isNotEmpty
+        ? ', ${address['state']}'
+        : '';
+    final zipCode = address['zipCode'] ?? '';
+    final country = address['country'] ?? '';
+
+    return '$street, $city$state, $zipCode, $country';
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
     _priceController.dispose();
-    _addressController.dispose();
+    _addressController.dispose(); // Seguimos liberando el controlador
     super.dispose();
   }
 
@@ -288,22 +380,109 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               }).toList(),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _addressController,
-              decoration: InputDecoration(
-                labelText: 'Dirección',
-                prefixIcon: const Icon(
-                  Icons.location_on,
-                  color: Color(0xFF5C3D2E),
-                ),
-                filled: true,
-                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
+            _addressesLoading // Mostrar indicador de carga de direcciones
+                ? const Center(child: CircularProgressIndicator())
+                : _userAddresses.isEmpty &&
+                      _currentUserId !=
+                          null // Si no hay direcciones y el usuario está logueado
+                ? Column(
+                    // Permitir escribir si no hay direcciones guardadas
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'No tienes direcciones guardadas. Ingresa una nueva:',
+                        style: TextStyle(
+                          color: Color(0xFF5C3D2E),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _addressController,
+                        decoration: InputDecoration(
+                          labelText: 'Dirección',
+                          prefixIcon: const Icon(
+                            Icons.location_on,
+                            color: Color(0xFF5C3D2E),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : _currentUserId ==
+                      null // Si no hay usuario logueado, mostrar campo normal
+                ? TextField(
+                    controller: _addressController,
+                    decoration: InputDecoration(
+                      labelText: 'Dirección',
+                      prefixIcon: const Icon(
+                        Icons.location_on,
+                        color: Color(0xFF5C3D2E),
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      hintText:
+                          'Ingresa la dirección del producto', // Texto de ayuda
+                    ),
+                  )
+                : // Si hay direcciones guardadas, mostrar selector
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Selecciona una dirección guardada:',
+                        style: TextStyle(
+                          color: Color(0xFF5C3D2E),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<int>(
+                        value: _selectedAddress?['id'] as int?,
+                        onChanged: (int? newValueId) {
+                          if (newValueId != null) {
+                            final selectedAddress = _userAddresses.firstWhere(
+                              (address) => address['id'] == newValueId,
+                            );
+                            setState(() {
+                              _selectedAddress = selectedAddress;
+                              _addressController.text = _formatAddress(
+                                selectedAddress,
+                              );
+                            });
+                          }
+                        },
+                        items: _userAddresses.map((address) {
+                          return DropdownMenuItem<int>(
+                            value: address['id'] as int,
+                            child: Text(
+                              _formatAddress(address),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
             const SizedBox(height: 32),
             if (_errorMessage != null)
               Padding(

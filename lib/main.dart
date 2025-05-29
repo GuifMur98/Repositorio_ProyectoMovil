@@ -20,6 +20,8 @@ import 'package:proyecto/screens/user_products_screen.dart';
 import 'package:proyecto/screens/purchase_history_screen.dart';
 import 'package:proyecto/screens/help_support_screen.dart';
 import 'package:proyecto/screens/privacy_security_screen.dart';
+import 'package:proyecto/screens/add_address_screen.dart';
+import 'package:proyecto/screens/edit_address_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,6 +106,14 @@ class MyApp extends StatelessWidget {
               ? args['sellerId'] as String
               : null;
           return ChatScreen(sellerId: sellerId);
+        },
+        '/add-address': (context) => const AddAddressScreen(),
+        '/edit-address': (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final addressId = args is Map && args['addressId'] != null
+              ? args['addressId'] as int
+              : -1;
+          return EditAddressScreen(addressId: addressId);
         },
       },
     );

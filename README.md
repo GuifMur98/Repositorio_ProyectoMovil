@@ -59,6 +59,48 @@ lib/
 └── main.dart       # Punto de entrada de la aplicación
 ```
 
+## Estructura de la Base de Datos
+
+La aplicación utiliza SQLite para el almacenamiento local con las siguientes tablas:
+
+### Tabla `users`
+- `id`: TEXT (PRIMARY KEY)
+- `name`: TEXT NOT NULL
+- `email`: TEXT UNIQUE NOT NULL
+- `password`: TEXT NOT NULL
+- `phone`: TEXT
+- `address`: TEXT
+- `imageUrl`: TEXT
+
+### Tabla `products`
+- `id`: TEXT (PRIMARY KEY)
+- `title`: TEXT NOT NULL
+- `description`: TEXT NOT NULL
+- `price`: REAL NOT NULL
+- `imageUrl`: TEXT NOT NULL
+- `category`: TEXT NOT NULL
+- `address`: TEXT NOT NULL
+- `sellerId`: TEXT NOT NULL (FOREIGN KEY)
+
+### Tabla `cart`
+- `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+- `productId`: TEXT NOT NULL
+- `userId`: TEXT NOT NULL (FOREIGN KEY)
+- UNIQUE(productId, userId)
+
+### Tabla `favorites`
+- `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+- `productId`: TEXT NOT NULL
+- `userId`: TEXT NOT NULL (FOREIGN KEY)
+- UNIQUE(productId, userId)
+
+### Tabla `purchases`
+- `id`: INTEGER PRIMARY KEY AUTOINCREMENT
+- `userId`: TEXT
+- `products`: TEXT
+- `total`: REAL
+- `date`: TEXT
+
 ## Instalación
 
 1. Clonar el repositorio:
@@ -108,6 +150,13 @@ flutter run
 - Historial de compras/ventas
 - Configuración de cuenta
 
+## Notas Importantes
+
+- La aplicación requiere permisos de almacenamiento para guardar imágenes de productos.
+- Se recomienda desinstalar y reinstalar la aplicación después de actualizaciones significativas de la base de datos.
+- Los datos del carrito y favoritos están vinculados al usuario actual.
+- La versión actual de la base de datos es 7, que incluye soporte para carrito y favoritos por usuario.
+
 ## Contribución
 1. Fork el proyecto
 2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
@@ -121,6 +170,6 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE.md](LICENSE.m
 
 
 Instrucciones:
-1.  Deben de activar modo desarrollador en sus computadoras, debido a que se utiliza un plugin que lo requiere, en una 
+1. Deben de activar modo desarrollador en sus computadoras, debido a que se utiliza un plugin que lo requiere, en una 
 terminal pueden correr este comando - ms-settings:developers –; Esto les abrirá una ventana de las settings donde deberán 
 habilitar developer tools.
