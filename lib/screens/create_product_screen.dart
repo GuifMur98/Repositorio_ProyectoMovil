@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 class CreateProductScreen extends StatefulWidget {
   const CreateProductScreen({super.key});
@@ -15,19 +20,41 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   final _descController = TextEditingController();
   final _priceController = TextEditingController();
   String? _category;
-  final _imageUrlController = TextEditingController();
   final _addressController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
+  File? _selectedImage;
+  final _picker = ImagePicker();
 
   @override
   void dispose() {
     _nameController.dispose();
     _descController.dispose();
     _priceController.dispose();
-    _imageUrlController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al seleccionar la imagen')),
+      );
+    }
+  }
+
+  Future<String> _saveImage(File imageFile) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final fileName = '${const Uuid().v4()}.jpg';
+    final savedImage = await imageFile.copy('${directory.path}/$fileName');
+    return savedImage.path;
   }
 
   Future<void> _publishProduct() async {
@@ -40,18 +67,17 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
     final desc = _descController.text.trim();
     final price = double.tryParse(_priceController.text.trim());
     final category = _category;
-    final imageUrl = _imageUrlController.text.trim().isEmpty
-        ? 'https://picsum.photos/200'
-        : _imageUrlController.text.trim();
     final address = _addressController.text.trim();
 
     if (name.isEmpty ||
         desc.isEmpty ||
         price == null ||
         category == null ||
-        address.isEmpty) {
+        address.isEmpty ||
+        _selectedImage == null) {
       setState(() {
-        _errorMessage = 'Completa todos los campos obligatorios.';
+        _errorMessage =
+            'Completa todos los campos obligatorios y selecciona una imagen.';
         _isLoading = false;
       });
       return;
@@ -77,18 +103,21 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
       return;
     }
 
-    final product = Product(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: name,
-      description: desc,
-      price: price,
-      imageUrl: imageUrl,
-      category: category,
-      address: address,
-      sellerId: user.id.toString(),
-    );
-
     try {
+      // Guardar la imagen y obtener su ruta
+      final imagePath = await _saveImage(_selectedImage!);
+
+      final product = Product(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: name,
+        description: desc,
+        price: price,
+        imageUrl: imagePath,
+        category: category,
+        address: address,
+        sellerId: user.id.toString(),
+      );
+
       await DatabaseService.insertProduct(product);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -125,30 +154,69 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE1D4C2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(
-                    Icons.add_photo_alternate,
-                    size: 48,
-                    color: Color(0xFF5C3D2E),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Agregar fotos',
-                    style: TextStyle(color: Color(0xFF5C3D2E)),
-                  ),
-                  Text(
-                    'Máximo 5 fotos',
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
-                  ),
-                ],
+            GestureDetector(
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  builder: (BuildContext context) {
+                    return SafeArea(
+                      child: Wrap(
+                        children: <Widget>[
+                          ListTile(
+                            leading: const Icon(Icons.photo_library),
+                            title: const Text('Galería'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _pickImage(ImageSource.gallery);
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.photo_camera),
+                            title: const Text('Cámara'),
+                            onTap: () {
+                              Navigator.pop(context);
+                              _pickImage(ImageSource.camera);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+              child: Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE1D4C2),
+                  borderRadius: BorderRadius.circular(12),
+                  image: _selectedImage != null
+                      ? DecorationImage(
+                          image: FileImage(_selectedImage!),
+                          fit: BoxFit.cover,
+                        )
+                      : null,
+                ),
+                child: _selectedImage == null
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.add_photo_alternate,
+                            size: 48,
+                            color: Color(0xFF5C3D2E),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Agregar foto',
+                            style: TextStyle(color: Color(0xFF5C3D2E)),
+                          ),
+                          Text(
+                            'Toca para seleccionar',
+                            style: TextStyle(color: Colors.grey, fontSize: 12),
+                          ),
+                        ],
+                      )
+                    : null,
               ),
             ),
             const SizedBox(height: 24),
@@ -218,19 +286,6 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                   child: Text(value),
                 );
               }).toList(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _imageUrlController,
-              decoration: InputDecoration(
-                labelText: 'URL de la imagen (opcional)',
-                filled: true,
-                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
             ),
             const SizedBox(height: 16),
             TextField(

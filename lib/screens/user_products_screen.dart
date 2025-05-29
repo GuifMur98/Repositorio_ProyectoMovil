@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/services/database_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/product.dart';
+import '../screens/user_product_detail_screen.dart';
 
 class UserProductsScreen extends StatefulWidget {
   const UserProductsScreen({super.key});
@@ -71,39 +72,101 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
           : _products.isEmpty
           ? const Center(child: Text('No has publicado productos.'))
           : ListView.builder(
+              padding: const EdgeInsets.all(16),
               itemCount: _products.length,
               itemBuilder: (context, index) {
                 final product = _products[index];
                 return Card(
-                  margin: const EdgeInsets.symmetric(
-                    vertical: 6,
-                    horizontal: 12,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  child: ListTile(
-                    leading: product.imageUrl.isNotEmpty
-                        ? Image.network(
-                            product.imageUrl,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                          )
-                        : const Icon(Icons.image, size: 40),
-                    title: Text(product.title),
-                    subtitle: Text(product.category),
-                    trailing: Text(
-                      '\$${product.price.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: Color(0xFF5C3D2E),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                  child: InkWell(
                     onTap: () {
-                      Navigator.pushNamed(
+                      Navigator.push(
                         context,
-                        '/product-detail',
-                        arguments: {'productId': product.id},
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              UserProductDetailScreen(productId: product.id),
+                        ),
                       );
                     },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Row(
+                      children: [
+                        // Imagen del producto
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE1D4C2),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
+                            ),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
+                            ),
+                            child: product.getImageWidget(),
+                          ),
+                        ),
+                        // Información del producto
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product.title,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF5C3D2E),
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '\$${product.price.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF5C3D2E),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.category,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        product.category,
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

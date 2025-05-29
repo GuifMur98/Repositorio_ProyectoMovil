@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/database_service.dart';
 import 'package:proyecto/models/product.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -23,19 +24,83 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     setState(() {
       _loading = true;
     });
-    final allProducts = await DatabaseService.getProducts();
-    final favIds = await DatabaseService.getFavoriteProductIds();
-    setState(() {
-      _favoriteProducts = allProducts
-          .where((p) => favIds.contains(p.id))
-          .toList();
-      _loading = false;
-    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserEmail = prefs.getString('user_email');
+      if (currentUserEmail == null) {
+        setState(() {
+          _favoriteProducts = [];
+          _loading = false;
+        });
+        return;
+      }
+
+      final currentUser = await DatabaseService.getUserByEmail(
+        currentUserEmail,
+      );
+      if (currentUser == null) {
+        setState(() {
+          _favoriteProducts = [];
+          _loading = false;
+        });
+        return;
+      }
+
+      final favIds = await DatabaseService.getFavoriteProductIds(
+        currentUser.id,
+      );
+      final products = await DatabaseService.getProducts();
+
+      setState(() {
+        _favoriteProducts = products
+            .where((p) => favIds.contains(p.id))
+            .toList();
+        _loading = false;
+      });
+    } catch (e) {
+      print('Error al cargar favoritos: $e');
+      setState(() {
+        _favoriteProducts = [];
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _removeFromFavorites(String productId) async {
-    await DatabaseService.removeFromFavorites(productId);
-    await _loadFavorites();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserEmail = prefs.getString('user_email');
+      if (currentUserEmail == null) return;
+
+      final currentUser = await DatabaseService.getUserByEmail(
+        currentUserEmail,
+      );
+      if (currentUser == null) return;
+
+      await DatabaseService.removeFromFavorites(productId, currentUser.id);
+      await _loadFavorites();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto removido de favoritos'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error al remover de favoritos: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al remover de favoritos'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -99,14 +164,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                     topLeft: Radius.circular(16),
                                     bottomLeft: Radius.circular(16),
                                   ),
-                                  child: Image.network(
-                                    product.imageUrl,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: product.getImageWidget(),
                                 )
                               : const Center(
                                   child: Icon(
-                                    Icons.image,
+                                    Icons.add_photo_alternate,
                                     size: 40,
                                     color: Color(0xFF5C3D2E),
                                   ),

@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+
 class Product {
   final String id;
   final String title;
@@ -45,6 +48,63 @@ class Product {
       category: map['category']?.toString() ?? '',
       address: map['address']?.toString() ?? '',
       sellerId: map['sellerId']?.toString() ?? '',
+    );
+  }
+
+  Widget getImageWidget() {
+    if (imageUrl.isEmpty) {
+      return Container(
+        color: const Color(0xFFE1D4C2),
+        child: const Center(
+          child: Icon(
+            Icons.add_photo_alternate,
+            size: 50,
+            color: Color(0xFF5C3D2E),
+          ),
+        ),
+      );
+    }
+
+    // Si la URL comienza con /data, es una imagen local
+    if (imageUrl.startsWith('/data')) {
+      return Image.file(
+        File(imageUrl),
+        fit: BoxFit.cover,
+        height: double.infinity,
+        width: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: const Color(0xFFE1D4C2),
+            child: const Center(
+              child: Icon(
+                Icons.add_photo_alternate,
+                size: 50,
+                color: Color(0xFF5C3D2E),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    // Si no es una imagen local, asumimos que es una URL de red
+    return Image.network(
+      imageUrl,
+      fit: BoxFit.cover,
+      height: double.infinity,
+      width: double.infinity,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xFFE1D4C2),
+          child: const Center(
+            child: Icon(
+              Icons.add_photo_alternate,
+              size: 50,
+              color: Color(0xFF5C3D2E),
+            ),
+          ),
+        );
+      },
     );
   }
 }

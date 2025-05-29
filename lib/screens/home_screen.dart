@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/database_service.dart';
 import 'package:proyecto/models/product.dart';
+import 'package:proyecto/models/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,14 +13,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Product> _products = [];
-  List<Product> _filteredProducts = [];
+  List<String> _favoriteProductIds = [];
   bool _loading = true;
   final _searchController = TextEditingController();
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
-    _loadProducts();
+    _initializeData();
   }
 
   @override
@@ -27,21 +30,134 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  Future<void> _initializeData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userEmail = prefs.getString('user_email');
+
+      // Cargar productos primero, independientemente del estado de autenticación
+      await _loadProducts();
+
+      if (userEmail != null) {
+        final user = await DatabaseService.getUserByEmail(userEmail);
+        if (user != null) {
+          setState(() {
+            _currentUserId = user.id;
+          });
+          await _loadFavorites();
+        }
+      }
+
+      setState(() {
+        _loading = false;
+      });
+    } catch (e) {
+      print('Error al inicializar datos: $e');
+      setState(() {
+        _loading = false;
+      });
+    }
+  }
+
   Future<void> _loadProducts() async {
-    final products = await DatabaseService.getProducts();
-    setState(() {
-      _products = products;
-      _filteredProducts = products;
-      _loading = false;
-    });
+    try {
+      final products = await DatabaseService.getProducts();
+      setState(() {
+        _products = products;
+      });
+    } catch (e) {
+      print('Error al cargar productos: $e');
+      setState(() {
+        _products = [];
+      });
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    if (_currentUserId == null) return;
+
+    try {
+      final favoriteIds = await DatabaseService.getFavoriteProductIds(
+        _currentUserId!,
+      );
+      setState(() {
+        _favoriteProductIds = favoriteIds;
+      });
+    } catch (e) {
+      print('Error al cargar favoritos: $e');
+      setState(() {
+        _favoriteProductIds = [];
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite(String productId) async {
+    if (_currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para marcar favoritos'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final isCurrentlyFavorite = _favoriteProductIds.contains(productId);
+
+      if (isCurrentlyFavorite) {
+        await DatabaseService.removeFromFavorites(productId, _currentUserId!);
+        setState(() {
+          _favoriteProductIds.remove(productId);
+        });
+      } else {
+        await DatabaseService.addToFavorites(productId, _currentUserId!);
+        setState(() {
+          _favoriteProductIds.add(productId);
+        });
+      }
+    } catch (e) {
+      print('Error al actualizar favoritos: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al actualizar favoritos'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToCart(String productId) async {
+    if (_currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para añadir al carrito'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await DatabaseService.addToCart(productId, _currentUserId!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto añadido al carrito')),
+      );
+    } catch (e) {
+      print('Error al añadir al carrito: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al añadir al carrito')),
+      );
+    }
   }
 
   void _filterProducts(String query) {
     setState(() {
       if (query.isEmpty) {
-        _filteredProducts = _products;
+        _products = _products;
       } else {
-        _filteredProducts = _products.where((product) {
+        _products = _products.where((product) {
           final titleLower = product.title.toLowerCase();
           final descriptionLower = product.description.toLowerCase();
           final categoryLower = product.category.toLowerCase();
@@ -53,6 +169,32 @@ class _HomeScreenState extends State<HomeScreen> {
         }).toList();
       }
     });
+  }
+
+  Widget _buildProductsGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.75,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: _products.length,
+      itemBuilder: (context, index) {
+        final product = _products[index];
+        final isFavorite =
+            _currentUserId != null && _favoriteProductIds.contains(product.id);
+
+        return _buildProductCard(
+          context,
+          product,
+          isFavorite,
+          () => _toggleFavorite(product.id),
+        );
+      },
+    );
   }
 
   @override
@@ -216,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                    ] else if (_filteredProducts.isEmpty) ...[
+                    ] else if (_products.isEmpty) ...[
                       const SizedBox(height: 32),
                       const Icon(
                         Icons.search_off,
@@ -240,23 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ],
-                    if (_filteredProducts.isNotEmpty)
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              childAspectRatio: 0.75,
-                              crossAxisSpacing: 16,
-                              mainAxisSpacing: 16,
-                            ),
-                        itemCount: _filteredProducts.length,
-                        itemBuilder: (context, index) {
-                          final product = _filteredProducts[index];
-                          return _buildProductCard(context, product);
-                        },
-                      ),
+                    if (_products.isNotEmpty) _buildProductsGrid(),
                   ],
                 ),
               ),
@@ -346,7 +472,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, Product product) {
+  Widget _buildProductCard(
+    BuildContext context,
+    Product product,
+    bool isFavorite,
+    Function() onFavoriteToggle,
+  ) {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
@@ -372,40 +503,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(4),
                       ),
-                      child: Image.network(
-                        product.imageUrl,
-                        fit: BoxFit.cover,
-                        height: double.infinity,
-                        width: double.infinity,
-                      ),
+                      child: product.getImageWidget(),
                     ),
                   ),
                   Positioned(
                     top: 8,
                     right: 8,
-                    child: FutureBuilder<List<String>>(
-                      future: DatabaseService.getFavoriteProductIds(),
-                      builder: (context, snapshot) {
-                        final isFav =
-                            snapshot.hasData &&
-                            snapshot.data!.contains(product.id);
-                        return IconButton(
-                          icon: Icon(
-                            isFav ? Icons.favorite : Icons.favorite_border,
-                            color: isFav ? Colors.red : Colors.grey,
-                          ),
-                          onPressed: () async {
-                            if (isFav) {
-                              await DatabaseService.removeFromFavorites(
-                                product.id,
-                              );
-                            } else {
-                              await DatabaseService.addToFavorites(product.id);
-                            }
-                            setState(() {});
-                          },
-                        );
-                      },
+                    child: IconButton(
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.red : Colors.grey,
+                      ),
+                      onPressed: onFavoriteToggle,
                     ),
                   ),
                 ],
@@ -435,18 +544,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () async {
-                            await DatabaseService.addToCart(product.id);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Producto añadido al carrito'),
-                              ),
-                            );
-                          },
+                          onPressed: () => _addToCart(product.id),
                           icon: const Icon(Icons.add_shopping_cart, size: 18),
                           label: const Text('Añadir al carrito'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF5C3D2E),
+                            backgroundColor: const Color(0xFF5C3D2E),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             shape: RoundedRectangleBorder(

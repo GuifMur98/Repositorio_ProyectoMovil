@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/services/database_service.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/models/user.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
-  const ProductDetailScreen({super.key, required this.productId});
+  final bool isFromProfile;
+  const ProductDetailScreen({
+    super.key,
+    required this.productId,
+    this.isFromProfile = false,
+  });
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -13,68 +19,133 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   bool _isFavorite = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
     print('ProductDetailScreen - ID del producto: ${widget.productId}');
-    _checkIfFavorite();
+    _initializeData();
   }
 
-  Future<void> _checkIfFavorite() async {
-    print('Verificando si el producto ${widget.productId} está en favoritos');
-    final isFavorite = await DatabaseService.isProductInFavorites(
-      widget.productId,
-    );
-    print('Resultado de verificación de favoritos: $isFavorite');
-    setState(() {
-      _isFavorite = isFavorite;
-    });
+  Future<void> _initializeData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserEmail = prefs.getString('user_email');
+      if (currentUserEmail == null) {
+        setState(() {
+          _isFavorite = false;
+        });
+        return;
+      }
+
+      final currentUser = await DatabaseService.getUserByEmail(
+        currentUserEmail,
+      );
+      if (currentUser == null) {
+        setState(() {
+          _isFavorite = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _currentUserId = currentUser.id;
+      });
+
+      await _checkFavoriteStatus();
+    } catch (e) {
+      print('Error al inicializar datos: $e');
+      setState(() {
+        _isFavorite = false;
+      });
+    }
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    if (_currentUserId == null) return;
+
+    try {
+      final favorite = await DatabaseService.isProductInFavorites(
+        widget.productId,
+        _currentUserId!,
+      );
+      setState(() {
+        _isFavorite = favorite;
+      });
+    } catch (e) {
+      print('Error al verificar estado de favorito: $e');
+      setState(() {
+        _isFavorite = false;
+      });
+    }
   }
 
   Future<void> _toggleFavorite() async {
-    try {
-      print(
-        'Intentando ${_isFavorite ? "remover" : "agregar"} el producto ${widget.productId} de favoritos',
+    if (_currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para añadir a favoritos'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
       );
-      if (_isFavorite) {
-        await DatabaseService.removeFromFavorites(widget.productId);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto removido de favoritos'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        await DatabaseService.addToFavorites(widget.productId);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Producto agregado a favoritos'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
+      return;
+    }
 
-      // Verificar el estado actual después de la operación
-      final isFavorite = await DatabaseService.isProductInFavorites(
-        widget.productId,
-      );
-      print('Estado de favoritos después de la operación: $isFavorite');
-      if (mounted) {
-        setState(() {
-          _isFavorite = isFavorite;
-        });
+    try {
+      if (_isFavorite) {
+        await DatabaseService.removeFromFavorites(
+          widget.productId,
+          _currentUserId!,
+        );
+      } else {
+        await DatabaseService.addToFavorites(widget.productId, _currentUserId!);
       }
+      await _checkFavoriteStatus();
     } catch (e) {
       print('Error al actualizar favoritos: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Error al actualizar favoritos'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _addToCart() async {
+    if (_currentUserId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para añadir al carrito'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    try {
+      await DatabaseService.addToCart(widget.productId, _currentUserId!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto añadido al carrito'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error al añadir al carrito: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al añadir al carrito'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
           ),
@@ -141,7 +212,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   height: 300,
                   width: double.infinity,
                   decoration: const BoxDecoration(color: Color(0xFFE1D4C2)),
-                  child: Image.network(product.imageUrl, fit: BoxFit.cover),
+                  child: product.getImageWidget(),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -187,9 +258,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         style: const TextStyle(fontSize: 16),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Información del Vendedor',
-                        style: TextStyle(
+                      if (!widget.isFromProfile) ...[
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _addToCart,
+                            icon: const Icon(Icons.add_shopping_cart),
+                            label: const Text('Añadir al carrito'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF5C3D2E),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                      Text(
+                        widget.isFromProfile
+                            ? 'Estadísticas del Vendedor'
+                            : 'Información del Vendedor',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -207,9 +299,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
                           final seller = snapshot.data;
                           if (seller == null) {
-                            print(
-                              'No se encontró vendedor con ID: ${product.sellerId}',
-                            ); // Para debugging
                             return const Card(
                               child: ListTile(
                                 leading: CircleAvatar(
@@ -257,19 +346,48 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            Text(
-                                              seller.email,
-                                              style: const TextStyle(
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                            if (seller.phone != null) ...[
-                                              const SizedBox(height: 4),
+                                            if (!widget.isFromProfile) ...[
                                               Text(
-                                                'Teléfono: ${seller.phone}',
+                                                seller.email,
                                                 style: const TextStyle(
                                                   color: Colors.grey,
                                                 ),
+                                              ),
+                                              if (seller.phone != null) ...[
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  'Teléfono: ${seller.phone}',
+                                                  style: const TextStyle(
+                                                    color: Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ] else ...[
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.star,
+                                                    color: Colors.amber,
+                                                    size: 16,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  const Text(
+                                                    '4.8',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Color(0xFF5C3D2E),
+                                                    ),
+                                                  ),
+                                                  const Text(
+                                                    ' (120 valoraciones)',
+                                                    style: TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ],
                                           ],
@@ -277,7 +395,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 24),
                                   Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceAround,
@@ -322,10 +440,16 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           );
                                         },
                                       ),
-                                      _buildSellerStat('Valoración', '4.8'),
+                                      _buildSellerStat(
+                                        widget.isFromProfile
+                                            ? 'Tiempo'
+                                            : 'Valoración',
+                                        widget.isFromProfile ? '2 años' : '4.8',
+                                      ),
                                     ],
                                   ),
-                                  if (seller.address != null &&
+                                  if (!widget.isFromProfile &&
+                                      seller.address != null &&
                                       seller.address!.isNotEmpty) ...[
                                     const SizedBox(height: 16),
                                     Row(
@@ -348,24 +472,85 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     ),
                                   ],
                                   const SizedBox(height: 16),
-                                  ElevatedButton.icon(
-                                    onPressed: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        '/chat',
-                                        arguments: {'sellerId': seller.id},
+                                  FutureBuilder<String?>(
+                                    future: SharedPreferences.getInstance()
+                                        .then(
+                                          (prefs) =>
+                                              prefs.getString('user_email'),
+                                        ),
+                                    builder: (context, snapshot) {
+                                      print(
+                                        'Email del usuario actual: ${snapshot.data}',
+                                      );
+                                      if (!snapshot.hasData) {
+                                        print('No hay email de usuario');
+                                        return const SizedBox.shrink();
+                                      }
+
+                                      return FutureBuilder<User?>(
+                                        future: DatabaseService.getUserByEmail(
+                                          snapshot.data!,
+                                        ),
+                                        builder: (context, userSnapshot) {
+                                          print(
+                                            'Usuario actual: ${userSnapshot.data?.id}',
+                                          );
+                                          print(
+                                            'ID del vendedor: ${seller.id}',
+                                          );
+
+                                          if (!userSnapshot.hasData) {
+                                            print('No se encontró el usuario');
+                                            return const SizedBox.shrink();
+                                          }
+
+                                          final currentUser =
+                                              userSnapshot.data!;
+                                          if (currentUser.id != seller.id) {
+                                            print(
+                                              'Mostrando botón de chat - Usuario no es vendedor',
+                                            );
+                                            return Container(
+                                              width: double.infinity,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                  ),
+                                              child: ElevatedButton.icon(
+                                                onPressed: () {
+                                                  Navigator.pushNamed(
+                                                    context,
+                                                    '/chat',
+                                                    arguments: {
+                                                      'sellerId': seller.id,
+                                                    },
+                                                  );
+                                                },
+                                                icon: const Icon(Icons.chat),
+                                                label: const Text(
+                                                  'Contactar al vendedor',
+                                                ),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(
+                                                    0xFF5C3D2E,
+                                                  ),
+                                                  foregroundColor: Colors.white,
+                                                  minimumSize: const Size(
+                                                    double.infinity,
+                                                    50,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          }
+
+                                          print(
+                                            'No se muestra el botón - Usuario es el vendedor',
+                                          );
+                                          return const SizedBox.shrink();
+                                        },
                                       );
                                     },
-                                    icon: const Icon(Icons.message),
-                                    label: const Text('Contactar al vendedor'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF5C3D2E),
-                                      foregroundColor: Colors.white,
-                                      minimumSize: const Size(
-                                        double.infinity,
-                                        45,
-                                      ),
-                                    ),
                                   ),
                                 ],
                               ),

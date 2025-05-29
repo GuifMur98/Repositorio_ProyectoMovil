@@ -123,12 +123,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                               borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(4),
                               ),
-                              child: Image.network(
-                                product.imageUrl,
-                                fit: BoxFit.cover,
-                                height: double.infinity,
-                                width: double.infinity,
-                              ),
+                              child: product.getImageWidget(),
                             ),
                           ),
                         ),

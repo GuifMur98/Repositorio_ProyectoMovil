@@ -8,6 +8,7 @@ import 'package:proyecto/screens/favorites_screen.dart';
 import 'package:proyecto/screens/chat_screen.dart';
 import 'package:proyecto/screens/create_product_screen.dart';
 import 'package:proyecto/screens/product_detail_screen.dart';
+import 'package:proyecto/screens/user_product_detail_screen.dart';
 import 'package:proyecto/screens/category_screen.dart';
 import 'package:proyecto/screens/cart_screen.dart';
 import 'package:proyecto/screens/notifications_screen.dart';
@@ -22,9 +23,6 @@ import 'package:proyecto/screens/privacy_security_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Limpiar la base de datos existente
-  await DatabaseService.clearDatabase();
 
   // Inicializar la base de datos
   await DatabaseService.initDatabase();
