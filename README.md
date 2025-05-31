@@ -57,17 +57,12 @@ TradeNest es una aplicación móvil de comercio electrónico desarrollada con Fl
 git clone https://github.com/GuifMur98/Repositorio_ProyectoMovil.git
 ```
 
-2. Navega al directorio del proyecto:
-```bash
-cd tradenest
-```
-
-3. Instala las dependencias:
+2. Instala las dependencias:
 ```bash
 flutter pub get
 ```
 
-4. Ejecuta la aplicación:
+3. Ejecuta la aplicación:
 ```bash
 flutter run
 ```
