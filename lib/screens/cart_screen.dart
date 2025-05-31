@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:proyecto/models/product.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -11,782 +8,386 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
-  List<Product> _cartProducts = [];
-  bool _loading = true;
-  double _shippingCost = 0.0; // Costo de envío seleccionado
-  String? _currentUserId;
+  // Datos de ejemplo para el carrito
+  final List<Map<String, dynamic>> _cartProducts = [
+    {
+      'id': '1',
+      'title': 'Producto de Ejemplo 1',
+      'description': 'Descripción detallada del producto 1',
+      'price': 99.99,
+      'image': 'assets/images/Logo_PMiniatura.png',
+      'quantity': 2,
+    },
+    {
+      'id': '2',
+      'title': 'Producto de Ejemplo 2',
+      'description': 'Descripción detallada del producto 2',
+      'price': 149.99,
+      'image': 'assets/images/Logo_PMiniatura.png',
+      'quantity': 1,
+    },
+  ];
 
-  List<Map<String, dynamic>> _userAddresses =
-      []; // Lista para almacenar direcciones del usuario
-  Map<String, dynamic>?
-  _selectedShippingAddress; // Dirección de envío seleccionada
-  bool _addressesLoading = true; // Estado de carga para las direcciones
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeData();
-  }
-
-  Future<void> _initializeData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userEmail = prefs.getString('user_email');
-      if (userEmail == null) {
-        setState(() {
-          _loading = false;
-          _addressesLoading = false;
-        });
-        return;
-      }
-
-      final user = await DatabaseService.getUserByEmail(userEmail);
-      if (user == null) {
-        setState(() {
-          _loading = false;
-          _addressesLoading = false;
-        });
-        return;
-      }
-
-      setState(() {
-        _currentUserId = user.id;
-      });
-
-      // Cargar carrito y direcciones en paralelo o secuencia
-      await _loadCart();
-      await _loadUserAddresses();
-    } catch (e) {
-      print('Error al inicializar datos: $e');
-      setState(() {
-        _loading = false;
-        _addressesLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al cargar datos iniciales'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _loadUserAddresses() async {
-    if (_currentUserId == null) {
-      setState(() {
-        _addressesLoading = false;
-      });
-      return; // No hay usuario logueado, no se cargan direcciones
-    }
-    try {
-      final addresses = await DatabaseService.getAddressesByUserId(
-        _currentUserId!,
-      ); // Obtener direcciones del usuario
-      setState(() {
-        _userAddresses = addresses;
-        if (_userAddresses.isNotEmpty) {
-          _selectedShippingAddress = _userAddresses
-              .first; // Seleccionar la primera por defecto si existen
-        }
-      });
-    } catch (e) {
-      print('Error al cargar direcciones del usuario en carrito: $e');
-      // Manejar el error
-      setState(() {
-        _userAddresses = [];
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al cargar tus direcciones guardadas.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } finally {
-      setState(() {
-        _addressesLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadCart() async {
-    if (_currentUserId == null) {
-      setState(() {
-        _loading = false;
-      });
-      return;
-    }
-
-    try {
-      final cartIds = await DatabaseService.getCartProductIds(_currentUserId!);
-      final allProducts = await DatabaseService.getProducts();
-
-      setState(() {
-        _cartProducts = allProducts
-            .where((p) => cartIds.contains(p.id))
-            .toList();
-        _loading = false;
-      });
-    } catch (e) {
-      print('Error al cargar el carrito: $e');
-      setState(() {
-        _cartProducts = [];
-        _loading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al cargar el carrito'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _removeFromCart(String productId) async {
-    if (_currentUserId == null) return;
-
-    try {
-      await DatabaseService.removeFromCart(productId, _currentUserId!);
-      await _loadCart();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto removido del carrito'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error al eliminar del carrito: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al eliminar el producto del carrito'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _pay() async {
-    if (_currentUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se pudo identificar el usuario'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    if (_cartProducts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('El carrito está vacío'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    try {
-      final productsList = _cartProducts
-          .map(
-            (p) => {
-              'id': p.id,
-              'title': p.title,
-              'price': p.price,
-              'imageUrl': p.imageUrl,
-              'category': p.category,
-              'address': p.address,
-            },
-          )
-          .toList();
-
-      final total = _calculateTotal();
-
-      await DatabaseService.insertPurchase(
-        userId: _currentUserId!,
-        products: productsList,
-        total: total,
-      );
-      await DatabaseService.clearCart(_currentUserId!);
-
-      setState(() {
-        _cartProducts.clear();
-        _shippingCost = 0.0;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('¡Pago realizado con éxito!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error al procesar el pago: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al procesar el pago'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
+  // Dirección de ejemplo
+  final Map<String, dynamic> _shippingAddress = {
+    'street': 'Calle de Ejemplo 123',
+    'city': 'Ciudad de Ejemplo',
+    'state': 'Estado de Ejemplo',
+    'zipCode': '12345',
+  };
 
   double _calculateSubtotal() {
-    return _cartProducts.fold(0.0, (sum, p) => sum + p.price);
-  }
-
-  double _calculateIVA() {
-    return _calculateSubtotal() * 0.15;
-  }
-
-  double _calculateTotal() {
-    return _calculateSubtotal() + _calculateIVA() + _shippingCost;
-  }
-
-  void _showShippingOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Selecciona el método de envío',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF5C3D2E),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildShippingOption('Envío Estándar', 20.0),
-            _buildShippingOption('Envío Express', 50.0),
-            _buildShippingOption('Envío Premium', 70.0),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
+    return _cartProducts.fold(
+      0,
+      (sum, product) =>
+          sum + (product['price'] as double) * (product['quantity'] as int),
     );
   }
 
-  Widget _buildShippingOption(String title, double cost) {
-    final isSelected = _shippingCost == cost;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _shippingCost = cost;
-        });
-        Navigator.pop(context);
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE1D4C2) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF5C3D2E) : Colors.grey.shade300,
+  Widget _buildCartItem(Map<String, dynamic> product) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
           ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                color: isSelected ? const Color(0xFF5C3D2E) : Colors.black,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-            Text(
-              '\$${cost.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 16,
-                color: isSelected ? const Color(0xFF5C3D2E) : Colors.black,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
-    );
-  }
-
-  void _showAddressSelection() {
-    if (_userAddresses.isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No tienes direcciones guardadas.'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: const BorderRadius.horizontal(
+              left: Radius.circular(12),
+            ),
+            child: Image.asset(
+              product['image'] as String,
+              width: 100,
+              height: 100,
+              fit: BoxFit.cover,
+            ),
           ),
-        );
-      }
-      return;
-    }
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Selecciona una dirección de envío',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF5C3D2E),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _userAddresses.length,
-                itemBuilder: (context, index) {
-                  final address = _userAddresses[index];
-                  final isSelected =
-                      _selectedShippingAddress != null &&
-                      _selectedShippingAddress!['id'] == address['id'];
-
-                  return InkWell(
-                    onTap: () {
-                      setState(() {
-                        _selectedShippingAddress = address;
-                      });
-                      Navigator.pop(context);
-                    },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFE1D4C2)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSelected
-                              ? const Color(0xFF5C3D2E)
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Text(
-                        _formatAddress(address), // Usar la función de formateo
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: isSelected
-                              ? const Color(0xFF5C3D2E)
-                              : Colors.black,
-                          fontWeight: isSelected
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
-                      ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product['title'] as String,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                  );
-                },
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${(product['price'] as double).toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF5C3D2E),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove, size: 20),
+                                  onPressed: () {
+                                    // Mostrar mensaje de funcionalidad no disponible
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Funcionalidad no disponible en la versión de demostración',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                Text(
+                                  '${product['quantity']}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add, size: 20),
+                                  onPressed: () {
+                                    // Mostrar mensaje de funcionalidad no disponible
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Funcionalidad no disponible en la versión de demostración',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.red,
+                        ),
+                        onPressed: () {
+                          // Mostrar mensaje de funcionalidad no disponible
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Funcionalidad no disponible en la versión de demostración',
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // Función para formatear una dirección como String para mostrar
-  String _formatAddress(Map<String, dynamic> address) {
-    final street = address['street'] ?? '';
-    final city = address['city'] ?? '';
-    final state = address['state'] != null && address['state'].isNotEmpty
-        ? ', ${address['state']}'
-        : '';
-    final zipCode = address['zipCode'] ?? '';
-    final country = address['country'] ?? '';
+  Widget _buildShippingAddress() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.location_on, color: Color(0xFF5C3D2E)),
+              SizedBox(width: 8),
+              Text(
+                'Dirección de Envío',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF5C3D2E),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _shippingAddress['street'],
+            style: const TextStyle(fontSize: 16),
+          ),
+          Text(
+            '${_shippingAddress['city']}, ${_shippingAddress['state']} ${_shippingAddress['zipCode']}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () {
+              // Mostrar mensaje de funcionalidad no disponible
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Funcionalidad no disponible en la versión de demostración',
+                  ),
+                ),
+              );
+            },
+            child: const Text('Cambiar Dirección'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    return '$street, $city$state, $zipCode, $country';
+  Widget _buildOrderSummary() {
+    final subtotal = _calculateSubtotal();
+    final shipping = 10.0;
+    final total = subtotal + shipping;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 3,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Resumen del Pedido',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF5C3D2E),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildSummaryRow('Subtotal', '\$${subtotal.toStringAsFixed(2)}'),
+          _buildSummaryRow('Envío', '\$${shipping.toStringAsFixed(2)}'),
+          const Divider(),
+          _buildSummaryRow(
+            'Total',
+            '\$${total.toStringAsFixed(2)}',
+            isTotal: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isTotal ? 18 : 16,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? const Color(0xFF5C3D2E) : Colors.black,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isTotal ? 18 : 16,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? const Color(0xFF5C3D2E) : Colors.black,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = _calculateSubtotal();
-    final iva = _calculateIVA();
-    final total = _calculateTotal();
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text('Mi Carrito', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF5C3D2E),
-        elevation: 0,
+        title: const Text(
+          'Carrito',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _cartProducts.isEmpty
-          ? const Center(
-              child: Text(
-                'Tu carrito está vacío',
-                style: TextStyle(fontSize: 22, color: Color(0xFF5C3D2E)),
+      body: _cartProducts.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.shopping_cart_outlined,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tu carrito está vacío',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Agrega algunos productos para continuar',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  ),
+                ],
               ),
             )
-          : Padding(
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _cartProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _cartProducts[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.pushNamed(
-                                context,
-                                '/product-detail',
-                                arguments: {'productId': product.id},
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(16),
-                            child: Row(
-                              children: [
-                                // Imagen del producto
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFE1D4C2),
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(16),
-                                      bottomLeft: Radius.circular(16),
-                                    ),
-                                  ),
-                                  child: product.imageUrl.isNotEmpty
-                                      ? ClipRRect(
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(16),
-                                            bottomLeft: Radius.circular(16),
-                                          ),
-                                          child: product.getImageWidget(),
-                                        )
-                                      : const Center(
-                                          child: Icon(
-                                            Icons.add_photo_alternate,
-                                            size: 40,
-                                            color: Color(0xFF5C3D2E),
-                                          ),
-                                        ),
-                                ),
-                                // Información del producto
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                product.title,
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Color(0xFF5C3D2E),
-                                                ),
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                Icons.delete_outline,
-                                                color: Colors.red,
-                                                size: 32,
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                              constraints:
-                                                  const BoxConstraints(),
-                                              onPressed: () =>
-                                                  _removeFromCart(product.id),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '\$${product.price.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            color: Color(0xFF5C3D2E),
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.category,
-                                              size: 16,
-                                              color: Colors.grey,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                product.category,
-                                                style: const TextStyle(
-                                                  color: Colors.grey,
-                                                  fontSize: 12,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
+                  ..._cartProducts.map((product) => _buildCartItem(product)),
+                  const SizedBox(height: 24),
+                  _buildShippingAddress(),
+                  const SizedBox(height: 24),
+                  _buildOrderSummary(),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        // Mostrar mensaje de funcionalidad no disponible
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Funcionalidad no disponible en la versión de demostración',
                             ),
                           ),
                         );
                       },
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          spreadRadius: 1,
-                          blurRadius: 4,
-                          offset: const Offset(0, -1),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5C3D2E),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Subtotal',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            Text(
-                              '\$${subtotal.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF5C3D2E),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'IVA (15%)',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                            Text(
-                              '\$${iva.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF5C3D2E),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        InkWell(
-                          onTap: _showShippingOptions,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Envío',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    _shippingCost > 0
-                                        ? '\$${_shippingCost.toStringAsFixed(2)}'
-                                        : 'Seleccionar',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF5C3D2E),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 14,
-                                    color: Color(0xFF5C3D2E),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Divider(height: 20),
-                        // Sección para mostrar y seleccionar dirección de envío
-                        if (_currentUserId != null && !_addressesLoading) ...[
-                          // Mostrar solo si hay usuario y direcciones cargadas
-                          const SizedBox(
-                            height: 8,
-                          ), // Espacio antes de la dirección
-                          InkWell(
-                            onTap:
-                                _showAddressSelection, // Mostrar modal de selección de dirección
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Dirección de Envío',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    _selectedShippingAddress != null
-                                        ? _formatAddress(
-                                            _selectedShippingAddress!,
-                                          )
-                                        : 'Seleccionar Dirección', // Mostrar dirección seleccionada o texto por defecto
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Color(0xFF5C3D2E),
-                                    ),
-                                    textAlign: TextAlign.right,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.arrow_forward_ios,
-                                  size: 14,
-                                  color: Color(0xFF5C3D2E),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Divider(height: 20), // Separador
-                        ],
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF5C3D2E),
-                              ),
-                            ),
-                            Text(
-                              '\$${total.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF5C3D2E),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: EdgeInsets.only(
-                      bottom: MediaQuery.of(context).padding.bottom + 16,
-                    ),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _shippingCost > 0 ? _pay : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5C3D2E),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          elevation: 2,
-                        ),
-                        icon: const Icon(Icons.payment, color: Colors.white),
-                        label: const Text(
-                          'Pagar',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ),
+                      child: const Text(
+                        'Proceder al Pago',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
@@ -795,10 +396,5 @@ class _CartScreenState extends State<CartScreen> {
               ),
             ),
     );
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 }

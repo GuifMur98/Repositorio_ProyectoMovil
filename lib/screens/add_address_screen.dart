@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-// import 'package:proyecto/models/address.dart'; // Importar modelo de dirección si se crea
 
 class AddAddressScreen extends StatefulWidget {
   const AddAddressScreen({super.key});
@@ -18,28 +15,6 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
   final _countryController = TextEditingController();
   bool _isLoading = false;
 
-  String? _currentUserId;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUserId();
-  }
-
-  Future<void> _loadUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userEmail = prefs.getString('user_email');
-
-    if (userEmail != null) {
-      final user = await DatabaseService.getUserByEmail(userEmail);
-      if (user != null) {
-        setState(() {
-          _currentUserId = user.id;
-        });
-      }
-    }
-  }
-
   @override
   void dispose() {
     _streetController.dispose();
@@ -50,23 +25,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     super.dispose();
   }
 
-  Future<void> _saveAddress() async {
-    if (_currentUserId == null) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error: Usuario no identificado.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
+  void _saveAddress() {
     final street = _streetController.text.trim();
     final city = _cityController.text.trim();
     final state = _stateController.text.trim();
@@ -74,62 +33,25 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     final country = _countryController.text.trim();
 
     if (street.isEmpty || city.isEmpty || country.isEmpty) {
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Por favor, completa los campos obligatorios (Calle, Ciudad, País).',
-            ),
-            backgroundColor: Colors.red,
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Por favor, completa los campos obligatorios (Calle, Ciudad, País).',
           ),
-        );
-      }
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    try {
-      final newAddress = {
-        'userId': _currentUserId!,
-        'street': street,
-        'city': city,
-        'state': state,
-        'zipCode': zipCode,
-        'country': country,
-      };
-
-      await DatabaseService.insertAddress(newAddress);
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dirección guardada con éxito!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Devolver true para indicar que se agregó una dirección
-        Navigator.pop(context, true);
-      }
-    } catch (e) {
-      print('Error al guardar dirección: $e');
-      setState(() {
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al guardar dirección.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    // Mostrar mensaje de funcionalidad no disponible
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Funcionalidad no disponible en la versión de demostración',
+        ),
+      ),
+    );
   }
 
   @override

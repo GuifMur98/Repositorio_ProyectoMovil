@@ -2,48 +2,35 @@ class User {
   final String id;
   final String name;
   final String email;
-  final String password;
-  final String? phone;
-  final String? address;
-  final String? imageUrl;
+  final String? profileImage;
+  final List<String> addresses;
+  final List<String> favoriteProducts;
+  final List<String> publishedProducts;
+  final List<String> purchaseHistory;
 
   User({
     required this.id,
     required this.name,
     required this.email,
-    required this.password,
-    this.phone,
-    this.address,
-    this.imageUrl,
+    this.profileImage,
+    this.addresses = const [],
+    this.favoriteProducts = const [],
+    this.publishedProducts = const [],
+    this.purchaseHistory = const [],
   });
 
-  factory User.fromMap(Map<String, dynamic> map) {
-    return User(
-      id: map['id']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
-      email: map['email']?.toString() ?? '',
-      password: map['password']?.toString() ?? '',
-      phone: map['phone']?.toString(),
-      address: map['address']?.toString(),
-      imageUrl: map['imageUrl']?.toString(),
-    );
-  }
-
-  Map<String, dynamic> toMap() {
-    final map = {
-      'id': id,
-      'name': name,
-      'email': email,
-      'password': password,
-      'phone': phone,
-      'address': address,
-    };
-
-    // Solo incluir imageUrl si no es null
-    if (imageUrl != null) {
-      map['imageUrl'] = imageUrl;
-    }
-
-    return map;
-  }
+  // Usuario de prueba
+  static User get testUser => User(
+    id: '1',
+    name: 'Usuario de Prueba',
+    email: 'usuario@prueba.com',
+    profileImage: 'assets/images/placeholder.png',
+    addresses: [
+      'Calle Principal 123, Ciudad de Ejemplo',
+      'Avenida Central 456, Ciudad de Ejemplo',
+    ],
+    favoriteProducts: ['1', '2', '3'],
+    publishedProducts: ['1', '2', '3'],
+    purchaseHistory: ['1', '2'],
+  );
 }

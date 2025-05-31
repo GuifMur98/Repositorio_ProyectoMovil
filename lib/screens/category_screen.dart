@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/models/product.dart';
-import 'package:proyecto/services/database_service.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -11,34 +9,33 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
-  List<Product> _products = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProductsByCategory();
-  }
-
-  Future<void> _loadProductsByCategory() async {
-    print('Cargando productos para la categoría: ${widget.category}');
-    final allProducts = await DatabaseService.getProducts();
-    print('Total de productos encontrados: ${allProducts.length}');
-    print(
-      'Productos antes del filtrado: ${allProducts.map((p) => '${p.title} (${p.category})').join(', ')}',
-    );
-
-    setState(() {
-      _products = allProducts
-          .where((p) => p.category == widget.category)
-          .toList();
-      _loading = false;
-    });
-
-    print(
-      'Productos después del filtrado: ${_products.map((p) => '${p.title} (${p.category})').join(', ')}',
-    );
-  }
+  // Datos de ejemplo para productos
+  final List<Map<String, dynamic>> _products = [
+    {
+      'id': '1',
+      'title': 'Camiseta Básica',
+      'description': 'Camiseta de algodón 100%',
+      'price': 19.99,
+      'image': 'assets/images/placeholder.png',
+      'category': 'Ropa',
+    },
+    {
+      'id': '2',
+      'title': 'Pantalón Vaquero',
+      'description': 'Pantalón vaquero clásico',
+      'price': 39.99,
+      'image': 'assets/images/placeholder.png',
+      'category': 'Ropa',
+    },
+    {
+      'id': '3',
+      'title': 'Zapatillas Deportivas',
+      'description': 'Zapatillas para running',
+      'price': 79.99,
+      'image': 'assets/images/placeholder.png',
+      'category': 'Ropa',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -46,6 +43,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
     final category = args is Map && args['category'] != null
         ? args['category'] as String
         : widget.category;
+
+    // Filtrar productos por categoría
+    final filteredProducts = _products
+        .where((p) => p['category'] == category)
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -58,9 +60,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _products.isEmpty
+      body: filteredProducts.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -97,15 +97,15 @@ class _CategoryScreenState extends State<CategoryScreen> {
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
-              itemCount: _products.length,
+              itemCount: filteredProducts.length,
               itemBuilder: (context, index) {
-                final product = _products[index];
+                final product = filteredProducts[index];
                 return GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(
                       context,
                       '/product-detail',
-                      arguments: {'productId': product.id},
+                      arguments: {'productId': product['id']},
                     );
                   },
                   child: Card(
@@ -123,7 +123,11 @@ class _CategoryScreenState extends State<CategoryScreen> {
                               borderRadius: const BorderRadius.vertical(
                                 top: Radius.circular(4),
                               ),
-                              child: product.getImageWidget(),
+                              child: Image.asset(
+                                product['image'],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              ),
                             ),
                           ),
                         ),
@@ -133,7 +137,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                product.title,
+                                product['title'],
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -142,7 +146,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '\$${product.price.toStringAsFixed(2)}',
+                                '\$${product['price'].toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   color: Color(0xFF5C3D2E),
                                   fontWeight: FontWeight.bold,

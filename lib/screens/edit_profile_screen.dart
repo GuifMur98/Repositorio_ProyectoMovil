@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:proyecto/models/user.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -15,28 +12,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadUser();
-  }
-
-  Future<void> _loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('user_email');
-    if (email != null) {
-      final user = await DatabaseService.getUserByEmail(email);
-      if (user != null) {
-        _nameController.text = user.name;
-        _emailController.text = user.email;
-      }
-    }
-    setState(() {
-      _loading = false;
-    });
+    // Cargar datos de ejemplo
+    _nameController.text = 'Usuario Ejemplo';
+    _emailController.text = 'usuario@ejemplo.com';
   }
 
   @override
@@ -48,37 +31,34 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _save() async {
-    final prefs = await SharedPreferences.getInstance();
-    final oldEmail = prefs.getString('user_email');
-    if (oldEmail == null) return;
-    final user = await DatabaseService.getUserByEmail(oldEmail);
-    if (user == null) return;
-    String password = user.password;
-    if (_passwordController.text.isNotEmpty ||
-        _confirmPasswordController.text.isNotEmpty) {
-      if (_passwordController.text != _confirmPasswordController.text) {
-        setState(() {
-          _error = 'Las contraseñas no coinciden.';
-        });
-        return;
-      }
-      password = _passwordController.text;
+  void _save() {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
+
+    if (name.isEmpty || email.isEmpty) {
+      setState(() {
+        _error = 'Por favor, completa los campos obligatorios.';
+      });
+      return;
     }
-    final updatedUser = User(
-      id: user.id,
-      name: _nameController.text.trim(),
-      email: _emailController.text.trim(),
-      password: password,
-    );
-    await DatabaseService.updateUser(updatedUser);
-    await prefs.setString('user_name', updatedUser.name);
-    await prefs.setString('user_email', updatedUser.email);
-    if (!mounted) return;
+
+    if (password.isNotEmpty && password != confirmPassword) {
+      setState(() {
+        _error = 'Las contraseñas no coinciden.';
+      });
+      return;
+    }
+
+    // Mostrar mensaje de funcionalidad no disponible
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('¡Perfil actualizado con éxito!')),
+      const SnackBar(
+        content: Text(
+          'Funcionalidad no disponible en la versión de demostración',
+        ),
+      ),
     );
-    Navigator.pop(context, true);
   }
 
   @override
@@ -96,88 +76,83 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Nombre',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.person_outline),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Correo',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.email_outlined),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'Nueva contraseña',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _confirmPasswordController,
-                    decoration: InputDecoration(
-                      labelText: 'Confirmar nueva contraseña',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      prefixIcon: const Icon(Icons.lock_outline),
-                    ),
-                    obscureText: true,
-                  ),
-                  const SizedBox(height: 32),
-                  ElevatedButton.icon(
-                    onPressed: _save,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5C3D2E),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      elevation: 2,
-                    ),
-                    icon: const Icon(Icons.save, color: Colors.white),
-                    label: const Text(
-                      'Guardar cambios',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 16),
-                    Text(_error!, style: const TextStyle(color: Colors.red)),
-                  ],
-                ],
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                labelText: 'Nombre',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                prefixIcon: const Icon(Icons.person_outline),
               ),
             ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: 'Correo',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                prefixIcon: const Icon(Icons.email_outlined),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                labelText: 'Nueva contraseña',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                prefixIcon: const Icon(Icons.lock_outline),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _confirmPasswordController,
+              decoration: InputDecoration(
+                labelText: 'Confirmar nueva contraseña',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                prefixIcon: const Icon(Icons.lock_outline),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _save,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5C3D2E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 2,
+              ),
+              icon: const Icon(Icons.save, color: Colors.white),
+              label: const Text(
+                'Guardar cambios',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Text(_error!, style: const TextStyle(color: Colors.red)),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

@@ -17,10 +17,7 @@ class WelcomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
                   children: [
-                    Image.asset(
-                      'assets/images/Logo_Proyecto.png',
-                      height: 150,
-                    ),
+                    Image.asset('assets/images/Logo_Proyecto.png', height: 150),
                     const SizedBox(height: 8),
                     const SizedBox(height: 48),
                   ],
@@ -51,10 +48,7 @@ class WelcomeScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                     const Text(
                       'Descubre una amplia variedad de productos al mejor precio, todo en un solo lugar. En TradeNest te ofrecemos una experiencia de compra rápida, segura y fácil, con artículos seleccionados para ti. ¡Empieza a comprar con un solo clic!',
-                      style: TextStyle(
-                        color: Color(0xFF5C3D2E),
-                        fontSize: 21,
-                      ),
+                      style: TextStyle(color: Color(0xFF5C3D2E), fontSize: 21),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 70),
@@ -70,7 +64,9 @@ class WelcomeScreen extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF5C3D2E),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
@@ -87,7 +83,9 @@ class WelcomeScreen extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF5C3D2E),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),

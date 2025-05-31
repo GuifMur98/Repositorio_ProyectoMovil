@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class PurchaseHistoryScreen extends StatefulWidget {
   const PurchaseHistoryScreen({super.key});
@@ -11,33 +8,26 @@ class PurchaseHistoryScreen extends StatefulWidget {
 }
 
 class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
-  List<Map<String, dynamic>> _purchases = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPurchases();
-  }
-
-  Future<void> _loadPurchases() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('user_email');
-    if (email != null) {
-      final user = await DatabaseService.getUserByEmail(email);
-      if (user != null) {
-        final purchases = await DatabaseService.getPurchasesByUser(user.id!);
-        setState(() {
-          _purchases = purchases;
-          _loading = false;
-        });
-        return;
-      }
-    }
-    setState(() {
-      _loading = false;
-    });
-  }
+  // Datos de ejemplo para el historial de compras
+  final List<Map<String, dynamic>> _purchases = [
+    {
+      'id': '1',
+      'products': [
+        {'title': 'Camiseta Básica'},
+        {'title': 'Pantalón Vaquero'},
+      ],
+      'total': 59.98,
+      'date': '2024-03-15',
+    },
+    {
+      'id': '2',
+      'products': [
+        {'title': 'Zapatillas Deportivas'},
+      ],
+      'total': 79.99,
+      'date': '2024-03-10',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -55,20 +45,18 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
         ),
       ),
       backgroundColor: Colors.white,
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _purchases.isEmpty
+      body: _purchases.isEmpty
           ? const Center(child: Text('No has realizado compras.'))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: _purchases.length,
               itemBuilder: (context, index) {
                 final compra = _purchases[index];
-                final productos = (jsonDecode(compra['products']) as List)
+                final productos = (compra['products'] as List)
                     .map((e) => e['title'] as String)
                     .join(', ');
-                final total = compra['total'] ?? 0.0;
-                final fecha = DateTime.parse(compra['date'] ?? '');
+                final total = compra['total'] as double;
+                final fecha = DateTime.parse(compra['date'] as String);
                 final fechaFormateada =
                     '${fecha.day}/${fecha.month}/${fecha.year}';
 

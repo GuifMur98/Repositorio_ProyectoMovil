@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../models/product.dart';
 import '../screens/user_product_detail_screen.dart';
 
 class UserProductsScreen extends StatefulWidget {
@@ -12,45 +9,33 @@ class UserProductsScreen extends StatefulWidget {
 }
 
 class _UserProductsScreenState extends State<UserProductsScreen> {
-  List<Product> _products = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadProducts();
-  }
-
-  Future<void> _loadProducts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('user_email');
-    if (email == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo identificar al usuario.')),
-      );
-      setState(() {
-        _loading = false;
-      });
-      return;
-    }
-    final user = await DatabaseService.getUserByEmail(email);
-    if (user == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Usuario no encontrado.')));
-      setState(() {
-        _loading = false;
-      });
-      return;
-    }
-    final allProducts = await DatabaseService.getProducts();
-    setState(() {
-      _products = allProducts
-          .where((p) => p.sellerId == user.id.toString())
-          .toList();
-      _loading = false;
-    });
-  }
+  // Datos de ejemplo para los productos del usuario
+  final List<Map<String, dynamic>> _products = [
+    {
+      'id': '1',
+      'title': 'Camiseta Básica',
+      'description': 'Camiseta de algodón 100%',
+      'price': 19.99,
+      'image': 'assets/images/placeholder.png',
+      'category': 'Ropa',
+    },
+    {
+      'id': '2',
+      'title': 'Pantalón Vaquero',
+      'description': 'Pantalón vaquero clásico',
+      'price': 39.99,
+      'image': 'assets/images/placeholder.png',
+      'category': 'Ropa',
+    },
+    {
+      'id': '3',
+      'title': 'Zapatillas Deportivas',
+      'description': 'Zapatillas para running',
+      'price': 79.99,
+      'image': 'assets/images/placeholder.png',
+      'category': 'Ropa',
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -67,9 +52,7 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _products.isEmpty
+      body: _products.isEmpty
           ? const Center(child: Text('No has publicado productos.'))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
@@ -87,7 +70,7 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) =>
-                              UserProductDetailScreen(productId: product.id),
+                              UserProductDetailScreen(productId: product['id']),
                         ),
                       );
                     },
@@ -110,7 +93,10 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                               topLeft: Radius.circular(16),
                               bottomLeft: Radius.circular(16),
                             ),
-                            child: product.getImageWidget(),
+                            child: Image.asset(
+                              product['image'],
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                         // Información del producto
@@ -121,7 +107,7 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  product.title,
+                                  product['title'],
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -132,7 +118,7 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
+                                  '\$${product['price'].toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     color: Color(0xFF5C3D2E),
                                     fontSize: 18,
@@ -150,7 +136,7 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                        product.category,
+                                        product['category'],
                                         style: const TextStyle(
                                           color: Colors.grey,
                                           fontSize: 12,

@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:proyecto/models/product.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -11,96 +8,34 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  List<Product> _favoriteProducts = [];
-  bool _loading = true;
+  final List<Map<String, dynamic>> _favoriteProducts = [
+    {
+      'id': '1',
+      'title': 'Producto Favorito 1',
+      'price': 99.99,
+      'image': 'assets/images/Logo_PMiniatura.png',
+      'category': 'Categoría de Ejemplo',
+    },
+    {
+      'id': '2',
+      'title': 'Producto Favorito 2',
+      'price': 149.99,
+      'image': 'assets/images/Logo_PMiniatura.png',
+      'category': 'Categoría de Ejemplo',
+    },
+  ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadFavorites();
-  }
-
-  Future<void> _loadFavorites() async {
+  void _removeFromFavorites(String productId) {
     setState(() {
-      _loading = true;
+      _favoriteProducts.removeWhere((product) => product['id'] == productId);
     });
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentUserEmail = prefs.getString('user_email');
-      if (currentUserEmail == null) {
-        setState(() {
-          _favoriteProducts = [];
-          _loading = false;
-        });
-        return;
-      }
-
-      final currentUser = await DatabaseService.getUserByEmail(
-        currentUserEmail,
-      );
-      if (currentUser == null) {
-        setState(() {
-          _favoriteProducts = [];
-          _loading = false;
-        });
-        return;
-      }
-
-      final favIds = await DatabaseService.getFavoriteProductIds(
-        currentUser.id,
-      );
-      final products = await DatabaseService.getProducts();
-
-      setState(() {
-        _favoriteProducts = products
-            .where((p) => favIds.contains(p.id))
-            .toList();
-        _loading = false;
-      });
-    } catch (e) {
-      print('Error al cargar favoritos: $e');
-      setState(() {
-        _favoriteProducts = [];
-        _loading = false;
-      });
-    }
-  }
-
-  Future<void> _removeFromFavorites(String productId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentUserEmail = prefs.getString('user_email');
-      if (currentUserEmail == null) return;
-
-      final currentUser = await DatabaseService.getUserByEmail(
-        currentUserEmail,
-      );
-      if (currentUser == null) return;
-
-      await DatabaseService.removeFromFavorites(productId, currentUser.id);
-      await _loadFavorites();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto removido de favoritos'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error al remover de favoritos: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al remover de favoritos'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Producto removido de favoritos'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -119,13 +54,31 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _favoriteProducts.isEmpty
-          ? const Center(
-              child: Text(
-                'No tienes productos favoritos',
-                style: TextStyle(fontSize: 18, color: Color(0xFF5C3D2E)),
+      body: _favoriteProducts.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.favorite_border,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No tienes productos favoritos',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Agrega productos a favoritos para verlos aquí',
+                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  ),
+                ],
               ),
             )
           : ListView.builder(
@@ -143,8 +96,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       Navigator.pushNamed(
                         context,
                         '/product-detail',
-                        arguments: {'productId': product.id},
-                      ).then((_) => _loadFavorites());
+                        arguments: {'productId': product['id']},
+                      );
                     },
                     child: Row(
                       children: [
@@ -158,21 +111,16 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               bottomLeft: Radius.circular(16),
                             ),
                           ),
-                          child: product.imageUrl.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(16),
-                                    bottomLeft: Radius.circular(16),
-                                  ),
-                                  child: product.getImageWidget(),
-                                )
-                              : const Center(
-                                  child: Icon(
-                                    Icons.add_photo_alternate,
-                                    size: 40,
-                                    color: Color(0xFF5C3D2E),
-                                  ),
-                                ),
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              bottomLeft: Radius.circular(16),
+                            ),
+                            child: Image.asset(
+                              product['image'] as String,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
                         Expanded(
                           child: Padding(
@@ -186,7 +134,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        product.title,
+                                        product['title'] as String,
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -201,14 +149,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                         Icons.favorite,
                                         color: Colors.red,
                                       ),
-                                      onPressed: () =>
-                                          _removeFromFavorites(product.id),
+                                      onPressed: () => _removeFromFavorites(
+                                        product['id'] as String,
+                                      ),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  '\$${product.price.toStringAsFixed(2)}',
+                                  '\$${(product['price'] as double).toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     color: Color(0xFF5C3D2E),
                                     fontSize: 18,
@@ -226,7 +175,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                        product.category,
+                                        product['category'] as String,
                                         style: const TextStyle(
                                           color: Colors.grey,
                                           fontSize: 12,
@@ -247,37 +196,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                 );
               },
             ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color(0xFF5C3D2E),
-        unselectedItemColor: Colors.grey,
-        currentIndex: 1,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite),
-            label: 'Favoritos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Publicar',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 0:
-              Navigator.pushReplacementNamed(context, '/home');
-              break;
-            case 2:
-              Navigator.pushNamed(context, '/create-product');
-              break;
-            case 3:
-              Navigator.pushNamed(context, '/profile');
-              break;
-          }
-        },
-      ),
     );
   }
 }

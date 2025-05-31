@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'dart:io';
 
 class ChatScreen extends StatefulWidget {
   final String? sellerId;
@@ -203,7 +201,16 @@ class _ChatScreenState extends State<ChatScreen> {
                       Icons.attach_file,
                       color: Color(0xFF5C3D2E),
                     ),
-                    onPressed: () {},
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Función de adjuntar archivos no disponible',
+                          ),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
                   ),
                   Expanded(
                     child: TextField(

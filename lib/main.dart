@@ -8,12 +8,9 @@ import 'package:proyecto/screens/favorites_screen.dart';
 import 'package:proyecto/screens/chat_screen.dart';
 import 'package:proyecto/screens/create_product_screen.dart';
 import 'package:proyecto/screens/product_detail_screen.dart';
-import 'package:proyecto/screens/user_product_detail_screen.dart';
 import 'package:proyecto/screens/category_screen.dart';
 import 'package:proyecto/screens/cart_screen.dart';
 import 'package:proyecto/screens/notifications_screen.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/screens/edit_profile_screen.dart';
 import 'package:proyecto/screens/addresses_screen.dart';
 import 'package:proyecto/screens/user_products_screen.dart';
@@ -22,23 +19,15 @@ import 'package:proyecto/screens/help_support_screen.dart';
 import 'package:proyecto/screens/privacy_security_screen.dart';
 import 'package:proyecto/screens/add_address_screen.dart';
 import 'package:proyecto/screens/edit_address_screen.dart';
+import 'package:proyecto/screens/categories_screen.dart';
+import 'services/user_service.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Inicializar la base de datos
-  await DatabaseService.initDatabase();
-
-  // Verificar si el usuario está logueado
-  final isLoggedIn = await AuthService.isLoggedIn();
-
-  runApp(MyApp(isLoggedIn: isLoggedIn));
+void main() {
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final bool isLoggedIn;
-
-  const MyApp({super.key, required this.isLoggedIn});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +58,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: isLoggedIn ? '/home' : '/welcome',
+      home: const AuthWrapper(),
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
@@ -92,6 +81,7 @@ class MyApp extends StatelessWidget {
               : '';
           return CategoryScreen(category: category);
         },
+        '/categories': (context) => const CategoriesScreen(),
         '/cart': (context) => const CartScreen(),
         '/edit-profile': (context) => const EditProfileScreen(),
         '/addresses': (context) => const AddressesScreen(),
@@ -117,5 +107,18 @@ class MyApp extends StatelessWidget {
         },
       },
     );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Verificar si el usuario está autenticado
+    if (UserService.isLoggedIn) {
+      return const HomeScreen();
+    }
+    return const LoginScreen();
   }
 }

@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/database_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-// Importar modelo de dirección (necesitaremos crearlo o definirlo)
-// import 'package:proyecto/models/address.dart';
 
-// Placeholder: aquí podrías implementar la gestión real de direcciones
 class AddressesScreen extends StatefulWidget {
   const AddressesScreen({super.key});
 
@@ -13,102 +8,36 @@ class AddressesScreen extends StatefulWidget {
 }
 
 class _AddressesScreenState extends State<AddressesScreen> {
-  List<Map<String, dynamic>> _addresses =
-      []; // Usaremos Map<String, dynamic> por ahora
-  bool _loading = true;
-  String? _currentUserId;
+  // Datos de ejemplo para las direcciones
+  final List<Map<String, dynamic>> _addresses = [
+    {
+      'id': 1,
+      'street': 'Calle Principal 123',
+      'city': 'Ciudad de Ejemplo',
+      'state': 'Estado de Ejemplo',
+      'zipCode': '12345',
+      'country': 'País de Ejemplo',
+    },
+    {
+      'id': 2,
+      'street': 'Avenida Central 456',
+      'city': 'Ciudad de Ejemplo',
+      'state': 'Estado de Ejemplo',
+      'zipCode': '67890',
+      'country': 'País de Ejemplo',
+    },
+  ];
 
-  @override
-  void initState() {
-    super.initState();
-    _initializeData();
+  void _navigateToAddAddressScreen() {
+    // Mostrar mensaje de funcionalidad no disponible
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Funcionalidad no disponible en la versión de demostración',
+        ),
+      ),
+    );
   }
-
-  Future<void> _initializeData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final userEmail = prefs.getString('user_email');
-
-      if (userEmail != null) {
-        final user = await DatabaseService.getUserByEmail(userEmail);
-        if (user != null) {
-          setState(() {
-            _currentUserId = user.id;
-          });
-          await _loadAddresses();
-        } else {
-          setState(() {
-            _loading = false;
-          });
-        }
-      } else {
-        setState(() {
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      print('Error al inicializar datos en AddressesScreen: $e');
-      setState(() {
-        _loading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al cargar datos de usuario'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _loadAddresses() async {
-    if (_currentUserId == null) {
-      setState(() {
-        _loading = false;
-      });
-      return;
-    }
-
-    try {
-      final addresses = await DatabaseService.getAddressesByUserId(
-        _currentUserId!,
-      );
-
-      setState(() {
-        _addresses = addresses;
-        _loading = false;
-      });
-    } catch (e) {
-      print('Error al cargar direcciones: $e');
-      setState(() {
-        _addresses = [];
-        _loading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al cargar direcciones'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _navigateToAddAddressScreen() async {
-    // Navegar a una nueva pantalla para agregar dirección y esperar resultado
-    final result = await Navigator.pushNamed(context, '/add-address');
-    if (result == true) {
-      // Si se agregó una dirección exitosamente
-      _loadAddresses(); // Recargar la lista
-    }
-  }
-
-  // Future<void> _editAddress(int addressId) async { ... }
-  // Future<void> _deleteAddress(int addressId) async { ... }
 
   @override
   Widget build(BuildContext context) {
@@ -127,16 +56,11 @@ class _AddressesScreenState extends State<AddressesScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add, color: Colors.white),
-            onPressed: () {
-              // Navegar a la pantalla para agregar nueva dirección
-              _navigateToAddAddressScreen();
-            },
+            onPressed: _navigateToAddAddressScreen,
           ),
         ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _addresses.isEmpty
+      body: _addresses.isEmpty
           ? const Center(
               child: Text(
                 'No tienes direcciones guardadas.',
@@ -148,7 +72,6 @@ class _AddressesScreenState extends State<AddressesScreen> {
               itemCount: _addresses.length,
               itemBuilder: (context, index) {
                 final address = _addresses[index];
-                // Diseño para cada tarjeta de dirección
                 return Card(
                   margin: const EdgeInsets.only(bottom: 16),
                   shape: RoundedRectangleBorder(
@@ -156,16 +79,15 @@ class _AddressesScreenState extends State<AddressesScreen> {
                   ),
                   elevation: 2,
                   child: InkWell(
-                    onTap: () async {
-                      // Navegar a la pantalla de edición de dirección
-                      final result = await Navigator.pushNamed(
-                        context,
-                        '/edit-address',
-                        arguments: {'addressId': address['id'] as int},
+                    onTap: () {
+                      // Mostrar mensaje de funcionalidad no disponible
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Funcionalidad no disponible en la versión de demostración',
+                          ),
+                        ),
                       );
-                      if (result == true) {
-                        _loadAddresses();
-                      }
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Padding(
