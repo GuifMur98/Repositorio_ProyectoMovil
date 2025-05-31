@@ -54,7 +54,7 @@ TradeNest es una aplicación móvil de comercio electrónico desarrollada con Fl
 
 1. Clona el repositorio:
 ```bash
-git clone https://github.com/tu-usuario/tradenest.git
+git clone https://github.com/GuifMur98/Repositorio_ProyectoMovil.git
 ```
 
 2. Navega al directorio del proyecto:
@@ -91,13 +91,7 @@ lib/
   └── main.dart        # Punto de entrada de la aplicación
 ```
 
-## Contribución
 
-1. Haz un Fork del proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
 
 ## Licencia
 
