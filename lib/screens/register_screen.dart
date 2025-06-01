@@ -39,27 +39,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final success = await UserService.register(
+      final registeredUser = await UserService.register(
         _nameController.text,
         _emailController.text,
         _passwordController.text,
       );
 
-      if (success) {
-        // Obtener el usuario actual después del registro
-        final user = UserService.currentUser;
-        if (user != null) {
-          // Generar y guardar token JWT
-          final token = AuthService.generateToken(user);
-          await AuthService.saveSession(user, token);
+      if (registeredUser != null) {
+        final user = registeredUser['user'] as User;
+        final token = registeredUser['token'] as String;
 
-          if (mounted) {
-            Navigator.pushReplacementNamed(context, '/home');
-          }
+        // Guardar la sesión después de un registro exitoso
+        await AuthService.saveSession(user, token);
+
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
         setState(() {
-          _errorMessage = 'El correo electrónico ya está registrado';
+          _errorMessage =
+              'El correo electrónico ya está registrado'; // O algún otro mensaje si UserService devuelve null por otra razón
         });
       }
     } catch (e) {
@@ -130,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 80),
             child: Form(
               key: _formKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
+              autovalidateMode: AutovalidateMode.disabled,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

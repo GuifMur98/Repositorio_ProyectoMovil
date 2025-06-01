@@ -1,8 +1,74 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/widgets/base_screen.dart';
+import 'package:proyecto/services/user_service.dart';
+import 'package:proyecto/services/product_service.dart';
+import 'package:proyecto/models/product.dart';
+import 'package:proyecto/widgets/product_card.dart'; // Asumiendo que tienes un widget para mostrar productos
 
-class FavoritesScreen extends StatelessWidget {
+class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
+
+  @override
+  State<FavoritesScreen> createState() => _FavoritesScreenState();
+}
+
+class _FavoritesScreenState extends State<FavoritesScreen> {
+  List<Product> _favoriteProducts = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchFavoriteProducts();
+  }
+
+  Future<void> _fetchFavoriteProducts() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final currentUser = UserService.currentUser; // Obtener el usuario actual
+
+    if (currentUser == null) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Debes iniciar sesión para ver tus favoritos.';
+      });
+      return;
+    }
+
+    if (currentUser.favoriteProductIds.isEmpty) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Aún no tienes productos favoritos.';
+      });
+      return;
+    }
+
+    try {
+      // Obtener los detalles de cada producto favorito
+      List<Product> products = [];
+      for (String productId in currentUser.favoriteProductIds) {
+        final product = await ProductService.getProductById(productId);
+        if (product != null) {
+          products.add(product);
+        }
+      }
+
+      setState(() {
+        _favoriteProducts = products;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error al cargar favoritos: ${e.toString()}';
+        print('Error fetching favorite products: $e');
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +83,7 @@ class FavoritesScreen extends StatelessWidget {
             // Ya estamos en favoritos
             break;
           case 2:
-            Navigator.pushReplacementNamed(context, '/publish');
+            Navigator.pushReplacementNamed(context, '/create-product');
             break;
           case 3:
             Navigator.pushReplacementNamed(context, '/cart');
@@ -39,9 +105,33 @@ class FavoritesScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: const Center(
-        child: Text('Lista de productos favoritos'),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(child: Text(_errorMessage!))
+              : _favoriteProducts.isEmpty
+                  ? const Center(
+                      child: Text('Aún no tienes productos favoritos.'))
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(8.0),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2, // 2 columnas
+                        childAspectRatio:
+                            0.75, // Ajusta según el tamaño de tu tarjeta de producto
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                      ),
+                      itemCount: _favoriteProducts.length,
+                      itemBuilder: (context, index) {
+                        final product = _favoriteProducts[index];
+                        // Asumiendo que tienes un ProductCard widget para mostrar cada producto
+                        return ProductCard(
+                          product: product,
+                          // Aquí podrías añadir lógica para refrescar la lista si se desmarca un favorito
+                        );
+                      },
+                    ),
     );
   }
 }

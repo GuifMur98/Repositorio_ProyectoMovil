@@ -17,7 +17,7 @@ class CartScreen extends StatelessWidget {
             Navigator.pushReplacementNamed(context, '/favorites');
             break;
           case 2:
-            Navigator.pushReplacementNamed(context, '/publish');
+            Navigator.pushReplacementNamed(context, '/create-product');
             break;
           case 3:
             // Ya estamos en carrito

@@ -36,7 +36,7 @@ class ProfileScreen extends StatelessWidget {
             Navigator.pushReplacementNamed(context, '/favorites');
             break;
           case 2:
-            Navigator.pushReplacementNamed(context, '/publish');
+            Navigator.pushReplacementNamed(context, '/create-product');
             break;
           case 3:
             Navigator.pushReplacementNamed(context, '/cart');
@@ -88,10 +88,10 @@ class ProfileScreen extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.white,
-                      backgroundImage: user.profileImage != null
-                          ? NetworkImage(user.profileImage!)
+                      backgroundImage: user.avatarUrl != null
+                          ? NetworkImage(user.avatarUrl!)
                           : null,
-                      child: user.profileImage == null
+                      child: user.avatarUrl == null
                           ? const Icon(
                               Icons.person,
                               size: 50,

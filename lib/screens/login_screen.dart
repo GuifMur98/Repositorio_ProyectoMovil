@@ -34,17 +34,20 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final user = await UserService.login(
+      final result = await UserService.login(
         _emailController.text,
         _passwordController.text,
       );
 
-      if (user != null) {
-        // Generar y guardar token JWT
-        final token = AuthService.generateToken(user);
+      if (result != null) {
+        final user = result['user'] as User;
+        final token = result['token'] as String;
+
+        // Guardar la sesión después de un login exitoso
         await AuthService.saveSession(user, token);
 
         if (mounted) {
+          // Usar pushReplacementNamed para evitar que el usuario regrese a la pantalla de login con el botón de atrás
           Navigator.pushReplacementNamed(context, '/home');
         }
       } else {
@@ -100,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Form(
               key: _formKey,
-              autovalidateMode: AutovalidateMode.onUserInteraction,
+              autovalidateMode: AutovalidateMode.disabled,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

@@ -1,22 +1,132 @@
 import 'package:flutter/material.dart';
+import '../services/product_service.dart';
+import '../services/favorite_service.dart';
+import '../models/product.dart';
 
-class ProductDetailScreen extends StatelessWidget {
+class ProductDetailScreen extends StatefulWidget {
   final String productId;
 
   const ProductDetailScreen({super.key, required this.productId});
 
   @override
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
+}
+
+class _ProductDetailScreenState extends State<ProductDetailScreen> {
+  Product? _product;
+  bool _isLoading = true;
+  bool _isFavorite = false;
+  int _currentImageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProduct();
+  }
+
+  Future<void> _loadProduct() async {
+    try {
+      final product = await ProductService.getProductById(widget.productId);
+      if (product != null) {
+        setState(() {
+          _product = product;
+          _isFavorite = FavoriteService.isFavoriteProduct(product.id);
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo cargar el producto'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar el producto: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_product == null) return;
+
+    final isCurrentlyFavorite = FavoriteService.isFavoriteProduct(_product!.id);
+    bool success;
+
+    if (isCurrentlyFavorite) {
+      success = await FavoriteService.removeFavoriteProduct(_product!.id);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto removido de favoritos'),
+            backgroundColor: Color(0xFF5C3D2E),
+          ),
+        );
+      }
+    } else {
+      success = await FavoriteService.addFavoriteProduct(_product!.id);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto agregado a favoritos'),
+            backgroundColor: Color(0xFF5C3D2E),
+          ),
+        );
+      }
+    }
+
+    if (success && mounted) {
+      setState(() {
+        _isFavorite = !isCurrentlyFavorite;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Datos de ejemplo
-    final Map<String, dynamic> product = {
-      'id': productId,
-      'title': 'Producto de Ejemplo',
-      'description':
-          'Esta es una descripción detallada del producto. Aquí puedes incluir toda la información relevante sobre el producto, sus características, especificaciones y cualquier otro detalle importante que el comprador deba conocer.',
-      'price': 99.99,
-      'category': 'Categoría de Ejemplo',
-      'image': 'assets/images/Logo_PMiniatura.png',
-    };
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_product == null) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text(
+            'Detalles del Producto',
+            style: TextStyle(color: Colors.white),
+          ),
+          backgroundColor: const Color(0xFF5C3D2E),
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: const Center(
+          child: Text('Producto no encontrado'),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -33,15 +143,11 @@ class ProductDetailScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.favorite_border, color: Colors.white),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Función de favoritos no disponible'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : Colors.white,
+            ),
+            onPressed: _toggleFavorite,
           ),
         ],
       ),
@@ -49,11 +155,66 @@ class ProductDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Carrusel de imágenes
             Container(
               height: 300,
               width: double.infinity,
               decoration: const BoxDecoration(color: Color(0xFFE1D4C2)),
-              child: Image.asset(product['image'] as String, fit: BoxFit.cover),
+              child: Stack(
+                children: [
+                  PageView.builder(
+                    itemCount: _product!.imageUrls.isEmpty
+                        ? 1
+                        : _product!.imageUrls.length,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentImageIndex = index;
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      if (_product!.imageUrls.isEmpty) {
+                        return Image.asset(
+                          'assets/images/Logo_PMiniatura.png',
+                          fit: BoxFit.cover,
+                        );
+                      }
+                      return Image.network(
+                        _product!.imageUrls[index],
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Image.asset(
+                            'assets/images/Logo_PMiniatura.png',
+                            fit: BoxFit.cover,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  if (_product!.imageUrls.length > 1)
+                    Positioned(
+                      bottom: 16,
+                      left: 0,
+                      right: 0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(
+                          _product!.imageUrls.length,
+                          (index) => Container(
+                            width: 8,
+                            height: 8,
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: _currentImageIndex == index
+                                  ? const Color(0xFF5C3D2E)
+                                  : Colors.white.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -65,7 +226,7 @@ class ProductDetailScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          product['title'] as String,
+                          _product!.title,
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -73,7 +234,7 @@ class ProductDetailScreen extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '\$${(product['price'] as double).toStringAsFixed(2)}',
+                        '\$${_product!.price.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -83,9 +244,30 @@ class ProductDetailScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    'Categoría: ${product['category'] as String}',
-                    style: const TextStyle(color: Colors.grey),
+                  Row(
+                    children: [
+                      const Icon(Icons.category,
+                          color: Color(0xFF5C3D2E), size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        _product!.category,
+                        style: const TextStyle(
+                          color: Color(0xFF5C3D2E),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      const Icon(Icons.inventory_2,
+                          color: Color(0xFF5C3D2E), size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Stock: ${_product!.stock}',
+                        style: const TextStyle(
+                          color: Color(0xFF5C3D2E),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -98,7 +280,7 @@ class ProductDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    product['description'] as String,
+                    _product!.description,
                     style: const TextStyle(fontSize: 16, height: 1.5),
                   ),
                   const SizedBox(height: 24),

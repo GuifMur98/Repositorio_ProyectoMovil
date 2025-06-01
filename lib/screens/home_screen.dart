@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navigation.dart';
 import '../services/user_service.dart';
+import '../services/favorite_service.dart';
+import '../services/product_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,44 +15,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   int _currentIndex = 0;
   String _userName = '';
-  List<Map<String, dynamic>> _products = [
-    {
-      'id': '1',
-      'title': 'Producto de Ejemplo 1',
-      'description':
-          'Descripción detallada del producto 1. Este es un producto de ejemplo con una descripción extensa.',
-      'price': 99.99,
-      'image': 'assets/images/Logo_PMiniatura.png',
-      'category': 'Categoría de Ejemplo',
-    },
-    {
-      'id': '2',
-      'title': 'Producto de Ejemplo 2',
-      'description':
-          'Descripción detallada del producto 2. Este es un producto de ejemplo con una descripción extensa.',
-      'price': 149.99,
-      'image': 'assets/images/Logo_PMiniatura.png',
-      'category': 'Categoría de Ejemplo',
-    },
-    {
-      'id': '3',
-      'title': 'Producto de Ejemplo 3',
-      'description':
-          'Descripción detallada del producto 3. Este es un producto de ejemplo con una descripción extensa.',
-      'price': 199.99,
-      'image': 'assets/images/Logo_PMiniatura.png',
-      'category': 'Categoría de Ejemplo',
-    },
-    {
-      'id': '4',
-      'title': 'Producto de Ejemplo 4',
-      'description':
-          'Descripción detallada del producto 4. Este es un producto de ejemplo con una descripción extensa.',
-      'price': 249.99,
-      'image': 'assets/images/Logo_PMiniatura.png',
-      'category': 'Categoría de Ejemplo',
-    },
-  ];
+  bool _isLoadingProducts = false;
+  // TODO: Cargar productos reales desde MongoDB usando ProductService
+  List<Map<String, dynamic>> _products = [];
 
   final List<Map<String, dynamic>> _categories = [
     {
@@ -94,12 +61,96 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // TODO: Implementar la lógica para obtener el nombre del usuario logueado si es necesario
+    _fetchProducts(); // Llamar al método para obtener productos
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  // Método para cargar productos desde MongoDB
+  Future<void> _fetchProducts() async {
+    setState(() {
+      _isLoadingProducts = true;
+    });
+
+    try {
+      // Obtener los productos reales de la BD
+      final fetchedProducts = await ProductService.getProducts();
+
+      setState(() {
+        // Convertir la lista de objetos Product a la estructura que espera la UI
+        _products = fetchedProducts.map((product) {
+          return {
+            'id': product.id,
+            'title': product.title,
+            'description': product.description,
+            'price': product.price,
+            'image': product.imageUrls.isNotEmpty
+                ? product.imageUrls.first
+                : 'assets/images/Logo_PMiniatura.png', // Imagen por defecto si no hay imágenes
+            'category': product.category,
+          };
+        }).toList();
+        _isLoadingProducts = false;
+      });
+    } catch (e) {
+      print('Error al cargar productos: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al cargar los productos. Inténtalo de nuevo.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() {
+        _isLoadingProducts = false;
+      });
+    }
+  }
+
+  // Método para alternar el estado de favorito de un producto
+  void _toggleFavorite(String productId) async {
+    final isCurrentlyFavorite = FavoriteService.isFavoriteProduct(productId);
+    bool success;
+
+    if (isCurrentlyFavorite) {
+      success = await FavoriteService.removeFavoriteProduct(productId);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto removido de favoritos'),
+            backgroundColor: Color(0xFF5C3D2E),
+          ),
+        );
+      }
+    } else {
+      success = await FavoriteService.addFavoriteProduct(productId);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Producto agregado a favoritos'),
+            backgroundColor: Color(0xFF5C3D2E),
+          ),
+        );
+      }
+    }
+
+    if (success && mounted) {
+      // Actualizar la UI forzando una reconstrucción
+      setState(() {});
+    }
+    if (!success) {
+      // Mostrar mensaje de error si la operación falló (ej. no logueado, error de BD)
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error al actualizar favoritos. Inténtalo de nuevo.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _filterProducts(String query) {
@@ -130,21 +181,26 @@ class _HomeScreenState extends State<HomeScreen> {
         // Ya estamos en inicio
         break;
       case 1: // Favoritos
-        Navigator.pushNamed(context, '/favorites');
+        Navigator.pushReplacementNamed(context, '/favorites');
         break;
       case 2: // Publicar
-        Navigator.pushNamed(context, '/create-product');
+        Navigator.pushReplacementNamed(context, '/create-product');
         break;
       case 3: // Carrito
-        Navigator.pushNamed(context, '/cart');
+        Navigator.pushReplacementNamed(context, '/cart');
         break;
       case 4: // Perfil
-        Navigator.pushNamed(context, '/profile');
+        Navigator.pushReplacementNamed(context, '/profile');
         break;
     }
   }
 
   Widget _buildProductsGrid() {
+    if (_isLoadingProducts) {
+      // Mostrar indicador de carga si los productos están cargando
+      return const Center(child: CircularProgressIndicator());
+    }
+
     if (_products.isEmpty) {
       return Center(
         child: Column(
@@ -188,7 +244,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProductCard(BuildContext context, Map<String, dynamic> product) {
-    bool isFavorite = false; // TODO: Implementar lógica de favoritos
+    // Obtener el estado de favorito desde el servicio
+    bool isFavorite =
+        FavoriteService.isFavoriteProduct(product['id'] as String);
 
     return GestureDetector(
       onTap: () {
@@ -261,17 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         size: 20,
                       ),
                       onPressed: () {
-                        // TODO: Implementar lógica de favoritos
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              isFavorite
-                                  ? 'Producto removido de favoritos'
-                                  : 'Producto agregado a favoritos',
-                            ),
-                            backgroundColor: const Color(0xFF5C3D2E),
-                          ),
-                        );
+                        _toggleFavorite(product['id'] as String);
                       },
                     ),
                   ),

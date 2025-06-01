@@ -1,13 +1,14 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import '../models/user.dart';
 
 class JwtService {
   static const String _secret =
       'tu_clave_secreta_muy_segura'; // TODO: Mover a variables de entorno
 
   // Generar token JWT
-  static String generateToken(String userId) {
+  static String generateToken(User user) {
     final now = DateTime.now();
     final expiresAt =
         now.add(const Duration(days: 7)); // Token válido por 7 días
@@ -18,7 +19,15 @@ class JwtService {
     };
 
     final payload = {
-      'sub': userId,
+      'sub': user.id,
+      'name': user.name,
+      'email': user.email,
+      'avatarUrl': user.avatarUrl,
+      'addresses': user.addresses,
+      'favoriteProducts': user.favoriteProducts,
+      'publishedProducts': user.publishedProducts,
+      'purchaseHistory': user.purchaseHistory,
+      'favoriteProductIds': user.favoriteProductIds,
       'iat': now.millisecondsSinceEpoch ~/ 1000,
       'exp': expiresAt.millisecondsSinceEpoch ~/ 1000,
     };

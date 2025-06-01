@@ -67,8 +67,9 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      initialRoute: '/welcome',
+      initialRoute: '/',
       routes: {
+        '/': (context) => const AuthWrapper(),
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
@@ -167,12 +168,26 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-      future: AuthService.isLoggedIn(),
+      future: AuthService.loadSession(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
+        }
+
+        if (snapshot.hasError) {
+          print('Error al cargar sesión: ${snapshot.error}');
+          // Redirigir a welcome en caso de error
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/welcome',
+              (route) => false,
+            );
+          });
+          return const Scaffold(
+              body: Center(child: CircularProgressIndicator()));
         }
 
         if (snapshot.data == true) {

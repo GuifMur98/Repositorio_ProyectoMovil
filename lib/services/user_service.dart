@@ -3,6 +3,8 @@ import '../config/database.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 import 'package:crypto/crypto.dart';
 import 'dart:convert';
+import 'auth_service.dart';
+import 'jwt_service.dart';
 
 class UserService {
   static User? _currentUser;
@@ -16,7 +18,8 @@ class UserService {
   }
 
   // Iniciar sesión
-  static Future<User?> login(String email, String password) async {
+  static Future<Map<String, dynamic>?> login(
+      String email, String password) async {
     try {
       final hashedPassword = sha256.convert(utf8.encode(password)).toString();
       final user = await DatabaseConfig.users.findOne(
@@ -28,14 +31,23 @@ class UserService {
           id: user['_id'].toString(),
           name: user['name'],
           email: user['email'],
-          profileImage: user['profileImage'],
+          password: user['password'] as String? ?? '',
+          avatarUrl: user['avatarUrl'] as String?,
           addresses: List<String>.from(user['addresses'] ?? []),
           favoriteProducts: List<String>.from(user['favoriteProducts'] ?? []),
           publishedProducts: List<String>.from(user['publishedProducts'] ?? []),
           purchaseHistory: List<String>.from(user['purchaseHistory'] ?? []),
+          favoriteProductIds:
+              List<String>.from(user['favoriteProductIds'] ?? []),
         );
+
+        // Generar token JWT
+        final token = JwtService.generateToken(userObj);
+
+        // Establecer el usuario actual (AuthService.saveSession también lo hace, pero lo hacemos aquí por si acaso)
         _currentUser = userObj;
-        return userObj;
+
+        return {'user': userObj, 'token': token};
       }
       return null;
     } catch (e) {
@@ -45,7 +57,7 @@ class UserService {
   }
 
   // Registrar usuario
-  static Future<bool> register(
+  static Future<Map<String, dynamic>?> register(
     String name,
     String email,
     String password,
@@ -56,7 +68,8 @@ class UserService {
         where.eq('email', email),
       );
       if (existingUser != null) {
-        return false;
+        print('Error: El email ya está registrado.');
+        return null;
       }
 
       // Crear nuevo usuario
@@ -65,22 +78,46 @@ class UserService {
         'name': name,
         'email': email,
         'password': hashedPassword,
-        'profileImage': null,
+        'avatarUrl': null,
         'addresses': [],
         'favoriteProducts': [],
         'publishedProducts': [],
         'purchaseHistory': [],
+        'favoriteProductIds': [],
         'createdAt': DateTime.now(),
       });
 
       if (result.isSuccess) {
-        _currentUser = User(id: result.id.toString(), name: name, email: email);
-        return true;
+        final insertedId = result.id;
+        print('Usuario registrado con éxito. ID: $insertedId');
+
+        // Crear objeto User para el usuario registrado (sin la contraseña hasheada para la sesión)
+        final createdUser = User(
+          id: insertedId.toString(),
+          name: name,
+          email: email,
+          password: '',
+          avatarUrl: null,
+          addresses: [],
+          favoriteProducts: [],
+          publishedProducts: [],
+          purchaseHistory: [],
+          favoriteProductIds: [],
+        );
+
+        // Generar token JWT
+        final token = JwtService.generateToken(createdUser);
+
+        // Establecer el usuario actual (AuthService.saveSession también lo hace, pero lo hacemos aquí por si acaso)
+        setCurrentUser(createdUser);
+
+        return {'user': createdUser, 'token': token};
       }
-      return false;
+      print('Error al registrar usuario.');
+      return null;
     } catch (e) {
       print('Error al registrar usuario: $e');
-      return false;
+      return null;
     }
   }
 
@@ -89,10 +126,10 @@ class UserService {
     try {
       final user = await DatabaseConfig.users.findOne(where.eq('email', email));
       if (user != null) {
-        // Aquí deberías implementar el envío de email con el código de recuperación
-        // Por ahora solo retornamos true para simular el envío
+        print('Recuperación de contraseña simulada para: $email');
         return true;
       }
+      print('Recuperación de contraseña: Email no encontrado.');
       return false;
     } catch (e) {
       print('Error al recuperar contraseña: $e');
@@ -103,141 +140,317 @@ class UserService {
   // Cerrar sesión
   static void logout() {
     _currentUser = null;
+    AuthService().clearToken();
+    print('Sesión de usuario cerrada.');
   }
 
   // Verificar si hay un usuario iniciado sesión
   static bool get isLoggedIn => _currentUser != null;
 
   // Agregar un producto a favoritos
-  static Future<void> addToFavorites(String productId) async {
+  static Future<bool> addToFavorites(String productId) async {
     if (_currentUser != null) {
       try {
+        // Actualizar la base de datos
+        await DatabaseConfig.users.updateOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
+          modify.addToSet('favoriteProductIds', productId),
+        );
+        // También actualizamos favoriteProducts por si acaso, aunque usamos favoriteProductIds en el modelo User
         await DatabaseConfig.users.updateOne(
           where.id(ObjectId.fromHexString(_currentUser!.id)),
           modify.addToSet('favoriteProducts', productId),
         );
 
-        final updatedFavorites = List<String>.from(
-          _currentUser!.favoriteProducts,
-        )..add(productId);
-        _currentUser = User(
-          id: _currentUser!.id,
-          name: _currentUser!.name,
-          email: _currentUser!.email,
-          profileImage: _currentUser!.profileImage,
-          addresses: _currentUser!.addresses,
-          favoriteProducts: updatedFavorites,
-          publishedProducts: _currentUser!.publishedProducts,
-          purchaseHistory: _currentUser!.purchaseHistory,
+        // Obtener el usuario actualizado de la base de datos
+        final updatedUserJson = await DatabaseConfig.users.findOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
         );
+
+        if (updatedUserJson != null) {
+          // Recrear el objeto _currentUser con los datos actualizados
+          _currentUser = User.fromJson(updatedUserJson);
+          print(
+              'Producto $productId agregado a favoritos. Usuario en memoria actualizado.');
+          return true; // Indica éxito
+        } else {
+          print(
+              'Error: No se pudo recuperar el usuario actualizado después de agregar favorito.');
+          return false; // Indica fallo al actualizar el usuario en memoria
+        }
       } catch (e) {
         print('Error al agregar a favoritos: $e');
+        return false; // Indica fallo en la operación de base de datos
       }
     }
+    return false; // Indica que no hay usuario logueado
   }
 
   // Remover un producto de favoritos
-  static Future<void> removeFromFavorites(String productId) async {
+  static Future<bool> removeFromFavorites(String productId) async {
     if (_currentUser != null) {
       try {
+        // Actualizar la base de datos
+        await DatabaseConfig.users.updateOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
+          modify.pull('favoriteProductIds', productId),
+        );
+        // También actualizamos favoriteProducts por si acaso
         await DatabaseConfig.users.updateOne(
           where.id(ObjectId.fromHexString(_currentUser!.id)),
           modify.pull('favoriteProducts', productId),
         );
 
-        final updatedFavorites = List<String>.from(
-          _currentUser!.favoriteProducts,
-        )..remove(productId);
-        _currentUser = User(
-          id: _currentUser!.id,
-          name: _currentUser!.name,
-          email: _currentUser!.email,
-          profileImage: _currentUser!.profileImage,
-          addresses: _currentUser!.addresses,
-          favoriteProducts: updatedFavorites,
-          publishedProducts: _currentUser!.publishedProducts,
-          purchaseHistory: _currentUser!.purchaseHistory,
+        // Obtener el usuario actualizado de la base de datos
+        final updatedUserJson = await DatabaseConfig.users.findOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
         );
+
+        if (updatedUserJson != null) {
+          // Recrear el objeto _currentUser con los datos actualizados
+          _currentUser = User.fromJson(updatedUserJson);
+          print(
+              'Producto $productId removido de favoritos. Usuario en memoria actualizado.');
+          return true; // Indica éxito
+        } else {
+          print(
+              'Error: No se pudo recuperar el usuario actualizado después de remover favorito.');
+          return false; // Indica fallo al actualizar el usuario en memoria
+        }
       } catch (e) {
         print('Error al remover de favoritos: $e');
+        return false; // Indica fallo en la operación de base de datos
       }
     }
+    return false; // Indica que no hay usuario logueado
   }
 
   // Verificar si un producto está en favoritos
   static bool isProductInFavorites(String productId) {
-    return _currentUser?.favoriteProducts.contains(productId) ?? false;
+    return _currentUser?.favoriteProductIds.contains(productId) ?? false;
   }
 
   // Agregar una dirección
-  static void addAddress(String address) {
+  static Future<void> addAddress(String address) async {
     if (_currentUser != null) {
-      final updatedAddresses = List<String>.from(_currentUser!.addresses)
-        ..add(address);
-      _currentUser = User(
-        id: _currentUser!.id,
-        name: _currentUser!.name,
-        email: _currentUser!.email,
-        profileImage: _currentUser!.profileImage,
-        addresses: updatedAddresses,
-        favoriteProducts: _currentUser!.favoriteProducts,
-        publishedProducts: _currentUser!.publishedProducts,
-        purchaseHistory: _currentUser!.purchaseHistory,
-      );
+      try {
+        await DatabaseConfig.users.updateOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
+          modify.addToSet('addresses', address),
+        );
+        final updatedAddresses = List<String>.from(_currentUser!.addresses)
+          ..add(address);
+        _currentUser = User(
+          id: _currentUser!.id,
+          name: _currentUser!.name,
+          email: _currentUser!.email,
+          password: _currentUser!.password,
+          avatarUrl: _currentUser!.avatarUrl,
+          addresses: updatedAddresses,
+          favoriteProducts: _currentUser!.favoriteProducts,
+          publishedProducts: _currentUser!.publishedProducts,
+          purchaseHistory: _currentUser!.purchaseHistory,
+          favoriteProductIds: _currentUser!.favoriteProductIds,
+        );
+        print('Dirección \'$address\' agregada en memoria y BD.');
+      } catch (e) {
+        print('Error al agregar dirección: $e');
+      }
     }
   }
 
   // Remover una dirección
-  static void removeAddress(String address) {
+  static Future<void> removeAddress(String address) async {
     if (_currentUser != null) {
-      final updatedAddresses = List<String>.from(_currentUser!.addresses)
-        ..remove(address);
-      _currentUser = User(
-        id: _currentUser!.id,
-        name: _currentUser!.name,
-        email: _currentUser!.email,
-        profileImage: _currentUser!.profileImage,
-        addresses: updatedAddresses,
-        favoriteProducts: _currentUser!.favoriteProducts,
-        publishedProducts: _currentUser!.publishedProducts,
-        purchaseHistory: _currentUser!.purchaseHistory,
-      );
+      try {
+        await DatabaseConfig.users.updateOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
+          modify.pull('addresses', address),
+        );
+        final updatedAddresses = List<String>.from(_currentUser!.addresses)
+          ..remove(address);
+        _currentUser = User(
+          id: _currentUser!.id,
+          name: _currentUser!.name,
+          email: _currentUser!.email,
+          password: _currentUser!.password,
+          avatarUrl: _currentUser!.avatarUrl,
+          addresses: updatedAddresses,
+          favoriteProducts: _currentUser!.favoriteProducts,
+          publishedProducts: _currentUser!.publishedProducts,
+          purchaseHistory: _currentUser!.purchaseHistory,
+          favoriteProductIds: _currentUser!.favoriteProductIds,
+        );
+        print('Dirección \'$address\' removida en memoria y BD.');
+      } catch (e) {
+        print('Error al remover dirección: $e');
+      }
     }
   }
 
   // Agregar una compra al historial
-  static void addPurchase(String purchaseId) {
+  static Future<void> addPurchase(String purchaseId) async {
     if (_currentUser != null) {
-      final updatedHistory = List<String>.from(_currentUser!.purchaseHistory)
-        ..add(purchaseId);
-      _currentUser = User(
-        id: _currentUser!.id,
-        name: _currentUser!.name,
-        email: _currentUser!.email,
-        profileImage: _currentUser!.profileImage,
-        addresses: _currentUser!.addresses,
-        favoriteProducts: _currentUser!.favoriteProducts,
-        publishedProducts: _currentUser!.publishedProducts,
-        purchaseHistory: updatedHistory,
-      );
+      try {
+        await DatabaseConfig.users.updateOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
+          modify.addToSet('purchaseHistory', purchaseId),
+        );
+        final updatedHistory = List<String>.from(_currentUser!.purchaseHistory)
+          ..add(purchaseId);
+        _currentUser = User(
+          id: _currentUser!.id,
+          name: _currentUser!.name,
+          email: _currentUser!.email,
+          password: _currentUser!.password,
+          avatarUrl: _currentUser!.avatarUrl,
+          addresses: _currentUser!.addresses,
+          favoriteProducts: _currentUser!.favoriteProducts,
+          publishedProducts: _currentUser!.publishedProducts,
+          purchaseHistory: updatedHistory,
+          favoriteProductIds: _currentUser!.favoriteProductIds,
+        );
+        print('Compra $purchaseId agregada al historial en memoria y BD.');
+      } catch (e) {
+        print('Error al agregar compra al historial: $e');
+      }
     }
   }
 
   // Agregar un producto publicado
-  static void addPublishedProduct(String productId) {
+  static Future<void> addPublishedProduct(String productId) async {
     if (_currentUser != null) {
-      final updatedProducts = List<String>.from(_currentUser!.publishedProducts)
-        ..add(productId);
-      _currentUser = User(
-        id: _currentUser!.id,
-        name: _currentUser!.name,
-        email: _currentUser!.email,
-        profileImage: _currentUser!.profileImage,
-        addresses: _currentUser!.addresses,
-        favoriteProducts: _currentUser!.favoriteProducts,
-        publishedProducts: updatedProducts,
-        purchaseHistory: _currentUser!.purchaseHistory,
-      );
+      try {
+        await DatabaseConfig.users.updateOne(
+          where.id(ObjectId.fromHexString(_currentUser!.id)),
+          modify.addToSet('publishedProducts', productId),
+        );
+        final updatedProducts =
+            List<String>.from(_currentUser!.publishedProducts)..add(productId);
+        _currentUser = User(
+          id: _currentUser!.id,
+          name: _currentUser!.name,
+          email: _currentUser!.email,
+          password: _currentUser!.password,
+          avatarUrl: _currentUser!.avatarUrl,
+          addresses: _currentUser!.addresses,
+          favoriteProducts: _currentUser!.favoriteProducts,
+          publishedProducts: updatedProducts,
+          purchaseHistory: _currentUser!.purchaseHistory,
+          favoriteProductIds: _currentUser!.favoriteProductIds,
+        );
+        print('Producto publicado $productId agregado en memoria y BD.');
+      } catch (e) {
+        print('Error al agregar producto publicado: $e');
+      }
     }
+  }
+
+  // Método para obtener el ID del usuario actual
+  static String? getCurrentUserId() {
+    return _currentUser?.id;
+  }
+
+  // Método para limpiar el usuario actual (cerrar sesión)
+  static void clearCurrentUser() {
+    _currentUser = null;
+    print('Usuario actual limpiado.');
+  }
+
+  // Método para actualizar un campo específico del usuario (ej: favoriteProducts)
+  // Este método es una simplificación y DEBERÍA interactuar con la base de datos en una app real.
+  static Future<void> updateUserField(
+      String userId, Map<String, dynamic> updates) async {
+    try {
+      final usersCollection = DatabaseConfig.users;
+
+      // Asegurarse de que userId es un ObjectId si tu BD usa ObjectId como _id
+      final objectId =
+          ObjectId.fromHexString(userId); // Convertir String a ObjectId
+
+      // Aplicar las actualizaciones usando modify.set para cada campo
+      final updateModifiers = modify; // Usar el objeto modify
+      updates.forEach((field, value) {
+        updateModifiers.set(field, value); // Aplicar set para cada campo/valor
+      });
+
+      final result = await usersCollection.updateOne(
+        where.id(objectId), // Buscar por el ID
+        updateModifiers, // Aplicar los modificadores de actualización
+      );
+
+      if (result.isSuccess) {
+        print('Usuario actualizado con éxito en MongoDB.');
+
+        // Si el usuario actualizado es el usuario actual, actualizar también la instancia en memoria
+        if (_currentUser != null && _currentUser!.id == userId) {
+          // Idealmente, recargarías el usuario completo desde la BD después de actualizarlo,
+          // pero para simplificar, solo actualizaremos el campo en memoria.
+          // En una app real, deberías ser cuidadoso con esto para mantener la consistencia.
+
+          // Ejemplo simplificado: Si se actualizan los favoritos
+          if (updates.containsKey('favoriteProducts')) {
+            _currentUser!.favoriteProducts.clear();
+            _currentUser!.favoriteProducts
+                .addAll(List<String>.from(updates['favoriteProducts']));
+          }
+          if (updates.containsKey('favoriteProductIds')) {
+            _currentUser!.favoriteProductIds.clear();
+            _currentUser!.favoriteProductIds
+                .addAll(List<String>.from(updates['favoriteProductIds']));
+          }
+          // No necesitamos manejar password o avatarUrl directamente aquí, ya que updateUserField es genérico
+          // y el modelo User ya usa avatarUrl. El password no se actualiza así.
+          // ... manejar otros campos si es necesario ...
+        }
+      } else {
+        print('Error al actualizar usuario en MongoDB: ${result.writeError}');
+        // TODO: Manejar errores de escritura de MongoDB de forma más específica
+      }
+    } catch (e) {
+      print('Excepción al actualizar usuario en MongoDB: $e');
+      // TODO: Manejar otras excepciones
+    }
+  }
+
+  // Método para actualizar la lista completa de favoritos del usuario actual en la BD
+  static Future<bool> updateFavoriteProducts(
+      List<String> favoriteProductIds) async {
+    final currentUserId = getCurrentUserId();
+    if (currentUserId == null) {
+      print('Error: No hay usuario logueado para actualizar favoritos.');
+      return false;
+    }
+    try {
+      await updateUserField(
+          currentUserId, {'favoriteProductIds': favoriteProductIds});
+      // Si la actualización en la BD fue exitosa, también actualizar la instancia en memoria
+      if (_currentUser != null) {
+        _currentUser!.favoriteProductIds.clear();
+        _currentUser!.favoriteProductIds.addAll(favoriteProductIds);
+      }
+      return true;
+    } catch (e) {
+      print('Error al actualizar favoritos en UserService: $e');
+      return false;
+    }
+  }
+
+  // Método para convertir un mapa (de MongoDB) a un objeto User
+  static User fromJson(Map<String, dynamic> json) {
+    return User(
+      id: json['_id'].toString(), // Convertir ObjectId a String
+      name: json['name'] as String,
+      email: json['email'] as String,
+      password: json['password'] as String? ??
+          '', // Incluir password, manejar null o no presente
+      avatarUrl: json['avatarUrl'] as String?, // Usar avatarUrl
+      addresses: List<String>.from(
+          json['addresses'] ?? []), // Manejar null o lista vacía
+      favoriteProducts: List<String>.from(json['favoriteProducts'] ?? []),
+      publishedProducts: List<String>.from(json['publishedProducts'] ?? []),
+      purchaseHistory: List<String>.from(json['purchaseHistory'] ?? []),
+      favoriteProductIds: List<String>.from(json['favoriteProductIds'] ?? []),
+    );
   }
 }
