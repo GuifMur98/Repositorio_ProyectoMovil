@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navigation.dart';
+import '../services/user_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,6 +12,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   int _currentIndex = 0;
+  String _userName = '';
   List<Map<String, dynamic>> _products = [
     {
       'id': '1',
@@ -90,6 +92,11 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
@@ -102,9 +109,8 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         _products = _products.where((product) {
           final titleLower = product['title'].toString().toLowerCase();
-          final descriptionLower = product['description']
-              .toString()
-              .toLowerCase();
+          final descriptionLower =
+              product['description'].toString().toLowerCase();
           final categoryLower = product['category'].toString().toLowerCase();
           final searchLower = query.toLowerCase();
 
@@ -398,52 +404,64 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  height: 35,
+                  height: 40,
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withOpacity(0.15),
+                        spreadRadius: 0,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: TextField(
                     controller: _searchController,
                     onChanged: _filterProducts,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF5C3D2E),
+                      fontWeight: FontWeight.w500,
+                    ),
                     decoration: InputDecoration(
                       hintText: 'Buscar productos...',
                       hintStyle: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 13,
-                      ),
-                      prefixIcon: const Icon(
-                        Icons.search,
                         color: Color(0xFF5C3D2E),
-                        size: 20,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      prefixIcon: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(
+                          Icons.search,
+                          color: Color(0xFF5C3D2E),
+                          size: 22,
+                        ),
                       ),
                       suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(
-                                Icons.clear,
-                                color: Color(0xFF5C3D2E),
-                                size: 20,
+                          ? Container(
+                              padding: const EdgeInsets.all(8),
+                              child: IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Color(0xFF5C3D2E),
+                                  size: 22,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _filterProducts('');
+                                },
                               ),
-                              onPressed: () {
-                                _searchController.clear();
-                                _filterProducts('');
-                              },
                             )
                           : null,
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
+                        horizontal: 16,
+                        vertical: 12,
                       ),
                     ),
-                    style: const TextStyle(fontSize: 13),
                   ),
                 ),
               ),
@@ -468,6 +486,43 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: const BoxDecoration(
+                color: Color(0xFF5C3D2E),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    UserService.currentUser != null
+                        ? '¡Bienvenido ${UserService.currentUser!.name}!'
+                        : '¡Bienvenido!',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Un lugar para comprar y vender productos de calidad.',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             _buildCategories(),
             const SizedBox(height: 24),

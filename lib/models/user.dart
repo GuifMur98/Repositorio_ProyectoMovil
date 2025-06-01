@@ -18,19 +18,4 @@ class User {
     this.publishedProducts = const [],
     this.purchaseHistory = const [],
   });
-
-  // Usuario de prueba
-  static User get testUser => User(
-    id: '1',
-    name: 'Usuario de Prueba',
-    email: 'usuario@prueba.com',
-    profileImage: 'assets/images/placeholder.png',
-    addresses: [
-      'Calle Principal 123, Ciudad de Ejemplo',
-      'Avenida Central 456, Ciudad de Ejemplo',
-    ],
-    favoriteProducts: ['1', '2', '3'],
-    publishedProducts: ['1', '2', '3'],
-    purchaseHistory: ['1', '2'],
-  );
 }
