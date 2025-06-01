@@ -27,9 +27,14 @@ import 'package:proyecto/config/database.dart';
 import 'package:proyecto/config/cloudinary.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/widgets/protected_route.dart';
+import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   try {
     // Cargar variables de entorno
@@ -56,45 +61,25 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'MarketPlace',
+      title: 'Proyecto Marketplace Movil',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF5C3D2E),
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          iconTheme: IconThemeData(color: Color(0xFF5C3D2E)),
-          titleTextStyle: TextStyle(
-            color: Color(0xFF5C3D2E),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5C3D2E),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-        ),
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: const AuthWrapper(),
+      initialRoute: '/welcome',
       routes: {
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/home': (context) => ProtectedRoute(child: const HomeScreen()),
+        '/home': (context) => const ProtectedRoute(child: HomeScreen()),
+        '/profile': (context) => const ProtectedRoute(child: ProfileScreen()),
         '/favorites': (context) =>
-            ProtectedRoute(child: const FavoritesScreen()),
-        '/publish': (context) =>
-            ProtectedRoute(child: const AddProductScreen()),
-        '/cart': (context) => ProtectedRoute(child: const CartScreen()),
-        '/profile': (context) => ProtectedRoute(child: const ProfileScreen()),
+            const ProtectedRoute(child: FavoritesScreen()),
+        '/cart': (context) => const ProtectedRoute(child: CartScreen()),
+        '/create-product': (context) =>
+            const ProtectedRoute(child: AddProductScreen()),
         '/product-detail': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           final productId = args is Map && args['productId'] != null
@@ -143,6 +128,34 @@ class MyApp extends StatelessWidget {
               : -1;
           return ProtectedRoute(child: EditAddressScreen(addressId: addressId));
         },
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/product-detail') {
+          final args = settings.arguments;
+          String productId = '';
+          if (args is Map && args.containsKey('productId')) {
+            productId = args['productId'] as String;
+          }
+          return MaterialPageRoute(
+            builder: (context) => ProtectedRoute(
+                child: ProductDetailScreen(productId: productId)),
+          );
+        }
+        if (settings.name == '/category') {
+          final args = settings.arguments;
+          String category = '';
+          if (args is Map && args.containsKey('category')) {
+            category = args['category'] as String;
+          }
+          return MaterialPageRoute(
+            builder: (context) =>
+                ProtectedRoute(child: CategoryScreen(category: category)),
+          );
+        }
+        return null;
+      },
+      onUnknownRoute: (settings) {
+        return MaterialPageRoute(builder: (context) => const HomeScreen());
       },
     );
   }

@@ -5,9 +5,44 @@ class CategoriesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> categories =
-        ModalRoute.of(context)!.settings.arguments
-            as List<Map<String, dynamic>>;
+    final List<Map<String, dynamic>> categories = [
+      {
+        'id': '1',
+        'name': 'Electrónica',
+        'icon': Icons.phone_android,
+        'color': const Color(0xFF5C3D2E),
+      },
+      {
+        'id': '2',
+        'name': 'Ropa',
+        'icon': Icons.checkroom,
+        'color': const Color(0xFF5C3D2E),
+      },
+      {
+        'id': '3',
+        'name': 'Hogar',
+        'icon': Icons.home,
+        'color': const Color(0xFF5C3D2E),
+      },
+      {
+        'id': '4',
+        'name': 'Deportes',
+        'icon': Icons.sports_basketball,
+        'color': const Color(0xFF5C3D2E),
+      },
+      {
+        'id': '5',
+        'name': 'Libros',
+        'icon': Icons.book,
+        'color': const Color(0xFF5C3D2E),
+      },
+      {
+        'id': '6',
+        'name': 'Mascotas',
+        'icon': Icons.pets,
+        'color': const Color(0xFF5C3D2E),
+      },
+    ];
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -48,19 +83,22 @@ class CategoriesScreen extends StatelessWidget {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFE1D4C2),
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF5C3D2E),
+                    const Color(0xFF5C3D2E).withOpacity(0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withOpacity(0.1),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
-                border: Border.all(
-                  color: const Color(0xFF5C3D2E).withOpacity(0.1),
-                  width: 1,
-                ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -68,19 +106,12 @@ class CategoriesScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF5C3D2E).withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
                     child: Icon(
                       category['icon'] as IconData,
-                      color: category['color'] as Color,
+                      color: Colors.white,
                       size: 32,
                     ),
                   ),
@@ -90,7 +121,7 @@ class CategoriesScreen extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF5C3D2E),
+                      color: Colors.white,
                     ),
                     textAlign: TextAlign.center,
                   ),
