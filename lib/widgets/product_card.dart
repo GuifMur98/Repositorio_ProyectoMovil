@@ -1,29 +1,77 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
-import 'package:proyecto/services/favorite_service.dart'; // Importar el servicio de favoritos
-import 'package:proyecto/screens/product_detail_screen.dart'; // Para navegar al detalle
+import 'package:proyecto/services/favorite_service.dart';
+import 'package:proyecto/services/user_service.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends StatefulWidget {
   final Product product;
-  final VoidCallback?
-      onFavoriteToggle; // Callback opcional para notificar cambios en favoritos
+  final VoidCallback? onFavoriteToggle;
 
   const ProductCard({Key? key, required this.product, this.onFavoriteToggle})
       : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    // Obtener el estado de favorito desde el servicio
-    // Nota: Esto asume que FavoriteService tiene un estado global o se actualiza correctamente
-    bool isFavorite = FavoriteService.isFavoriteProduct(product.id);
+  State<ProductCard> createState() => _ProductCardState();
+}
 
+class _ProductCardState extends State<ProductCard> {
+  bool isFavorite = false;
+  bool loadingFavorite = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorite();
+  }
+
+  Future<void> _loadFavorite() async {
+    final fav = await FavoriteService.isFavoriteProduct(widget.product.id);
+    setState(() {
+      isFavorite = fav;
+    });
+  }
+
+  Future<void> _toggleFavorite(BuildContext context) async {
+    setState(() {
+      loadingFavorite = true;
+    });
+    final user = UserService.currentUser;
+    if (user == null) {
+      setState(() {
+        loadingFavorite = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Debes iniciar sesión para agregar a favoritos.')),
+      );
+      return;
+    }
+    try {
+      await FavoriteService.toggleFavorite(widget.product.id);
+      await _loadFavorite();
+      if (widget.onFavoriteToggle != null) widget.onFavoriteToggle!();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              isFavorite ? 'Agregado a favoritos' : 'Eliminado de favoritos')));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al actualizar favoritos.')),
+      );
+    } finally {
+      setState(() {
+        loadingFavorite = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // Navegar a la pantalla de detalle del producto
         Navigator.pushNamed(
           context,
           '/product-detail',
-          arguments: {'productId': product.id},
+          arguments: {'productId': widget.product.id},
         );
       },
       child: Container(
@@ -47,9 +95,9 @@ class ProductCard extends StatelessWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(16),
                   ),
-                  child: product.imageUrls.isNotEmpty
+                  child: widget.product.imageUrls.isNotEmpty
                       ? Image.network(
-                          product.imageUrls.first,
+                          widget.product.imageUrls.first,
                           height: 120,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -92,21 +140,27 @@ class ProductCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    child: IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color:
-                            isFavorite ? Colors.red : const Color(0xFF5C3D2E),
-                        size: 20,
-                      ),
-                      onPressed: () async {
-                        // Alternar estado de favorito y ejecutar callback
-                        await FavoriteService.toggleFavorite(product.id);
-                        if (onFavoriteToggle != null) {
-                          onFavoriteToggle!();
-                        }
-                      },
-                    ),
+                    child: loadingFavorite
+                        ? const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : IconButton(
+                            icon: Icon(
+                              isFavorite
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: isFavorite
+                                  ? Colors.red
+                                  : const Color(0xFF5C3D2E),
+                              size: 20,
+                            ),
+                            onPressed: () => _toggleFavorite(context),
+                          ),
                   ),
                 ),
               ],
@@ -117,7 +171,7 @@ class ProductCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.title,
+                    widget.product.title,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -128,7 +182,7 @@ class ProductCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '\$${product.price.toStringAsFixed(2)}',
+                    '\$${widget.product.price.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF2C1810),
@@ -156,7 +210,7 @@ class ProductCard extends StatelessWidget {
                         const SizedBox(width: 2),
                         Flexible(
                           child: Text(
-                            product.category,
+                            widget.product.category,
                             style: const TextStyle(
                               color: Color(0xFF2C1810),
                               fontSize: 10,

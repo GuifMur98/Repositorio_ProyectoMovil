@@ -39,7 +39,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       return;
     }
 
-    if (currentUser.favoriteProductIds.isEmpty) {
+    if (currentUser.favoriteProducts.isEmpty) {
       setState(() {
         _isLoading = false;
         _errorMessage = 'Aún no tienes productos favoritos.';
@@ -50,7 +50,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     try {
       // Obtener los detalles de cada producto favorito
       List<Product> products = [];
-      for (String productId in currentUser.favoriteProductIds) {
+      for (String productId in currentUser.favoriteProducts) {
         final product = await ProductService.getProductById(productId);
         if (product != null) {
           products.add(product);
@@ -64,7 +64,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error al cargar favoritos: ${e.toString()}';
+        _errorMessage = 'Error al cargar favoritos: e.toString()}';
         print('Error fetching favorite products: $e');
       });
     }
@@ -128,7 +128,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         // Asumiendo que tienes un ProductCard widget para mostrar cada producto
                         return ProductCard(
                           product: product,
-                          // Aquí podrías añadir lógica para refrescar la lista si se desmarca un favorito
+                          onFavoriteToggle: _fetchFavoriteProducts,
                         );
                       },
                     ),
