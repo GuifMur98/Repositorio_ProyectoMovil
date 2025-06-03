@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:proyecto/models/product.dart';
+import 'package:proyecto/services/product_service.dart';
+import 'package:proyecto/widgets/product_card.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -9,158 +12,88 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
-  // Datos de ejemplo para productos
-  final List<Map<String, dynamic>> _products = [
-    {
-      'id': '1',
-      'title': 'Camiseta Básica',
-      'description': 'Camiseta de algodón 100%',
-      'price': 19.99,
-      'image': 'assets/images/placeholder.png',
-      'category': 'Ropa',
-    },
-    {
-      'id': '2',
-      'title': 'Pantalón Vaquero',
-      'description': 'Pantalón vaquero clásico',
-      'price': 39.99,
-      'image': 'assets/images/placeholder.png',
-      'category': 'Ropa',
-    },
-    {
-      'id': '3',
-      'title': 'Zapatillas Deportivas',
-      'description': 'Zapatillas para running',
-      'price': 79.99,
-      'image': 'assets/images/placeholder.png',
-      'category': 'Ropa',
-    },
-  ];
+  List<Product> _products = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProductsByCategory();
+  }
+
+  Future<void> _fetchProductsByCategory() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    try {
+      final products = await ProductService.getProducts();
+      final filtered =
+          products.where((p) => p.category == widget.category).toList();
+      setState(() {
+        _products = filtered;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error al cargar productos: $e';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    final category = args is Map && args['category'] != null
-        ? args['category'] as String
-        : widget.category;
-
-    // Filtrar productos por categoría
-    final filteredProducts = _products
-        .where((p) => p['category'] == category)
-        .toList();
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(category, style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF5C3D2E),
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+        title: Text(
+          widget.category,
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
+        backgroundColor: const Color(0xFF5C3D2E),
       ),
-      body: filteredProducts.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.category_outlined,
-                    size: 80,
-                    color: Color(0xFF5C3D2E),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No hay productos en la categoría $category',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Color(0xFF5C3D2E),
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    '¡Sé el primero en publicar un producto en esta categoría!',
-                    style: TextStyle(color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: filteredProducts.length,
-              itemBuilder: (context, index) {
-                final product = filteredProducts[index];
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/product-detail',
-                      arguments: {'productId': product['id']},
-                    );
-                  },
-                  child: Card(
-                    elevation: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE1D4C2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(4),
-                              ),
-                              child: Image.asset(
-                                product['image'],
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                              ),
-                            ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(child: Text(_errorMessage!))
+              : _products.isEmpty
+                  ? const Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.search_off, size: 60, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text(
+                            'No hay productos en esta categoría.',
+                            style: TextStyle(
+                                fontSize: 20,
+                                color: Colors.grey,
+                                fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                product['title'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '\$${product['price'].toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  color: Color(0xFF5C3D2E),
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(8.0),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.72,
+                        crossAxisSpacing: 8.0,
+                        mainAxisSpacing: 8.0,
+                      ),
+                      itemCount: _products.length,
+                      itemBuilder: (context, index) {
+                        final product = _products[index];
+                        return ProductCard(
+                          product: product,
+                        );
+                      },
                     ),
-                  ),
-                );
-              },
-            ),
     );
   }
 }

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/bottom_navigation.dart';
 import '../services/user_service.dart';
-import '../services/favorite_service.dart';
 import '../services/product_service.dart';
+import 'package:proyecto/models/product.dart';
+import 'package:proyecto/widgets/product_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,9 +15,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   int _currentIndex = 0;
-  String _userName = '';
   bool _isLoadingProducts = false;
-  // TODO: Cargar productos reales desde MongoDB usando ProductService
   List<Map<String, dynamic>> _products = [];
 
   final List<Map<String, dynamic>> _categories = [
@@ -61,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // TODO: Implementar la lógica para obtener el nombre del usuario logueado si es necesario
     _fetchProducts(); // Llamar al método para obtener productos
   }
 
@@ -111,48 +109,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  // Método para alternar el estado de favorito de un producto
-  void _toggleFavorite(String productId) async {
-    final isCurrentlyFavorite = FavoriteService.isFavoriteProduct(productId);
-    bool success;
-
-    if (isCurrentlyFavorite) {
-      success = await FavoriteService.removeFavoriteProduct(productId);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto removido de favoritos'),
-            backgroundColor: Color(0xFF5C3D2E),
-          ),
-        );
-      }
-    } else {
-      success = await FavoriteService.addFavoriteProduct(productId);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto agregado a favoritos'),
-            backgroundColor: Color(0xFF5C3D2E),
-          ),
-        );
-      }
-    }
-
-    if (success && mounted) {
-      // Actualizar la UI forzando una reconstrucción
-      setState(() {});
-    }
-    if (!success) {
-      // Mostrar mensaje de error si la operación falló (ej. no logueado, error de BD)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al actualizar favoritos. Inténtalo de nuevo.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _filterProducts(String query) {
     setState(() {
       if (query.isEmpty) {
@@ -197,7 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildProductsGrid() {
     if (_isLoadingProducts) {
-      // Mostrar indicador de carga si los productos están cargando
       return const Center(child: CircularProgressIndicator());
     }
 
@@ -231,168 +186,40 @@ class _HomeScreenState extends State<HomeScreen> {
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.80,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
+        childAspectRatio: 0.60, // Más alto para evitar cualquier overflow
+        crossAxisSpacing: 16.0,
+        mainAxisSpacing: 20.0,
       ),
       itemCount: _products.length,
       itemBuilder: (context, index) {
-        final product = _products[index];
-        return _buildProductCard(context, product);
-      },
-    );
-  }
-
-  Widget _buildProductCard(BuildContext context, Map<String, dynamic> product) {
-    // Obtener el estado de favorito desde el servicio
-    bool isFavorite =
-        FavoriteService.isFavoriteProduct(product['id'] as String);
-
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(
-          context,
-          '/product-detail',
-          arguments: {'productId': product['id']},
+        final p = _products[index];
+        // Mapear a Product (ajustar si faltan campos)
+        final product = Product(
+          id: p['id'] ?? '',
+          title: p['title'] ?? '',
+          description: p['description'] ?? '',
+          price: p['price'] is double
+              ? p['price']
+              : double.tryParse(p['price'].toString()) ?? 0.0,
+          imageUrls: p['imageUrls'] != null
+              ? List<String>.from(p['imageUrls'])
+              : (p['image'] != null ? [p['image']] : []),
+          category: p['category'] ?? '',
+          sellerId: p['sellerId'] ?? '',
+          stock: p['stock'] is int
+              ? p['stock']
+              : int.tryParse(p['stock']?.toString() ?? '') ?? 0,
         );
+        return ProductCard(product: product);
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F0E8),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  child: Image.asset(
-                    product['image'] as String,
-                    height: 120,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        height: 120,
-                        width: double.infinity,
-                        color: const Color(0xFFE1D4C2),
-                        child: const Icon(
-                          Icons.image_not_supported_outlined,
-                          size: 40,
-                          color: Color(0xFF5C3D2E),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                        color:
-                            isFavorite ? Colors.red : const Color(0xFF5C3D2E),
-                        size: 20,
-                      ),
-                      onPressed: () {
-                        _toggleFavorite(product['id'] as String);
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    product['title'] as String,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2C1810),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '\$${(product['price'] as double).toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF2C1810),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE1D4C2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.category,
-                          size: 12,
-                          color: Color(0xFF2C1810),
-                        ),
-                        const SizedBox(width: 2),
-                        Flexible(
-                          child: Text(
-                            product['category'] as String,
-                            style: const TextStyle(
-                              color: Color(0xFF2C1810),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   Widget _buildCategories() {
+    final List<Color> grad = [
+      Color(0xFF3E2723),
+      Color(0xFF5C3D2E)
+    ]; // degradado café oscuro
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 24),
       child: Column(
@@ -406,9 +233,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Text(
                   'Categorías',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF5C3D2E),
+                    letterSpacing: 1.2,
                   ),
                 ),
                 TextButton(
@@ -420,169 +248,92 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: TextStyle(
                       color: Color(0xFF5C3D2E),
                       fontWeight: FontWeight.w600,
+                      fontSize: 15,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           SizedBox(
-            height: 140,
-            child: ListView(
+            height: 120,
+            child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _buildCategoryCard(
-                  context,
-                  icon: Icons.phone_android,
-                  title: 'Electrónica',
-                  subtitle: 'Gadgets y más',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF5C3D2E), Color(0xFF8B5A2B)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              separatorBuilder: (_, __) => const SizedBox(width: 20),
+              itemCount: _categories.length,
+              itemBuilder: (context, i) {
+                final cat = _categories[i];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/category',
+                      arguments: {'category': cat['name']},
+                    );
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    curve: Curves.easeInOut,
+                    width: 90,
+                    height: 110,
+                    margin: const EdgeInsets.only(bottom: 4),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      gradient: LinearGradient(
+                        colors: grad,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.92),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            cat['icon'] as IconData,
+                            color: grad[0],
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Text(
+                            cat['name'] as String,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              letterSpacing: 0.1,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black54,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 1),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    '/category',
-                    arguments: {'category': 'Electrónica'},
-                  ),
-                ),
-                _buildCategoryCard(
-                  context,
-                  icon: Icons.checkroom,
-                  title: 'Ropa',
-                  subtitle: 'Moda y estilo',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF8B5A2B), Color(0xFFA67B5B)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    '/category',
-                    arguments: {'category': 'Ropa'},
-                  ),
-                ),
-                _buildCategoryCard(
-                  context,
-                  icon: Icons.home,
-                  title: 'Hogar',
-                  subtitle: 'Decoración y más',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFA67B5B), Color(0xFFC4A484)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    '/category',
-                    arguments: {'category': 'Hogar'},
-                  ),
-                ),
-                _buildCategoryCard(
-                  context,
-                  icon: Icons.sports_basketball,
-                  title: 'Deportes',
-                  subtitle: 'Equipamiento',
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFC4A484), Color(0xFFD4B996)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  onTap: () => Navigator.pushNamed(
-                    context,
-                    '/category',
-                    arguments: {'category': 'Deportes'},
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Gradient gradient,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          width: 160,
-          decoration: BoxDecoration(
-            gradient: gradient,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                right: -20,
-                bottom: -20,
-                child: Icon(
-                  icon,
-                  size: 100,
-                  color: Colors.white.withOpacity(0.1),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

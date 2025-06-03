@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/services/favorite_service.dart';
 import 'package:proyecto/services/user_service.dart';
+import 'package:proyecto/services/cart_item_service.dart';
+import 'package:proyecto/models/cart_item.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -17,6 +19,7 @@ class ProductCard extends StatefulWidget {
 class _ProductCardState extends State<ProductCard> {
   bool isFavorite = false;
   bool loadingFavorite = false;
+  bool loadingCart = false;
 
   @override
   void initState() {
@@ -60,6 +63,43 @@ class _ProductCardState extends State<ProductCard> {
     } finally {
       setState(() {
         loadingFavorite = false;
+      });
+    }
+  }
+
+  Future<void> _addToCart(BuildContext context) async {
+    setState(() {
+      loadingCart = true;
+    });
+    final user = UserService.currentUser;
+    if (user == null) {
+      setState(() {
+        loadingCart = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Debes iniciar sesión para agregar al carrito.')),
+      );
+      return;
+    }
+    try {
+      final cartItem = CartItem(
+        id: '', // MongoDB generará el id
+        userId: user.id,
+        productId: widget.product.id,
+        quantity: 1,
+      );
+      await CartItemService.addCartItem(cartItem);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto agregado al carrito.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al agregar al carrito.')),
+      );
+    } finally {
+      setState(() {
+        loadingCart = false;
       });
     }
   }
@@ -114,15 +154,11 @@ class _ProductCardState extends State<ProductCard> {
                             );
                           },
                         )
-                      : Container(
+                      : Image.asset(
+                          'assets/images/Logo_PMiniatura.png',
                           height: 120,
                           width: double.infinity,
-                          color: const Color(0xFFE1D4C2),
-                          child: const Icon(
-                            Icons.image_not_supported_outlined,
-                            size: 40,
-                            color: Color(0xFF5C3D2E),
-                          ),
+                          fit: BoxFit.cover,
                         ),
                 ),
                 Positioned(
@@ -169,11 +205,12 @@ class _ProductCardState extends State<ProductCard> {
               padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     widget.product.title,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: 16, // antes 13
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF2C1810),
                     ),
@@ -184,44 +221,79 @@ class _ProductCardState extends State<ProductCard> {
                   Text(
                     '\$${widget.product.price.toStringAsFixed(2)}',
                     style: const TextStyle(
-                      fontSize: 14,
+                      fontSize: 17, // antes 14
                       color: Color(0xFF2C1810),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE1D4C2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.category,
-                          size: 12,
-                          color: Color(0xFF2C1810),
-                        ),
-                        const SizedBox(width: 2),
-                        Flexible(
-                          child: Text(
-                            widget.product.category,
-                            style: const TextStyle(
-                              color: Color(0xFF2C1810),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE1D4C2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.category,
+                                size: 12,
+                                color: Color(0xFF2C1810),
+                              ),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  widget.product.category,
+                                  style: const TextStyle(
+                                    color: Color(0xFF2C1810),
+                                    fontSize: 13, // antes 10
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 8),
+                  loadingCart
+                      ? const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.add_shopping_cart,
+                                size: 20), // antes 18
+                            label: const Text('Añadir al carrito',
+                                style: TextStyle(fontSize: 15)), // antes 13
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF5C3D2E),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              elevation: 0,
+                            ),
+                            onPressed: () => _addToCart(context),
+                          ),
+                        ),
+                  const SizedBox(
+                      height: 8), // Espaciado reducido al final de la columna
                 ],
               ),
             ),

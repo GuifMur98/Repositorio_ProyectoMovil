@@ -118,9 +118,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2, // 2 columnas
                         childAspectRatio:
-                            0.75, // Ajusta según el tamaño de tu tarjeta de producto
-                        crossAxisSpacing: 8.0,
-                        mainAxisSpacing: 8.0,
+                            0.60, // Igual que home para que el card se vea bien
+                        crossAxisSpacing: 16.0,
+                        mainAxisSpacing: 20.0,
                       ),
                       itemCount: _favoriteProducts.length,
                       itemBuilder: (context, index) {
