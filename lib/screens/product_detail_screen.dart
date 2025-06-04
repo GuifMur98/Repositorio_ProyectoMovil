@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/product_service.dart';
 import '../services/favorite_service.dart';
+import '../services/cart_item_service.dart';
+import '../services/user_service.dart';
 import '../models/product.dart';
+import '../models/cart_item.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -93,6 +96,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       setState(() {
         _isFavorite = !isCurrentlyFavorite;
       });
+    }
+  }
+
+  Future<void> _addToCart() async {
+    if (_product == null) return;
+    final user = UserService.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Debes iniciar sesión para agregar al carrito.'),
+        ),
+      );
+      return;
+    }
+    try {
+      final cartItem = CartItem(
+        id: '', // MongoDB generará el id
+        userId: user.id,
+        productId: _product!.id,
+        quantity: 1,
+      );
+      await CartItemService.addCartItem(cartItem);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto agregado al carrito.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al agregar al carrito.')),
+      );
     }
   }
 
@@ -287,14 +319,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Función de carrito no disponible'),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                      },
+                      onPressed: _addToCart,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF5C3D2E),
                         foregroundColor: Colors.white,
