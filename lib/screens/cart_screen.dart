@@ -88,8 +88,21 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _removeCartItem(String id) async {
-    await CartItemService.deleteCartItem(id);
-    await _fetchCart();
+    try {
+      await CartItemService.deleteCartItem(id);
+      await _fetchCart();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto eliminado del carrito.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Error al eliminar: ' +
+                (e.toString().isNotEmpty
+                    ? e.toString()
+                    : 'Error desconocido'))),
+      );
+    }
   }
 
   Future<void> _updateQuantity(CartItem item, int newQty) async {

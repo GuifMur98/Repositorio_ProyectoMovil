@@ -49,13 +49,23 @@ class CartItemService {
   }
 
   static Future<void> deleteCartItem(String id) async {
+    // Limpia el id si viene como ObjectId("...")
+    String cleanId = id;
+    if (id.startsWith('ObjectId(')) {
+      final start = id.indexOf('"') >= 0 ? id.indexOf('"') : id.indexOf("'");
+      final end = id.lastIndexOf('"') >= 0 ? id.lastIndexOf('"') : id.lastIndexOf("'");
+      if (start >= 0 && end > start) {
+        cleanId = id.substring(start + 1, end);
+        print('[CartItemService] ID limpiado: $cleanId');
+      }
+    }
     try {
-      // Si el id es un string tipo ObjectId (24 hex), eliminar como ObjectId
-      await DatabaseConfig.cartItems
-          .deleteOne({'_id': ObjectId.fromHexString(id)});
+      await DatabaseConfig.cartItems.deleteOne({'_id': ObjectId.fromHexString(cleanId)});
+      print('[CartItemService] Eliminado con ObjectId');
     } catch (e) {
-      // Si falla, intentar eliminar por string plano
-      await DatabaseConfig.cartItems.deleteOne({'_id': id});
+      print('[CartItemService] Error con ObjectId: $e');
+      await DatabaseConfig.cartItems.deleteOne({'_id': cleanId});
+      print('[CartItemService] Eliminado con string plano');
     }
   }
 
