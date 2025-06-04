@@ -10,18 +10,53 @@ class CartItemService {
   }
 
   static Future<void> addCartItem(CartItem item) async {
-    await DatabaseConfig.cartItems.insert(item.toJson());
+    // Buscar si ya existe un ítem de este producto para este usuario
+    final existing = await DatabaseConfig.cartItems.findOne({
+      'userId': item.userId,
+      'productId': item.productId,
+    });
+    if (existing != null) {
+      // Si existe, sumar la cantidad
+      final newQty = (existing['quantity'] ?? 1) + item.quantity;
+      await DatabaseConfig.cartItems.update(
+        {'_id': existing['_id']},
+        {
+          '\$set': {'quantity': newQty}
+        },
+      );
+    } else {
+      // Si no existe, insertar normalmente
+      await DatabaseConfig.cartItems.insert(item.toJson());
+    }
   }
 
   static Future<void> updateCartItem(CartItem item) async {
-    await DatabaseConfig.cartItems.update(
-      {'_id': ObjectId.parse(item.id)},
-      item.toJson(),
-    );
+    try {
+      await DatabaseConfig.cartItems.update(
+        {'_id': ObjectId.parse(item.id)},
+        {
+          '\$set': {'quantity': item.quantity}
+        },
+      );
+    } catch (e) {
+      await DatabaseConfig.cartItems.update(
+        {'_id': item.id},
+        {
+          '\$set': {'quantity': item.quantity}
+        },
+      );
+    }
   }
 
   static Future<void> deleteCartItem(String id) async {
-    await DatabaseConfig.cartItems.remove({'_id': ObjectId.parse(id)});
+    try {
+      // Si el id es un string tipo ObjectId (24 hex), eliminar como ObjectId
+      await DatabaseConfig.cartItems
+          .deleteOne({'_id': ObjectId.fromHexString(id)});
+    } catch (e) {
+      // Si falla, intentar eliminar por string plano
+      await DatabaseConfig.cartItems.deleteOne({'_id': id});
+    }
   }
 
   static Future<void> clearCart(String userId) async {

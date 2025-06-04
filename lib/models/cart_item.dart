@@ -12,16 +12,21 @@ class CartItem {
   });
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-        id: json['_id'] ?? '',
+        id: json['_id']?.toString() ?? '',
         userId: json['userId'] ?? '',
         productId: json['productId'] ?? '',
         quantity: json['quantity'] ?? 1,
       );
 
-  Map<String, dynamic> toJson() => {
-        '_id': id,
-        'userId': userId,
-        'productId': productId,
-        'quantity': quantity,
-      };
+  Map<String, dynamic> toJson() {
+    final map = {
+      'userId': userId,
+      'productId': productId,
+      'quantity': quantity,
+    };
+    if (id.isNotEmpty) {
+      map['_id'] = id;
+    }
+    return map;
+  }
 }

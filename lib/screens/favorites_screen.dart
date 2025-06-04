@@ -108,10 +108,45 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(child: Text(_errorMessage!))
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.favorite_border,
+                          size: 80, color: Colors.brown),
+                      SizedBox(height: 24),
+                      Text(
+                        'Aún no tienes productos favoritos.',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.brown,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                )
               : _favoriteProducts.isEmpty
                   ? const Center(
-                      child: Text('Aún no tienes productos favoritos.'))
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.favorite_border,
+                              size: 80, color: Colors.brown),
+                          SizedBox(height: 24),
+                          Text(
+                            'Aún no tienes productos favoritos.',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color.fromARGB(255, 87, 81, 79),
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
                   : GridView.builder(
                       padding: const EdgeInsets.all(8.0),
                       gridDelegate:
