@@ -5,6 +5,8 @@ import 'package:proyecto/models/cart_item.dart';
 import 'package:proyecto/services/product_service.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/services/user_service.dart';
+import '../models/address.dart';
+import '../services/address_service.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -28,6 +30,7 @@ class _CartScreenState extends State<CartScreen> {
   int _selectedShippingIndex = 0;
   String? _selectedAddress;
   List<String> _userAddresses = [];
+  List<Address> _addressObjects = [];
 
   // Flag para controlar la expansión del ExpansionTile de la factura
   bool _isFacturaExpanded = false;
@@ -77,10 +80,18 @@ class _CartScreenState extends State<CartScreen> {
   Future<void> _fetchAddresses() async {
     final user = UserService.currentUser;
     if (user == null) return;
-    // Usar el campo addresses del usuario actual
-    final addresses = user.addresses;
+    final addresses = await AddressService.getAddressesByUser(user.id);
     setState(() {
-      _userAddresses = List<String>.from(addresses);
+      _addressObjects = addresses;
+      _userAddresses = addresses
+          .map((a) =>
+              a.street +
+              ', ' +
+              a.city +
+              (a.state.isNotEmpty ? ', ' + a.state : '') +
+              ', ' +
+              a.country)
+          .toList();
       if (_userAddresses.isNotEmpty && _selectedAddress == null) {
         _selectedAddress = _userAddresses.first;
       }
@@ -383,28 +394,57 @@ class _CartScreenState extends State<CartScreen> {
                                                 style: TextStyle(fontSize: 16)),
                                             const SizedBox(width: 8),
                                             Expanded(
-                                              child: _userAddresses.isEmpty
+                                              child: _addressObjects.isEmpty
                                                   ? const Text(
                                                       'No hay direcciones',
                                                       textAlign: TextAlign.end)
-                                                  : DropdownButton<String>(
-                                                      value: _selectedAddress,
+                                                  : DropdownButton<Address>(
+                                                      value: _addressObjects
+                                                          .firstWhere(
+                                                        (a) =>
+                                                            _userAddresses.indexOf(
+                                                                _selectedAddress ??
+                                                                    '') ==
+                                                            _addressObjects
+                                                                .indexOf(a),
+                                                        orElse: () =>
+                                                            _addressObjects
+                                                                .first,
+                                                      ),
                                                       isExpanded: true,
                                                       onChanged: (value) {
                                                         setState(() {
-                                                          _selectedAddress =
-                                                              value;
+                                                          _selectedAddress = value ==
+                                                                  null
+                                                              ? null
+                                                              : _userAddresses[
+                                                                  _addressObjects
+                                                                      .indexOf(
+                                                                          value)];
                                                         });
                                                       },
-                                                      items: _userAddresses
+                                                      items: _addressObjects
                                                           .map((address) =>
                                                               DropdownMenuItem(
                                                                 value: address,
                                                                 child: Text(
-                                                                    address,
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis),
+                                                                  address.street +
+                                                                      ', ' +
+                                                                      address
+                                                                          .city +
+                                                                      (address.state
+                                                                              .isNotEmpty
+                                                                          ? ', ' +
+                                                                              address
+                                                                                  .state
+                                                                          : '') +
+                                                                      ', ' +
+                                                                      address
+                                                                          .country,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
                                                               ))
                                                           .toList(),
                                                     ),

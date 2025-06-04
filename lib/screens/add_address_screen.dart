@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/address.dart';
+import '../services/address_service.dart';
+import '../services/user_service.dart';
 
 class AddAddressScreen extends StatefulWidget {
   const AddAddressScreen({super.key});
@@ -25,7 +28,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     super.dispose();
   }
 
-  void _saveAddress() {
+  void _saveAddress() async {
     final street = _streetController.text.trim();
     final city = _cityController.text.trim();
     final state = _stateController.text.trim();
@@ -44,14 +47,40 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
       return;
     }
 
-    // Mostrar mensaje de funcionalidad no disponible
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Funcionalidad no disponible en la versión de demostración',
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final user = UserService.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
+      }
+      final address = Address(
+        id: '', // MongoDB generará el id
+        userId: user.id,
+        street: street,
+        city: city,
+        state: state,
+        zipCode: zipCode,
+        country: country,
+      );
+      await AddressService.addAddress(address);
+      if (mounted) {
+        Navigator.pop(context, true); // Regresa y notifica éxito
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar dirección: ${e.toString()}'),
+          backgroundColor: Colors.red,
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+        });
+    }
   }
 
   @override

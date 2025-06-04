@@ -17,23 +17,33 @@ class Address {
     required this.country,
   });
 
-  factory Address.fromJson(Map<String, dynamic> json) => Address(
-        id: json['_id'] ?? '',
-        userId: json['userId'] ?? '',
-        street: json['street'] ?? '',
-        city: json['city'] ?? '',
-        state: json['state'] ?? '',
-        zipCode: json['zipCode'] ?? '',
-        country: json['country'] ?? '',
-      );
+  factory Address.fromJson(Map<String, dynamic> json) {
+    return Address(
+      id: json['_id'] != null
+          ? json['_id'].toString()
+          : '', // Convierte ObjectId a String
+      userId: json['userId'] != null ? json['userId'].toString() : '',
+      street: json['street'] ?? '',
+      city: json['city'] ?? '',
+      state: json['state'] ?? '',
+      zipCode: json['zipCode'] ?? '',
+      country: json['country'] ?? '',
+    );
+  }
 
-  Map<String, dynamic> toJson() => {
-        '_id': id,
-        'userId': userId,
-        'street': street,
-        'city': city,
-        'state': state,
-        'zipCode': zipCode,
-        'country': country,
-      };
+  Map<String, dynamic> toJson() {
+    final data = <String, dynamic>{
+      'userId': userId,
+      'street': street,
+      'city': city,
+      'state': state,
+      'zipCode': zipCode,
+      'country': country,
+    };
+    // Solo incluir _id si es válido (para update, no para insert)
+    if (id != null && id.isNotEmpty) {
+      data['_id'] = id;
+    }
+    return data;
+  }
 }

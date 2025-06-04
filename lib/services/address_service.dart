@@ -15,8 +15,19 @@ class AddressService {
     return doc != null ? Address.fromJson(doc) : null;
   }
 
-  static Future<void> addAddress(Address address) async {
-    await DatabaseConfig.addresses.insert(address.toJson());
+  static Future<Address> addAddress(Address address) async {
+    // Inserta la dirección y obtiene el _id generado
+    final result = await DatabaseConfig.addresses.insertOne(address.toJson());
+    print('Resultado de insertOne: $result');
+    if (result.isSuccess && result.id != null) {
+      // Recupera el documento recién insertado usando el _id generado
+      final insertedDoc =
+          await DatabaseConfig.addresses.findOne({'_id': result.id});
+      print('Dirección guardada: $insertedDoc');
+      return Address.fromJson(insertedDoc!);
+    } else {
+      throw Exception('No se pudo guardar la dirección');
+    }
   }
 
   static Future<void> updateAddress(Address address) async {
