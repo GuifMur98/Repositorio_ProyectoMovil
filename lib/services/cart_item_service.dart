@@ -34,15 +34,20 @@ class CartItemService {
     // Limpia el id si viene como ObjectId("...")
     String cleanId = item.id;
     if (cleanId.startsWith('ObjectId(')) {
-      final start = cleanId.indexOf('"') >= 0 ? cleanId.indexOf('"') : cleanId.indexOf("'");
-      final end = cleanId.lastIndexOf('"') >= 0 ? cleanId.lastIndexOf('"') : cleanId.lastIndexOf("'");
+      final start = cleanId.indexOf('"') >= 0
+          ? cleanId.indexOf('"')
+          : cleanId.indexOf("'");
+      final end = cleanId.lastIndexOf('"') >= 0
+          ? cleanId.lastIndexOf('"')
+          : cleanId.lastIndexOf("'");
       if (start >= 0 && end > start) {
         cleanId = cleanId.substring(start + 1, end);
         print('[CartItemService] updateCartItem: ID limpiado: $cleanId');
       }
     }
     // Log para depuración
-    print('[CartItemService] updateCartItem: id=$cleanId, qty=${item.quantity}');
+    print(
+        '[CartItemService] updateCartItem: id=$cleanId, qty=${item.quantity}');
     try {
       await DatabaseConfig.cartItems.update(
         {'_id': ObjectId.parse(cleanId)},

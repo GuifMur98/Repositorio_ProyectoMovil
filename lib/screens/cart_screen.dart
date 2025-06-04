@@ -121,12 +121,15 @@ class _CartScreenState extends State<CartScreen> {
       );
       // Log para depuración
       // ignore: avoid_print
-      print('Cantidad actualizada para el producto ${item.productId} a $newQty');
+      print(
+          'Cantidad actualizada para el producto ${item.productId} a $newQty');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text('Error al actualizar cantidad: ' +
-                (e.toString().isNotEmpty ? e.toString() : 'Error desconocido'))),
+                (e.toString().isNotEmpty
+                    ? e.toString()
+                    : 'Error desconocido'))),
       );
       // Log para depuración
       // ignore: avoid_print
@@ -500,12 +503,30 @@ class _CartScreenState extends State<CartScreen> {
                                 },
                               ),
                               const SizedBox(height: 12),
+                              if (_selectedShippingIndex != 2 &&
+                                  (_selectedAddress == null ||
+                                      _selectedAddress!.isEmpty))
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Text(
+                                    'Debes seleccionar una dirección para el envío.',
+                                    style: TextStyle(
+                                        color: Colors.red[700],
+                                        fontWeight: FontWeight.bold),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
                               ElevatedButton(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text('Compra simulada.')));
-                                },
+                                onPressed: (_selectedShippingIndex == 2 ||
+                                        (_selectedAddress != null &&
+                                            _selectedAddress!.isNotEmpty))
+                                    ? () {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(const SnackBar(
+                                                content:
+                                                    Text('Compra simulada.')));
+                                      }
+                                    : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF5C3D2E),
                                   foregroundColor: Colors.white,
