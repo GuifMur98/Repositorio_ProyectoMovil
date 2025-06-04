@@ -8,7 +8,7 @@ TradeNest es una aplicación móvil de comercio electrónico desarrollada con Fl
 - Pantalla de bienvenida con diseño atractivo
 - Sistema de inicio de sesión
 - Registro de nuevos usuarios
-- Usuario de prueba disponible (email: usuario@prueba.com, contraseña: 123456)
+
 
 ### Pantalla Principal
 - Barra de búsqueda de productos
