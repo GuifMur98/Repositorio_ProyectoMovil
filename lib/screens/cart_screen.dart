@@ -7,6 +7,8 @@ import 'package:proyecto/models/product.dart';
 import 'package:proyecto/services/user_service.dart';
 import '../models/address.dart';
 import '../services/address_service.dart';
+import '../models/purchase.dart';
+import '../services/purchase_service.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -161,6 +163,46 @@ class _CartScreenState extends State<CartScreen> {
       : 0.0; // Ejemplo: envío fijo
 
   double get _total => _subtotal + _isv + _shipping;
+
+  Future<void> _finalizePurchase() async {
+    final user = UserService.currentUser;
+    if (user == null) return;
+    if (_cartItems.isEmpty) return;
+
+    // Construir lista de productos para la compra
+    final products = _cartItems.map((item) {
+      final product = _products[item.productId];
+      return {
+        'title': product?.title ?? '',
+        'quantity': item.quantity,
+        'price': product?.price ?? 0.0,
+      };
+    }).toList();
+
+    final purchase = Purchase(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      userId: user.id,
+      products: products,
+      total: _total,
+      date: DateTime.now(),
+    );
+
+    await PurchaseService.addPurchase(purchase);
+
+    // Limpiar carrito
+    for (final item in _cartItems) {
+      await CartItemService.deleteCartItem(item.id);
+    }
+    await _fetchCart();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('¡Compra realizada con éxito!')),
+      );
+      // Cambia pushReplacementNamed por pushNamed para evitar error de historial vacío
+      Navigator.pushNamed(context, '/purchase-history');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -560,12 +602,7 @@ class _CartScreenState extends State<CartScreen> {
                                 onPressed: (_selectedShippingIndex == 2 ||
                                         (_selectedAddress != null &&
                                             _selectedAddress!.isNotEmpty))
-                                    ? () {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
-                                                content:
-                                                    Text('Compra simulada.')));
-                                      }
+                                    ? _finalizePurchase
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF5C3D2E),

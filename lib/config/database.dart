@@ -12,6 +12,7 @@ class DatabaseConfig {
   static late DbCollection _notifications;
   static late DbCollection _categories;
   static late DbCollection _messages;
+  static late DbCollection _purchases;
 
   static Future<void> connect() async {
     try {
@@ -23,6 +24,7 @@ class DatabaseConfig {
       _cartItems = _db.collection('cart_items');
       _favorites = _db.collection('favorites');
       _orders = _db.collection('orders');
+      _purchases = _db.collection('purchases');
       _notifications = _db.collection('notifications');
       _categories = _db.collection('categories');
       _messages = _db.collection('messages');
@@ -42,6 +44,7 @@ class DatabaseConfig {
   static DbCollection get notifications => _notifications;
   static DbCollection get categories => _categories;
   static DbCollection get messages => _messages;
+  static DbCollection get purchases => _purchases;
 
   static Future<void> close() async {
     await _db.close();
