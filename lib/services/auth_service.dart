@@ -92,8 +92,6 @@ class AuthService {
                 List<String>.from(decodedToken['publishedProducts'] ?? []),
             purchaseHistory:
                 List<String>.from(decodedToken['purchaseHistory'] ?? []),
-            favoriteProductIds:
-                List<String>.from(decodedToken['favoriteProductIds'] ?? []),
           );
           UserService.setCurrentUser(user);
           print('Sesión cargada desde token para usuario: ${user.email}');
@@ -205,8 +203,6 @@ class AuthService {
         publishedProducts:
             List<String>.from(userData['publishedProducts'] ?? []),
         purchaseHistory: List<String>.from(userData['purchaseHistory'] ?? []),
-        favoriteProductIds:
-            List<String>.from(userData['favoriteProductIds'] ?? []),
       );
       return user;
     } catch (e) {

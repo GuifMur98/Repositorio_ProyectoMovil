@@ -27,7 +27,6 @@ class JwtService {
       'favoriteProducts': user.favoriteProducts,
       'publishedProducts': user.publishedProducts,
       'purchaseHistory': user.purchaseHistory,
-      'favoriteProductIds': user.favoriteProductIds,
       'iat': now.millisecondsSinceEpoch ~/ 1000,
       'exp': expiresAt.millisecondsSinceEpoch ~/ 1000,
     };

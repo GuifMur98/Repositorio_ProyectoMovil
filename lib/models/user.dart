@@ -8,7 +8,6 @@ class User {
   final List<String> favoriteProducts;
   final List<String> publishedProducts;
   final List<String> purchaseHistory;
-  final List<String> favoriteProductIds;
 
   User({
     required this.id,
@@ -20,7 +19,6 @@ class User {
     this.favoriteProducts = const [],
     this.publishedProducts = const [],
     this.purchaseHistory = const [],
-    this.favoriteProductIds = const [],
   });
 
   // Método para convertir un objeto User a un mapa JSON (por ejemplo, para guardar en SharedPreferences o enviar al backend)
@@ -35,12 +33,16 @@ class User {
       'favoriteProducts': favoriteProducts,
       'publishedProducts': publishedProducts,
       'purchaseHistory': purchaseHistory,
-      'favoriteProductIds': favoriteProductIds,
     };
   }
 
   // Constructor de fábrica para crear un objeto User desde un mapa JSON (de MongoDB)
   factory User.fromJson(Map<String, dynamic> json) {
+    // Sincroniza ambos campos si existen en la base
+    final List<String> favs = List<String>.from(json['favoriteProducts'] ?? []);
+    final List<String> favIds =
+        List<String>.from(json['favoriteProductIds'] ?? []);
+    final Set<String> allFavs = {...favs, ...favIds};
     return User(
       id: json['_id'].toString(), // MongoDB usa '_id'
       name: json['name'],
@@ -50,14 +52,11 @@ class User {
           json['avatarUrl'] as String?, // Manejar avatarUrl opcional y tipo
       addresses: List<String>.from(
           json['addresses'] ?? []), // Manejar listas opcionales
-      favoriteProducts: List<String>.from(
-          json['favoriteProducts'] ?? []), // Manejar listas opcionales
+      favoriteProducts: allFavs.toList(),
       publishedProducts: List<String>.from(
           json['publishedProducts'] ?? []), // Manejar listas opcionales
       purchaseHistory: List<String>.from(
           json['purchaseHistory'] ?? []), // Manejar listas opcionales
-      favoriteProductIds: List<String>.from(
-          json['favoriteProductIds'] ?? []), // Manejar listas opcionales
     );
   }
 }

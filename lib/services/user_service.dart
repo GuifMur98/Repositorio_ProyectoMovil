@@ -27,19 +27,8 @@ class UserService {
       );
 
       if (user != null) {
-        final userObj = User(
-          id: user['_id'].toString(),
-          name: user['name'],
-          email: user['email'],
-          password: user['password'] as String? ?? '',
-          avatarUrl: user['avatarUrl'] as String?,
-          addresses: List<String>.from(user['addresses'] ?? []),
-          favoriteProducts: List<String>.from(user['favoriteProducts'] ?? []),
-          publishedProducts: List<String>.from(user['publishedProducts'] ?? []),
-          purchaseHistory: List<String>.from(user['purchaseHistory'] ?? []),
-          favoriteProductIds:
-              List<String>.from(user['favoriteProductIds'] ?? []),
-        );
+        // Unifica favoritos de ambos campos
+        final userObj = User.fromJson(user);
 
         // Generar token JWT
         final token = JwtService.generateToken(userObj);
@@ -83,7 +72,6 @@ class UserService {
         'favoriteProducts': [],
         'publishedProducts': [],
         'purchaseHistory': [],
-        'favoriteProductIds': [],
         'createdAt': DateTime.now(),
       });
 
@@ -102,7 +90,6 @@ class UserService {
           favoriteProducts: [],
           publishedProducts: [],
           purchaseHistory: [],
-          favoriteProductIds: [],
         );
 
         // Generar token JWT
@@ -154,11 +141,6 @@ class UserService {
         // Actualizar la base de datos
         await DatabaseConfig.users.updateOne(
           where.id(ObjectId.fromHexString(_currentUser!.id)),
-          modify.addToSet('favoriteProductIds', productId),
-        );
-        // También actualizamos favoriteProducts por si acaso, aunque usamos favoriteProductIds en el modelo User
-        await DatabaseConfig.users.updateOne(
-          where.id(ObjectId.fromHexString(_currentUser!.id)),
           modify.addToSet('favoriteProducts', productId),
         );
 
@@ -193,11 +175,6 @@ class UserService {
         // Actualizar la base de datos
         await DatabaseConfig.users.updateOne(
           where.id(ObjectId.fromHexString(_currentUser!.id)),
-          modify.pull('favoriteProductIds', productId),
-        );
-        // También actualizamos favoriteProducts por si acaso
-        await DatabaseConfig.users.updateOne(
-          where.id(ObjectId.fromHexString(_currentUser!.id)),
           modify.pull('favoriteProducts', productId),
         );
 
@@ -227,7 +204,7 @@ class UserService {
 
   // Verificar si un producto está en favoritos
   static bool isProductInFavorites(String productId) {
-    return _currentUser?.favoriteProductIds.contains(productId) ?? false;
+    return _currentUser?.favoriteProducts.contains(productId) ?? false;
   }
 
   // Agregar una dirección
@@ -250,7 +227,6 @@ class UserService {
           favoriteProducts: _currentUser!.favoriteProducts,
           publishedProducts: _currentUser!.publishedProducts,
           purchaseHistory: _currentUser!.purchaseHistory,
-          favoriteProductIds: _currentUser!.favoriteProductIds,
         );
         print('Dirección \'$address\' agregada en memoria y BD.');
       } catch (e) {
@@ -279,7 +255,6 @@ class UserService {
           favoriteProducts: _currentUser!.favoriteProducts,
           publishedProducts: _currentUser!.publishedProducts,
           purchaseHistory: _currentUser!.purchaseHistory,
-          favoriteProductIds: _currentUser!.favoriteProductIds,
         );
         print('Dirección \'$address\' removida en memoria y BD.');
       } catch (e) {
@@ -308,7 +283,6 @@ class UserService {
           favoriteProducts: _currentUser!.favoriteProducts,
           publishedProducts: _currentUser!.publishedProducts,
           purchaseHistory: updatedHistory,
-          favoriteProductIds: _currentUser!.favoriteProductIds,
         );
         print('Compra $purchaseId agregada al historial en memoria y BD.');
       } catch (e) {
@@ -337,7 +311,6 @@ class UserService {
           favoriteProducts: _currentUser!.favoriteProducts,
           publishedProducts: updatedProducts,
           purchaseHistory: _currentUser!.purchaseHistory,
-          favoriteProductIds: _currentUser!.favoriteProductIds,
         );
         print('Producto publicado $productId agregado en memoria y BD.');
       } catch (e) {
@@ -394,11 +367,6 @@ class UserService {
             _currentUser!.favoriteProducts
                 .addAll(List<String>.from(updates['favoriteProducts']));
           }
-          if (updates.containsKey('favoriteProductIds')) {
-            _currentUser!.favoriteProductIds.clear();
-            _currentUser!.favoriteProductIds
-                .addAll(List<String>.from(updates['favoriteProductIds']));
-          }
           // No necesitamos manejar password o avatarUrl directamente aquí, ya que updateUserField es genérico
           // y el modelo User ya usa avatarUrl. El password no se actualiza así.
           // ... manejar otros campos si es necesario ...
@@ -423,11 +391,10 @@ class UserService {
     }
     try {
       await updateUserField(
-          currentUserId, {'favoriteProductIds': favoriteProductIds});
-      // Si la actualización en la BD fue exitosa, también actualizar la instancia en memoria
+          currentUserId, {'favoriteProducts': favoriteProductIds});
       if (_currentUser != null) {
-        _currentUser!.favoriteProductIds.clear();
-        _currentUser!.favoriteProductIds.addAll(favoriteProductIds);
+        _currentUser!.favoriteProducts.clear();
+        _currentUser!.favoriteProducts.addAll(favoriteProductIds);
       }
       return true;
     } catch (e) {
@@ -438,19 +405,21 @@ class UserService {
 
   // Método para convertir un mapa (de MongoDB) a un objeto User
   static User fromJson(Map<String, dynamic> json) {
+    // Sincroniza ambos campos si existen en la base
+    final List<String> favs = List<String>.from(json['favoriteProducts'] ?? []);
+    final List<String> favIds =
+        List<String>.from(json['favoriteProductIds'] ?? []);
+    final Set<String> allFavs = {...favs, ...favIds};
     return User(
-      id: json['_id'].toString(), // Convertir ObjectId a String
+      id: json['_id'].toString(),
       name: json['name'] as String,
       email: json['email'] as String,
-      password: json['password'] as String? ??
-          '', // Incluir password, manejar null o no presente
-      avatarUrl: json['avatarUrl'] as String?, // Usar avatarUrl
-      addresses: List<String>.from(
-          json['addresses'] ?? []), // Manejar null o lista vacía
-      favoriteProducts: List<String>.from(json['favoriteProducts'] ?? []),
+      password: json['password'] as String? ?? '',
+      avatarUrl: json['avatarUrl'] as String?,
+      addresses: List<String>.from(json['addresses'] ?? []),
+      favoriteProducts: allFavs.toList(),
       publishedProducts: List<String>.from(json['publishedProducts'] ?? []),
       purchaseHistory: List<String>.from(json['purchaseHistory'] ?? []),
-      favoriteProductIds: List<String>.from(json['favoriteProductIds'] ?? []),
     );
   }
 }
