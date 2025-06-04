@@ -107,14 +107,31 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _updateQuantity(CartItem item, int newQty) async {
     if (newQty < 1) return;
-    final updated = CartItem(
-      id: item.id,
-      userId: item.userId,
-      productId: item.productId,
-      quantity: newQty,
-    );
-    await CartItemService.updateCartItem(updated);
-    await _fetchCart();
+    try {
+      final updated = CartItem(
+        id: item.id,
+        userId: item.userId,
+        productId: item.productId,
+        quantity: newQty,
+      );
+      await CartItemService.updateCartItem(updated);
+      await _fetchCart();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Cantidad actualizada a $newQty.')),
+      );
+      // Log para depuración
+      // ignore: avoid_print
+      print('Cantidad actualizada para el producto ${item.productId} a $newQty');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Error al actualizar cantidad: ' +
+                (e.toString().isNotEmpty ? e.toString() : 'Error desconocido'))),
+      );
+      // Log para depuración
+      // ignore: avoid_print
+      print('Error al actualizar cantidad: $e');
+    }
   }
 
   double get _subtotal => _cartItems.fold(0, (sum, item) {

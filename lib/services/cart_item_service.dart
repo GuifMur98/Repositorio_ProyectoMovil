@@ -31,20 +31,35 @@ class CartItemService {
   }
 
   static Future<void> updateCartItem(CartItem item) async {
+    // Limpia el id si viene como ObjectId("...")
+    String cleanId = item.id;
+    if (cleanId.startsWith('ObjectId(')) {
+      final start = cleanId.indexOf('"') >= 0 ? cleanId.indexOf('"') : cleanId.indexOf("'");
+      final end = cleanId.lastIndexOf('"') >= 0 ? cleanId.lastIndexOf('"') : cleanId.lastIndexOf("'");
+      if (start >= 0 && end > start) {
+        cleanId = cleanId.substring(start + 1, end);
+        print('[CartItemService] updateCartItem: ID limpiado: $cleanId');
+      }
+    }
+    // Log para depuración
+    print('[CartItemService] updateCartItem: id=$cleanId, qty=${item.quantity}');
     try {
       await DatabaseConfig.cartItems.update(
-        {'_id': ObjectId.parse(item.id)},
+        {'_id': ObjectId.parse(cleanId)},
         {
           '\$set': {'quantity': item.quantity}
         },
       );
+      print('[CartItemService] updateCartItem: Actualizado con ObjectId');
     } catch (e) {
+      print('[CartItemService] updateCartItem: Error con ObjectId: $e');
       await DatabaseConfig.cartItems.update(
-        {'_id': item.id},
+        {'_id': cleanId},
         {
           '\$set': {'quantity': item.quantity}
         },
       );
+      print('[CartItemService] updateCartItem: Actualizado con string plano');
     }
   }
 
@@ -53,14 +68,16 @@ class CartItemService {
     String cleanId = id;
     if (id.startsWith('ObjectId(')) {
       final start = id.indexOf('"') >= 0 ? id.indexOf('"') : id.indexOf("'");
-      final end = id.lastIndexOf('"') >= 0 ? id.lastIndexOf('"') : id.lastIndexOf("'");
+      final end =
+          id.lastIndexOf('"') >= 0 ? id.lastIndexOf('"') : id.lastIndexOf("'");
       if (start >= 0 && end > start) {
         cleanId = id.substring(start + 1, end);
         print('[CartItemService] ID limpiado: $cleanId');
       }
     }
     try {
-      await DatabaseConfig.cartItems.deleteOne({'_id': ObjectId.fromHexString(cleanId)});
+      await DatabaseConfig.cartItems
+          .deleteOne({'_id': ObjectId.fromHexString(cleanId)});
       print('[CartItemService] Eliminado con ObjectId');
     } catch (e) {
       print('[CartItemService] Error con ObjectId: $e');
