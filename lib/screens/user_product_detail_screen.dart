@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../services/user_service.dart';
+import '../services/product_service.dart';
+import '../models/product.dart';
 
 class UserProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -10,44 +13,33 @@ class UserProductDetailScreen extends StatefulWidget {
 }
 
 class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
-  bool _isFavorite = false;
+  Product? _product;
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  // Datos de ejemplo para el producto
-  final Map<String, dynamic> _product = {
-    'id': '1',
-    'title': 'Camiseta Básica',
-    'description':
-        'Camiseta de algodón 100% de alta calidad. Disponible en varios colores y tallas.',
-    'price': 19.99,
-    'image': 'assets/images/placeholder.png',
-    'category': 'Ropa',
-    'sellerId': '1',
-  };
+  @override
+  void initState() {
+    super.initState();
+    _fetchProductDetail();
+  }
 
-  // Datos de ejemplo para el vendedor
-  final Map<String, dynamic> _seller = {
-    'id': '1',
-    'name': 'Juan Pérez',
-    'rating': 4.8,
-    'reviews': 120,
-    'products': 15,
-    'sales': 45,
-    'time': '2 años',
-  };
-
-  void _toggleFavorite() {
+  Future<void> _fetchProductDetail() async {
     setState(() {
-      _isFavorite = !_isFavorite;
+      _isLoading = true;
+      _errorMessage = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _isFavorite
-              ? 'Producto agregado a favoritos'
-              : 'Producto removido de favoritos',
-        ),
-      ),
-    );
+    try {
+      final product = await ProductService.getProductById(widget.productId);
+      setState(() {
+        _product = product;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Error al cargar el producto';
+      });
+    }
   }
 
   @override
@@ -56,7 +48,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text(
-          'Detalles del Producto',
+          'Detalle del Producto',
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF5C3D2E),
@@ -65,172 +57,128 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: Colors.white,
-            ),
-            onPressed: _toggleFavorite,
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              height: 300,
-              width: double.infinity,
-              decoration: const BoxDecoration(color: Color(0xFFE1D4C2)),
-              child: Image.asset(_product['image'], fit: BoxFit.cover),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _product['title'],
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '\$${_product['price'].toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF5C3D2E),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Categoría: ${_product['category']}',
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Descripción',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _product['description'],
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Estadísticas del Vendedor',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const CircleAvatar(
-                                backgroundColor: Color(0xFFE1D4C2),
-                                radius: 30,
-                                child: Icon(
-                                  Icons.person,
-                                  color: Color(0xFF5C3D2E),
-                                  size: 30,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _seller['name'],
-                                      style: const TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.star,
-                                          color: Colors.amber,
-                                          size: 16,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          _seller['rating'].toString(),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF5C3D2E),
-                                          ),
-                                        ),
-                                        Text(
-                                          ' (${_seller['reviews']} valoraciones)',
-                                          style: const TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(child: Text(_errorMessage!))
+              : _product == null
+                  ? const Center(child: Text('Producto no encontrado.'))
+                  : SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFE1D4C2),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 4),
                                     ),
                                   ],
                                 ),
+                                clipBehavior: Clip.antiAlias,
+                                child: _product!.imageUrls.isNotEmpty
+                                    ? Image.network(_product!.imageUrls.first,
+                                        height: 240,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover)
+                                    : Image.asset(
+                                        'assets/images/Logo_PMiniatura.png',
+                                        height: 240,
+                                        width: double.infinity,
+                                        fit: BoxFit.cover),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildSellerStat(
-                                'Productos',
-                                _seller['products'].toString(),
+                            ),
+                            const SizedBox(height: 24),
+                            Text(_product!.title,
+                                style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF5C3D2E))),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                const Icon(Icons.category,
+                                    color: Color(0xFF5C3D2E), size: 22),
+                                const SizedBox(width: 8),
+                                Text('Categoría: ${_product!.category}',
+                                    style: const TextStyle(
+                                        color: Colors.grey, fontSize: 18)),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text('Descripción',
+                                style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF5C3D2E))),
+                            const SizedBox(height: 8),
+                            Text(_product!.description,
+                                style:
+                                    const TextStyle(fontSize: 18, height: 1.5)),
+                            const SizedBox(height: 24),
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF6F1E7),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                              _buildSellerStat(
-                                'Ventas',
-                                _seller['sales'].toString(),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text('Precio',
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey)),
+                                      Text(
+                                        '\$ ${_product!.price.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                            fontSize: 26,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF5C3D2E)),
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      const Text('Stock',
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.grey)),
+                                      Text('${_product!.stock}',
+                                          style: const TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF5C3D2E))),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              _buildSellerStat('Tiempo', _seller['time']),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSellerStat(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF5C3D2E),
-          ),
-        ),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-      ],
     );
   }
 }
