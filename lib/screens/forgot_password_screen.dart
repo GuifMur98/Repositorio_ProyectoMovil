@@ -94,7 +94,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const Text(
                           'TradeNest',
                           style: TextStyle(
-                            fontSize: 28,
+                            fontSize: 30,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF5C3D2E),
                           ),
@@ -102,7 +102,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(height: 8),
                         const Text(
                           'Recuperar contraseña',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: TextStyle(
+                              fontSize: 18,
+                              color: Color.fromARGB(255, 0, 0, 0)),
                         ),
                       ],
                     ),
@@ -128,7 +130,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const Text(
                           'Recuperar Contraseña',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF5C3D2E),
                           ),
@@ -137,7 +139,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(height: 16),
                         const Text(
                           'Ingresa tu correo electrónico y te enviaremos instrucciones para recuperar tu contraseña.',
-                          style: TextStyle(color: Colors.grey, fontSize: 14),
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 32),

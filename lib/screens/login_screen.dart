@@ -123,7 +123,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 8),
                         const Text(
                           'Inicia sesión',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: TextStyle(
+                              fontSize: 18,
+                              color: Color.fromARGB(255, 0, 0, 0)),
                         ),
                       ],
                     ),
@@ -149,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         const Text(
                           'Iniciar Sesión',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF5C3D2E),
                           ),
@@ -182,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Contraseña',
-                            hintText: '••••••',
+                            hintText: '',
                             prefixIcon: const Icon(
                               Icons.lock_outline,
                               color: Color(0xFF5C3D2E),

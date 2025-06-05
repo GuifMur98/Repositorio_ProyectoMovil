@@ -104,7 +104,7 @@ class ProfileScreen extends StatelessWidget {
                   Text(
                     user.name,
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 28, // Aumentado
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -113,7 +113,7 @@ class ProfileScreen extends StatelessWidget {
                   Text(
                     user.email,
                     style: const TextStyle(
-                      fontSize: 16,
+                      fontSize: 20, // Aumentado
                       color: Colors.white70,
                     ),
                   ),
@@ -255,7 +255,7 @@ class ProfileScreen extends StatelessWidget {
             child: Text(
               title,
               style: const TextStyle(
-                fontSize: 18,
+                fontSize: 22, // Aumentado
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF5C3D2E),
               ),
@@ -283,25 +283,28 @@ class ProfileScreen extends StatelessWidget {
           color: const Color(0xFF5C3D2E).withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: const Color(0xFF5C3D2E)),
+        child:
+            Icon(icon, color: const Color(0xFF5C3D2E), size: 28), // Aumentado
       ),
       title: Text(
         title,
         style: const TextStyle(
           color: Color(0xFF5C3D2E),
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
+          fontSize: 18, // Aumentado
         ),
       ),
       subtitle: Text(
         subtitle,
         style: const TextStyle(
           color: Colors.grey,
-          fontSize: 12,
+          fontSize: 16, // Aumentado
         ),
       ),
       trailing: const Icon(
         Icons.chevron_right,
         color: Color(0xFF5C3D2E),
+        size: 28, // Aumentado
       ),
       onTap: () {
         Navigator.pushNamed(context, route);

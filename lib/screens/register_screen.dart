@@ -149,7 +149,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(height: 8),
                         const Text(
                           'Crea tu cuenta',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: TextStyle(
+                              fontSize: 18,
+                              color: Color.fromARGB(255, 0, 0, 0)),
                         ),
                       ],
                     ),
@@ -175,7 +177,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const Text(
                           'Registro',
                           style: TextStyle(
-                            fontSize: 24,
+                            fontSize: 26,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF5C3D2E),
                           ),
@@ -228,7 +230,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Contraseña',
-                            hintText: '••••••',
+                            hintText: '',
                             prefixIcon: const Icon(
                               Icons.lock_outline,
                               color: Color(0xFF5C3D2E),
@@ -262,7 +264,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _confirmPasswordController,
                           decoration: InputDecoration(
                             labelText: 'Confirmar contraseña',
-                            hintText: '••••••',
+                            hintText: '',
                             prefixIcon: const Icon(
                               Icons.lock_outline,
                               color: Color(0xFF5C3D2E),

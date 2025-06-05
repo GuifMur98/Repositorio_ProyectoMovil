@@ -5,14 +5,17 @@ import 'package:crypto/crypto.dart';
 import 'dart:convert';
 import 'auth_service.dart';
 import 'jwt_service.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
+import 'dart:math';
 
 class UserService {
   static User? _currentUser;
 
-  // Obtener el usuario actual
+  // Obtener el usuario currentUser
   static User? get currentUser => _currentUser;
 
-  // Establecer usuario actual
+  // Establecer usuario currentUser
   static void setCurrentUser(User user) {
     _currentUser = user;
   }
@@ -33,7 +36,7 @@ class UserService {
         // Generar token JWT
         final token = JwtService.generateToken(userObj);
 
-        // Establecer el usuario actual (AuthService.saveSession también lo hace, pero lo hacemos aquí por si acaso)
+        // Establecer el usuario currentUser (AuthService.saveSession también lo hace, pero lo hacemos aquí por si acaso)
         _currentUser = userObj;
 
         return {'user': userObj, 'token': token};
@@ -95,7 +98,7 @@ class UserService {
         // Generar token JWT
         final token = JwtService.generateToken(createdUser);
 
-        // Establecer el usuario actual (AuthService.saveSession también lo hace, pero lo hacemos aquí por si acaso)
+        // Establecer el usuario currentUser (AuthService.saveSession también lo hace, pero lo hacemos aquí por si acaso)
         setCurrentUser(createdUser);
 
         return {'user': createdUser, 'token': token};
@@ -108,20 +111,58 @@ class UserService {
     }
   }
 
-  // Recuperar contraseña
+  // Recuperar contraseña REAL: genera contraseña temporal, la guarda y envía por email
   static Future<bool> resetPassword(String email) async {
     try {
       final user = await DatabaseConfig.users.findOne(where.eq('email', email));
       if (user != null) {
-        print('Recuperación de contraseña simulada para: $email');
-        return true;
+        // 1. Generar una contraseña temporal segura
+        final tempPassword = _generateResetToken(length: 10);
+        final hashedTempPassword =
+            sha256.convert(utf8.encode(tempPassword)).toString();
+        // 2. Guardar la contraseña temporal (hasheada) en el usuario
+        await DatabaseConfig.users.updateOne(
+          where.eq('email', email),
+          modify.set('password', hashedTempPassword),
+        );
+        // 3. Enviar email real con la contraseña temporal
+        final smtpServer = SmtpServer(
+          'smtp.gmail.com',
+          username: 'webcart837@gmail.com',
+          password: 'qlnq anxp pxya lfbf',
+          port: 587,
+          ignoreBadCertificate: true,
+        );
+        final message = Message()
+          ..from = Address('no-reply@tradenest.com', 'TradeNest')
+          ..recipients.add(email)
+          ..subject = 'Recuperación de contraseña'
+          ..text =
+              'Tu nueva contraseña temporal es: $tempPassword\n\nPor favor inicia sesión y cámbiala lo antes posible desde tu perfil.';
+        try {
+          final sendReport = await send(message, smtpServer);
+          print('Correo de recuperación enviado: \\${sendReport.toString()}');
+          return true;
+        } catch (e) {
+          print('Error al enviar correo de recuperación: \\${e}');
+          return false;
+        }
       }
       print('Recuperación de contraseña: Email no encontrado.');
       return false;
     } catch (e) {
-      print('Error al recuperar contraseña: $e');
+      print('Error al recuperar contraseña: \\${e}');
       return false;
     }
+  }
+
+  // Generar un token seguro para recuperación de contraseña
+  static String _generateResetToken({int length = 32}) {
+    const chars =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final rand = Random.secure();
+    return List.generate(length, (_) => chars[rand.nextInt(chars.length)])
+        .join();
   }
 
   // Cerrar sesión
@@ -330,16 +371,14 @@ class UserService {
     print('Usuario actual limpiado.');
   }
 
-  // Método para actualizar un campo específico del usuario (ej: favoriteProducts)
-  // Este método es una simplificación y DEBERÍA interactuar con la base de datos en una app real.
+  // Método para actualizar un campo específico del usuario en la BD
   static Future<void> updateUserField(
       String userId, Map<String, dynamic> updates) async {
     try {
       final usersCollection = DatabaseConfig.users;
 
       // Asegurarse de que userId es un ObjectId si tu BD usa ObjectId como _id
-      final objectId =
-          ObjectId.fromHexString(userId); // Convertir String a ObjectId
+      final objectId = ObjectId.fromHexString(userId);
 
       // Aplicar las actualizaciones usando modify.set para cada campo
       final updateModifiers = modify; // Usar el objeto modify
@@ -357,19 +396,11 @@ class UserService {
 
         // Si el usuario actualizado es el usuario actual, actualizar también la instancia en memoria
         if (_currentUser != null && _currentUser!.id == userId) {
-          // Idealmente, recargarías el usuario completo desde la BD después de actualizarlo,
-          // pero para simplificar, solo actualizaremos el campo en memoria.
-          // En una app real, deberías ser cuidadoso con esto para mantener la consistencia.
-
-          // Ejemplo simplificado: Si se actualizan los favoritos
           if (updates.containsKey('favoriteProducts')) {
             _currentUser!.favoriteProducts.clear();
             _currentUser!.favoriteProducts
                 .addAll(List<String>.from(updates['favoriteProducts']));
           }
-          // No necesitamos manejar password o avatarUrl directamente aquí, ya que updateUserField es genérico
-          // y el modelo User ya usa avatarUrl. El password no se actualiza así.
-          // ... manejar otros campos si es necesario ...
         }
       } else {
         print('Error al actualizar usuario en MongoDB: ${result.writeError}');
@@ -421,5 +452,46 @@ class UserService {
       publishedProducts: List<String>.from(json['publishedProducts'] ?? []),
       purchaseHistory: List<String>.from(json['purchaseHistory'] ?? []),
     );
+  }
+
+  // Actualizar datos del usuario
+  static Future<bool> updateProfile(
+      {required String userId,
+      required String name,
+      required String email,
+      String? password}) async {
+    try {
+      String hexId = userId;
+      if (userId.startsWith('ObjectId(')) {
+        hexId = userId.substring(9, userId.length - 1).replaceAll('"', '');
+      }
+      final updateData = <String, dynamic>{
+        'name': name,
+        'email': email,
+      };
+      if (password != null && password.isNotEmpty) {
+        updateData['password'] =
+            sha256.convert(utf8.encode(password)).toString();
+      }
+      var mod = modify;
+      updateData.forEach((key, value) {
+        mod = mod.set(key, value);
+      });
+      await DatabaseConfig.users.updateOne(
+        where.id(ObjectId.fromHexString(hexId)),
+        mod,
+      );
+      // Refrescar usuario en memoria
+      final updatedUserJson = await DatabaseConfig.users
+          .findOne(where.id(ObjectId.fromHexString(hexId)));
+      if (updatedUserJson != null) {
+        setCurrentUser(User.fromJson(updatedUserJson));
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('Error al actualizar perfil: $e');
+      return false;
+    }
   }
 }

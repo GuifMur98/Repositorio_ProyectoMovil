@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import '../widgets/base_screen.dart'; // Importa BaseScreen
-import 'package:image_picker/image_picker.dart'; // Importar image_picker
-import 'dart:io'; // Para trabajar con objetos File
-// import 'package:cloudinary_public/cloudinary_public.dart'
-//     as cloudinary_public; // Dejar como TODO
-// import 'package:flutter_dotenv/flutter_dotenv.dart'; // Dejar como TODO
-import '../models/product.dart'; // Importar el modelo Product
-import '../services/product_service.dart'; // Importar el servicio ProductService
-import '../services/user_service.dart'; // Importar UserService para obtener el usuario actual
+import '../widgets/base_screen.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+
+import '../models/product.dart';
+import '../services/product_service.dart';
+import '../services/user_service.dart';
+import '../config/database.dart';
+import 'package:mongo_dart/mongo_dart.dart' as mdb;
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -22,11 +22,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
-  List<File> _images = []; // Lista para manejar imágenes seleccionadas
-  final ImagePicker _picker = ImagePicker(); // Instancia de ImagePicker
+  List<File> _images = [];
+  final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
-  // Lista de categorías (copiada de home_screen.dart)
   final List<String> _categories = [
     'Electrónica',
     'Ropa',
@@ -35,11 +34,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     'Libros',
     'Mascotas',
   ];
-  String? _selectedCategory; // Variable para el valor seleccionado del Dropdown
-
-  // Configuración de Cloudinary (Dejar como TODO)
-  // final String cloudinaryCloudName = dotenv.env['CLOUDINARY_CLOUD_NAME']!;
-  // final String cloudinaryUploadPreset = dotenv.env['CLOUDINARY_UPLOAD_PRESET']!;
+  String? _selectedCategory;
 
   @override
   void dispose() {
@@ -126,28 +121,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  // Método para subir una imagen a Cloudinary (Dejar como TODO)
-  /*
-  Future<String?> _uploadImageToCloudinary(File imageFile) async {
-    try {
-      final cloudinary = cloudinary_public.CloudinaryPublic(
-          cloudinaryCloudName, cloudinaryUploadPreset,
-          cache: true);
-      cloudinary_public.CloudinaryResponse response =
-          await cloudinary.uploadFile(
-        cloudinary_public.CloudinaryUploadResource(
-            filePath: imageFile.path,
-            resourceType: cloudinary_public.CloudinaryResourceType.Image),
-      );
-      return response.secureUrl; // Devolver la URL segura de la imagen
-    } catch (e) {
-      print('Error al subir imagen a Cloudinary: $e');
-      // TODO: Mostrar error al usuario si falla la subida de una imagen
-      return null;
-    }
-  }
-  */
-
   void _saveProduct() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -179,56 +152,35 @@ class _AddProductScreenState extends State<AddProductScreen> {
     });
 
     // TODO: 1. Subir imágenes a Cloudinary
-    List<String> imageUrls =
-        []; // Aquí se almacenarían las URLs obtenidas de Cloudinary
-    // Implementar la lógica de subida aquí, similar a lo que teníamos antes:
-    /*
-    for (File imageFile in _images) {
-      final url = await _uploadImageToCloudinary(imageFile); // Usar el método de subida (cuando esté listo)
-      if (url != null) {
-        imageUrls.add(url);
-      } else {
-        print('Advertencia: No se pudo subir una imagen.');
-        // Considerar si quieres fallar toda la operación si una imagen no sube
-      }
-    }
+    List<String> imageUrls = [];
 
-    if (imageUrls.isEmpty && _images.isNotEmpty) {
-       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error al subir imágenes. Inténtalo de nuevo.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-         setState(() {
-           _isLoading = false;
-         });
-       return;
-    }
-    */
-
-    // TODO: 2. Crear objeto Product con los datos del formulario y las imageUrls
     final newProduct = Product(
-      id: '', // MongoDB generará el ID al insertar
-      title: _titleController.text.trim(), // Usar trim() para limpiar espacios
+      id: '', // MongoDB generará el ID automáticamente
+      title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
-      price: double.tryParse(_priceController.text.trim()) ??
-          0.0, // Usar tryParse y trim
-      imageUrls: imageUrls, // Usar la lista de URLs (vacía por ahora)
-      category: _selectedCategory!, // Usar el valor seleccionado del Dropdown
-      sellerId: UserService.currentUser?.id ??
-          'unknown', // Obtener el ID del usuario actual. 'unknown' si no está logueado (aunque ProtectedRoute debería prevenir esto)
+      price: double.tryParse(_priceController.text.trim()) ?? 0.0,
+      imageUrls: imageUrls,
+      category: _selectedCategory!,
+      sellerId: UserService.currentUser?.id ?? 'unknown',
       stock: int.tryParse(_stockController.text.trim()) ?? 0,
     );
 
     // 3. Guardar en MongoDB
-    final saveSuccess = await ProductService.createProduct(newProduct);
+    final insertedProductId = await ProductService.createProduct(newProduct);
 
     setState(() {
       _isLoading = false;
     });
 
-    if (saveSuccess) {
+    if (insertedProductId != null) {
+      // Agregar el ID del producto publicado al usuario
+      final userId = UserService.currentUser?.id;
+      if (userId != null) {
+        await DatabaseConfig.users.updateOne(
+          mdb.where.id(mdb.ObjectId.fromHexString(userId)),
+          mdb.modify.push('publishedProducts', insertedProductId),
+        );
+      }
       // Mostrar mensaje de éxito y navegar al Home
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -236,7 +188,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
           backgroundColor: Colors.green,
         ),
       );
-      // Redirigir al Home y reemplazar la pantalla actual en el stack
       Navigator.pushReplacementNamed(context, '/home');
     } else {
       // Mostrar mensaje de error al guardar en BD
@@ -247,15 +198,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
       );
     }
-
-    // Eliminar la simulación de guardado que teníamos antes
-    // await Future.delayed(const Duration(seconds: 2));
-    // ScaffoldMessenger.of(context).showSnackBar(
-    //      const SnackBar(
-    //        content: Text('Simulación de publicación completa.'),
-    //        backgroundColor: Colors.blueGrey,
-    //      ),
-    //    );
   }
 
   // Validadores
@@ -286,10 +228,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
     return null;
   }
-
-  // El validador de categoría ya no necesita checkear value, solo si _selectedCategory es nulo.
-  // Pero DropdownButtonFormField ya maneja esto con su propio validator.
-  // String? _validateCategory(String? value) { return null; }
 
   String? _validateStock(String? value) {
     if (value == null || value.isEmpty) {

@@ -9,6 +9,8 @@ import '../models/address.dart';
 import '../services/address_service.dart';
 import '../models/purchase.dart';
 import '../services/purchase_service.dart';
+import '../config/database.dart';
+import 'package:mongo_dart/mongo_dart.dart' as mdb;
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -188,6 +190,17 @@ class _CartScreenState extends State<CartScreen> {
     );
 
     await PurchaseService.addPurchase(purchase);
+
+    // Agregar el ID de la compra al historial del usuario
+    try {
+      final userId = user.id;
+      await DatabaseConfig.users.updateOne(
+        mdb.where.id(mdb.ObjectId.fromHexString(userId)),
+        mdb.modify.push('purchaseHistory', purchase.id),
+      );
+    } catch (e) {
+      print('Error al actualizar purchaseHistory del usuario: $e');
+    }
 
     // Limpiar carrito
     for (final item in _cartItems) {

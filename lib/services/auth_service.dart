@@ -65,7 +65,7 @@ class AuthService {
   static Future<bool> loadSession() async {
     try {
       await _initPrefs();
-      // final userJson = _prefs?.getString(_userKey); // Ya no necesitamos cargar el JSON directamente para la sesión
+
       final token = _prefs?.getString(_tokenKey);
 
       if (token != null) {
@@ -140,7 +140,6 @@ class AuthService {
     try {
       await _initPrefs();
       final token = _prefs?.getString(_tokenKey);
-      // final userJson = _prefs?.getString(_userKey); // Ya no necesitamos verificar el JSON aquí
 
       if (token == null) {
         print('No hay token guardado.');
@@ -163,11 +162,6 @@ class AuthService {
       return false;
     }
   }
-
-  // Generar token para un usuario (debería estar en JwtService, pero se mantiene aquí por referencia)
-  // static String generateToken(User user) {
-  //   return JwtService.generateToken(user.id);
-  // }
 
   // Obtener token guardado
   Future<String?> getToken() async {
