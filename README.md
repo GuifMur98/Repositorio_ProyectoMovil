@@ -1,6 +1,6 @@
 # TradeNest - Aplicación de Comercio Electrónico
 
-TradeNest es una aplicación móvil de comercio electrónico desarrollada con Flutter, que permite a los usuarios comprar y vender productos de manera fácil y segura.
+TradeNest es una aplicación móvil de comercio electrónico desarrollada con Flutter y MongoDB, que permite a los usuarios comprar y vender productos de manera fácil y segura.
 
 ## Características Principales
 
@@ -8,7 +8,7 @@ TradeNest es una aplicación móvil de comercio electrónico desarrollada con Fl
 - Pantalla de bienvenida con diseño atractivo
 - Sistema de inicio de sesión
 - Registro de nuevos usuarios
-
+- Recuperación de contraseña real: el usuario recibe una contraseña temporal por email para restablecer su acceso
 
 ### Pantalla Principal
 - Barra de búsqueda de productos
@@ -26,27 +26,30 @@ TradeNest es una aplicación móvil de comercio electrónico desarrollada con Fl
 - Ajuste de cantidades
 - Resumen del pedido con subtotal, envío y total
 - Selección de dirección de envío
-- Proceso de pago (simulado en la versión demo)
+- Proceso de pago (simulado)
 
 ### Perfil de Usuario
-- Información personal
-- Historial de compras
+- Información personal editable
+- Historial de compras (persistente en MongoDB)
 - Productos favoritos
 - Gestión de direcciones
 - Configuración de cuenta
+- Avatar de usuario y mejoras visuales
 
 ### Publicación de Productos
 - Formulario para crear nuevos productos
 - Carga de imágenes
 - Categorización
-- Gestión de productos publicados
+- Gestión de productos publicados (persistente en MongoDB)
 
 ## Tecnologías Utilizadas
 
 - Flutter
 - Dart
+- MongoDB (persistencia en la nube, no local)
+- mongo_dart
+- mailer (envío de correos reales)
 - Material Design
-- Gestión de estado local
 - Navegación entre pantallas
 - Diseño responsivo
 
@@ -67,13 +70,12 @@ flutter pub get
 flutter run
 ```
 
-## Versión de Demostración
+## Notas Importantes
 
-Esta es una versión de demostración que incluye:
-- Datos de ejemplo para productos y categorías
-- Funcionalidades simuladas para compras y publicaciones
-- Usuario de prueba predefinido
-- Interfaz de usuario completa y funcional
+- Toda la información de usuarios, productos, compras y favoritos se almacena y consulta directamente en MongoDB.
+- La recuperación de contraseña es real: el usuario recibe una contraseña temporal por email (requiere configuración de SMTP en producción).
+- El diseño de la app incluye mejoras visuales modernas en pantallas de perfil y edición de perfil.
+- Para el correcto funcionamiento del envío de correos, asegúrate de configurar las credenciales SMTP en el backend.
 
 ## Estructura del Proyecto
 
