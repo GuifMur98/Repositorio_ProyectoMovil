@@ -495,7 +495,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Un lugar para comprar y vender productos de calidad.',
+                      'A un lugar para comprar y vender productos de calidad.',
                       style: TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
@@ -528,6 +528,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.pushNamed(context, '/chats');
+        },
+        backgroundColor: const Color(0xFF5C3D2E),
+        icon: const Icon(Icons.chat, color: Colors.white),
+        label: const Text('Chats', style: TextStyle(color: Colors.white)),
       ),
       bottomNavigationBar: CustomBottomNavigation(
         currentIndex: _currentIndex,

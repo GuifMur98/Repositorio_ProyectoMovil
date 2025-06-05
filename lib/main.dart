@@ -29,6 +29,7 @@ import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/widgets/protected_route.dart';
 import 'package:flutter/services.dart';
 import 'package:proyecto/screens/all_products_screen.dart';
+import 'package:proyecto/screens/chats_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,6 +133,7 @@ class MyApp extends StatelessWidget {
         },
         '/all-products': (context) =>
             ProtectedRoute(child: AllProductsScreen()),
+        '/chats': (context) => ProtectedRoute(child: const ChatsScreen()),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product-detail') {

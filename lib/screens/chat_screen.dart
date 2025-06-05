@@ -1,4 +1,11 @@
 import 'package:flutter/material.dart';
+import '../models/message.dart';
+import '../services/message_service.dart';
+import '../services/user_service.dart';
+import '../services/notification_service.dart';
+import '../models/user.dart';
+import '../config/database.dart';
+import '../models/notification.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sellerId;
@@ -10,8 +17,11 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  final List<Map<String, dynamic>> _messages = [];
+  List<Message> _messages = [];
+  String? _chatId;
+  bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
+  User? _otherUser;
 
   @override
   void dispose() {
@@ -20,19 +30,92 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  @override
+  void initState() {
+    super.initState();
+    _initChat();
+  }
 
+  Future<void> _initChat() async {
+    final user = UserService.currentUser;
+    if (user == null || widget.sellerId == null) return;
+    // Generar un chatId único para la conversación (orden alfabético para que sea único entre ambos usuarios)
+    final ids = [user.id, widget.sellerId!];
+    ids.sort();
+    final chatId = ids.join('_');
     setState(() {
-      _messages.add({
-        'text': _messageController.text,
-        'isMe': true,
-        'time': DateTime.now(),
-      });
+      _chatId = chatId;
+      _isLoading = true;
     });
+    final msgs = await MessageService.getMessagesByChat(chatId);
+    // Determinar el otro usuario correctamente
+    String? otherUserId;
+    if (msgs.isNotEmpty) {
+      // Si hay mensajes, el otro usuario es el que no soy yo
+      final firstMsg = msgs.first;
+      if (firstMsg.senderId != user.id) {
+        otherUserId = firstMsg.senderId;
+      } else {
+        // Buscar el primer mensaje que no sea mío
+        final otherMsg = msgs.firstWhere(
+          (m) => m.senderId != user.id,
+          orElse: () => firstMsg,
+        );
+        otherUserId = otherMsg.senderId == user.id && widget.sellerId != user.id
+            ? widget.sellerId
+            : otherMsg.senderId;
+      }
+    } else {
+      // Si no hay mensajes, el otro usuario es el sellerId si no soy yo
+      otherUserId = widget.sellerId != user.id ? widget.sellerId : null;
+    }
+    User? otherUser;
+    if (otherUserId != null && otherUserId != user.id) {
+      final doc = await DatabaseConfig.users.findOne({'_id': otherUserId});
+      if (doc != null) {
+        otherUser = User.fromJson(doc);
+      }
+    }
+    setState(() {
+      _messages = msgs;
+      _isLoading = false;
+      _otherUser = otherUser;
+    });
+    _scrollToBottom();
+  }
 
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty || _chatId == null) return;
+    final user = UserService.currentUser;
+    if (user == null) return;
+    final msg = Message(
+      id: '',
+      chatId: _chatId!,
+      senderId: user.id,
+      content: _messageController.text.trim(),
+      timestamp: DateTime.now(),
+    );
+    await MessageService.addMessage(msg);
+    setState(() {
+      _messages.add(msg);
+    });
     _messageController.clear();
     _scrollToBottom();
+    // Notificación al otro usuario (solo si no soy yo mismo)
+    final receiverId =
+        user.id == widget.sellerId ? _messages.first.senderId : widget.sellerId;
+    if (receiverId != null && receiverId != user.id) {
+      await NotificationService.addNotification(
+        AppNotification(
+          id: '',
+          userId: receiverId,
+          title: 'Nuevo mensaje',
+          body: 'Tienes un nuevo mensaje de ${user.name}',
+          date: DateTime.now(),
+          read: false,
+        ),
+      );
+    }
   }
 
   void _scrollToBottom() {
@@ -45,10 +128,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  Widget _buildMessageBubble(Map<String, dynamic> message) {
-    final isMe = message['isMe'] as bool;
-    final time = message['time'] as DateTime;
-
+  Widget _buildMessageBubble(Message message) {
+    final user = UserService.currentUser;
+    final isMe = user != null && message.senderId == user.id;
+    final time = message.timestamp;
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -62,7 +145,7 @@ class _ChatScreenState extends State<ChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              message['text'] as String,
+              message.content,
               style: TextStyle(
                 color: isMe ? Colors.white : const Color(0xFF5C3D2E),
                 fontSize: 16,
@@ -103,9 +186,9 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Vendedor',
-                    style: TextStyle(
+                  Text(
+                    _otherUser?.name ?? 'Usuario',
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -142,43 +225,45 @@ class _ChatScreenState extends State<ChatScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _messages.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: Colors.grey[400],
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _messages.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.chat_bubble_outline,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No hay mensajes aún',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '¡Sé el primero en escribir!',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No hay mensajes aún',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '¡Sé el primero en escribir!',
-                          style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    itemCount: _messages.length,
-                    itemBuilder: (context, index) {
-                      return _buildMessageBubble(_messages[index]);
-                    },
-                  ),
+                      )
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        itemCount: _messages.length,
+                        itemBuilder: (context, index) {
+                          return _buildMessageBubble(_messages[index]);
+                        },
+                      ),
           ),
           Container(
             padding: const EdgeInsets.all(8.0),
