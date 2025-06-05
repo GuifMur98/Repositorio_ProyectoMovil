@@ -1,0 +1,224 @@
+import 'package:flutter/material.dart';
+import '../services/product_service.dart';
+import '../models/product.dart';
+import '../widgets/product_card.dart';
+
+class AllProductsScreen extends StatefulWidget {
+  const AllProductsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AllProductsScreen> createState() => _AllProductsScreenState();
+}
+
+class _AllProductsScreenState extends State<AllProductsScreen> {
+  List<Product> _products = [];
+  List<Product> _filteredProducts = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
+  String _selectedCategory = 'Todas';
+  String _sortBy = 'Nombre';
+  final List<String> _categories = [
+    'Todas',
+    'Electrónica',
+    'Ropa',
+    'Hogar',
+    'Deportes',
+    'Libros',
+    'Mascotas',
+  ];
+  final List<String> _sortOptions = ['Nombre', 'Precio'];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProducts();
+  }
+
+  Future<void> _fetchProducts() async {
+    setState(() {
+      _isLoading = true;
+    });
+    final fetched = await ProductService.getProducts();
+    setState(() {
+      _products = fetched;
+      _filteredProducts = fetched;
+      _isLoading = false;
+    });
+  }
+
+  void _filterProducts() {
+    List<Product> filtered = List.from(_products);
+    if (_selectedCategory != 'Todas') {
+      filtered =
+          filtered.where((p) => p.category == _selectedCategory).toList();
+    }
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      filtered = filtered
+          .where((p) =>
+              p.title.toLowerCase().contains(query) ||
+              p.category.toLowerCase().contains(query) ||
+              p.description.toLowerCase().contains(query))
+          .toList();
+    }
+    if (_sortBy == 'Precio') {
+      filtered.sort((a, b) => a.price.compareTo(b.price));
+    } else {
+      filtered.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    }
+    setState(() {
+      _filteredProducts = filtered;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Todos los productos',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: const Color(0xFF5C3D2E),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+                  decoration: BoxDecoration(
+                    color:
+                        const Color(0xFFD7CCC8), // Marrón claro, buen contraste
+                    borderRadius: BorderRadius.circular(22),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: MediaQuery.of(context).size.width * 0.8,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF5F0E8), // beige
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.07),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: TextField(
+                              decoration: InputDecoration(
+                                hintText: 'Buscar por nombre...',
+                                prefixIcon: const Icon(Icons.search,
+                                    color: Color(0xFF5C3D2E)),
+                                border: InputBorder.none,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                                hintStyle:
+                                    const TextStyle(color: Color(0xFF5C3D2E)),
+                              ),
+                              style: const TextStyle(color: Color(0xFF5C3D2E)),
+                              onChanged: (value) {
+                                _searchQuery = value;
+                                _filterProducts();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: MediaQuery.of(context).size.width * 0.85,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 245, 239, 232),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            DropdownButton<String>(
+                              value: _selectedCategory,
+                              dropdownColor: const Color(0xFFF5F0E8),
+                              borderRadius: BorderRadius.circular(12),
+                              items: _categories
+                                  .map((cat) => DropdownMenuItem(
+                                        value: cat,
+                                        child: Text(cat,
+                                            style: const TextStyle(
+                                                color: Color(0xFF5C3D2E))),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedCategory = val!;
+                                });
+                                _filterProducts();
+                              },
+                              icon: const Icon(Icons.arrow_drop_down,
+                                  color: Color(0xFF5C3D2E)),
+                            ),
+                            const SizedBox(width: 24),
+                            DropdownButton<String>(
+                              value: _sortBy,
+                              dropdownColor: const Color(0xFFF5F0E8),
+                              borderRadius: BorderRadius.circular(12),
+                              items: _sortOptions
+                                  .map((opt) => DropdownMenuItem(
+                                        value: opt,
+                                        child: Text('Ordenar por $opt',
+                                            style: const TextStyle(
+                                                color: Color(0xFF5C3D2E))),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _sortBy = val!;
+                                });
+                                _filterProducts();
+                              },
+                              icon: const Icon(Icons.arrow_drop_down,
+                                  color: Color(0xFF5C3D2E)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: _filteredProducts.isEmpty
+                      ? const Center(child: Text('No hay productos'))
+                      : GridView.builder(
+                          padding: const EdgeInsets.all(12),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            childAspectRatio: 0.60,
+                            crossAxisSpacing: 16.0,
+                            mainAxisSpacing: 20.0,
+                          ),
+                          itemCount: _filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            return ProductCard(
+                                product: _filteredProducts[index]);
+                          },
+                        ),
+                ),
+              ],
+            ),
+    );
+  }
+}

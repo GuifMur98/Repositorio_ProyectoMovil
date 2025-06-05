@@ -28,6 +28,7 @@ import 'package:proyecto/config/cloudinary.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/widgets/protected_route.dart';
 import 'package:flutter/services.dart';
+import 'package:proyecto/screens/all_products_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -129,6 +130,8 @@ class MyApp extends StatelessWidget {
               : -1;
           return ProtectedRoute(child: EditAddressScreen(addressId: addressId));
         },
+        '/all-products': (context) =>
+            ProtectedRoute(child: AllProductsScreen()),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product-detail') {

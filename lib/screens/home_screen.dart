@@ -186,38 +186,61 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.60, // Más alto para evitar cualquier overflow
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 20.0,
-      ),
-      itemCount: _products.length,
-      itemBuilder: (context, index) {
-        final p = _products[index];
-        // Mapear a Product (ajustar si faltan campos)
-        final product = Product(
-          id: p['id'] ?? '',
-          title: p['title'] ?? '',
-          description: p['description'] ?? '',
-          price: p['price'] is double
-              ? p['price']
-              : double.tryParse(p['price'].toString()) ?? 0.0,
-          imageUrls: p['imageUrls'] != null
-              ? List<String>.from(p['imageUrls'])
-              : (p['image'] != null ? [p['image']] : []),
-          category: p['category'] ?? '',
-          sellerId: p['sellerId'] ?? '',
-          stock: p['stock'] is int
-              ? p['stock']
-              : int.tryParse(p['stock']?.toString() ?? '') ?? 0,
-        );
-        return ProductCard(product: product);
-      },
+    final showSeeMore = _products.length > 10;
+    final productsToShow = _products.take(10).toList();
+    return Column(
+      children: [
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 0.60,
+            crossAxisSpacing: 16.0,
+            mainAxisSpacing: 20.0,
+          ),
+          itemCount: productsToShow.length,
+          itemBuilder: (context, index) {
+            final p = productsToShow[index];
+            final product = Product(
+              id: p['id'] ?? '',
+              title: p['title'] ?? '',
+              description: p['description'] ?? '',
+              price: p['price'] is double
+                  ? p['price']
+                  : double.tryParse(p['price'].toString()) ?? 0.0,
+              imageUrls: p['imageUrls'] != null
+                  ? List<String>.from(p['imageUrls'])
+                  : (p['image'] != null ? [p['image']] : []),
+              category: p['category'] ?? '',
+              sellerId: p['sellerId'] ?? '',
+              stock: p['stock'] is int
+                  ? p['stock']
+                  : int.tryParse(p['stock']?.toString() ?? '') ?? 0,
+            );
+            return ProductCard(product: product);
+          },
+        ),
+        if (showSeeMore)
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/all-products');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5C3D2E),
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Ver más productos'),
+            ),
+          ),
+      ],
     );
   }
 
