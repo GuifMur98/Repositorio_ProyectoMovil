@@ -176,8 +176,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
       // Agregar el ID del producto publicado al usuario
       final userId = UserService.currentUser?.id;
       if (userId != null) {
+        // Limpiar el ID si viene como ObjectId("...")
+        String cleanId = userId;
+        if (userId.startsWith('ObjectId(')) {
+          cleanId = userId.substring(9, userId.length - 1).replaceAll('"', '');
+        }
         await DatabaseConfig.users.updateOne(
-          mdb.where.id(mdb.ObjectId.fromHexString(userId)),
+          mdb.where.id(mdb.ObjectId.fromHexString(cleanId)),
           mdb.modify.push('publishedProducts', insertedProductId),
         );
       }
