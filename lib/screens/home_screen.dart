@@ -17,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   bool _isLoadingProducts = false;
   List<Map<String, dynamic>> _products = [];
+  List<Map<String, dynamic>> _allProducts = [];
 
   final List<Map<String, dynamic>> _categories = [
     {
@@ -79,20 +80,25 @@ class _HomeScreenState extends State<HomeScreen> {
       // Obtener los productos reales de la BD
       final fetchedProducts = await ProductService.getProducts();
 
+      final productsList = fetchedProducts.map((product) {
+        return {
+          'id': product.id,
+          'title': product.title,
+          'description': product.description,
+          'price': product.price,
+          'image': product.imageUrls.isNotEmpty
+              ? product.imageUrls.first
+              : 'assets/images/Logo_PMiniatura.png',
+          'category': product.category,
+          'imageUrls': product.imageUrls,
+          'sellerId': product.sellerId,
+          'stock': product.stock,
+        };
+      }).toList();
+
       setState(() {
-        // Convertir la lista de objetos Product a la estructura que espera la UI
-        _products = fetchedProducts.map((product) {
-          return {
-            'id': product.id,
-            'title': product.title,
-            'description': product.description,
-            'price': product.price,
-            'image': product.imageUrls.isNotEmpty
-                ? product.imageUrls.first
-                : 'assets/images/Logo_PMiniatura.png', // Imagen por defecto si no hay imágenes
-            'category': product.category,
-          };
-        }).toList();
+        _allProducts = productsList;
+        _products = productsList;
         _isLoadingProducts = false;
       });
     } catch (e) {
@@ -112,9 +118,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void _filterProducts(String query) {
     setState(() {
       if (query.isEmpty) {
-        _products = _products;
+        _products = List<Map<String, dynamic>>.from(_allProducts);
       } else {
-        _products = _products.where((product) {
+        _products = _allProducts.where((product) {
           final titleLower = product['title'].toString().toLowerCase();
           final descriptionLower =
               product['description'].toString().toLowerCase();

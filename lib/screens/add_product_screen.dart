@@ -25,6 +25,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   List<File> _images = [];
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
+  bool _imageError = false;
+  bool _categoryError = false;
 
   final List<String> _categories = [
     'Electrónica',
@@ -122,28 +124,25 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   void _saveProduct() async {
+    setState(() {
+      _imageError = false;
+      _categoryError = false;
+    });
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     if (_images.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecciona al menos una imagen.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _imageError = true;
+      });
       return;
     }
 
-    // Validar que se haya seleccionado una categoría
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecciona una categoría.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      setState(() {
+        _categoryError = true;
+      });
       return;
     }
 
@@ -207,40 +206,49 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   // Validadores
   String? _validateTitle(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Por favor, ingresa el título del producto';
+    }
+    if (value.trim().length < 3) {
+      return 'El título debe tener al menos 3 caracteres';
     }
     return null;
   }
 
   String? _validateDescription(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Por favor, ingresa la descripción del producto';
     }
-    if (value.length < 10) {
+    if (value.trim().length < 10) {
       return 'La descripción debe tener al menos 10 caracteres';
     }
     return null;
   }
 
   String? _validatePrice(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Por favor, ingresa el precio';
     }
-    final price = double.tryParse(value);
-    if (price == null || price <= 0) {
-      return 'Por favor, ingresa un precio válido';
+    final price = double.tryParse(value.trim());
+    if (price == null) {
+      return 'El precio debe ser un número válido';
+    }
+    if (price <= 0) {
+      return 'El precio debe ser mayor a 0';
     }
     return null;
   }
 
   String? _validateStock(String? value) {
-    if (value == null || value.isEmpty) {
+    if (value == null || value.trim().isEmpty) {
       return 'Por favor, ingresa la cantidad en stock';
     }
-    final stock = int.tryParse(value);
-    if (stock == null || stock < 0) {
-      return 'Por favor, ingresa una cantidad válida';
+    final stock = int.tryParse(value.trim());
+    if (stock == null) {
+      return 'El stock debe ser un número entero válido';
+    }
+    if (stock < 0) {
+      return 'El stock no puede ser negativo';
     }
     return null;
   }
@@ -280,7 +288,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
-          autovalidateMode: AutovalidateMode.disabled,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -363,6 +371,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   alignment: _images.isEmpty ? Alignment.center : null,
                 ),
               ),
+              if (_imageError)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6, left: 4),
+                  child: Text(
+                    'Por favor, selecciona al menos una imagen.',
+                    style: TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
               const SizedBox(
                   height: 24.0), // Aumentar espacio después de las imágenes
 
@@ -466,20 +482,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 onChanged: (String? newValue) {
                   setState(() {
                     _selectedCategory = newValue;
+                    _categoryError = false;
                   });
                 },
                 validator: (String? value) {
                   if (value == null || value.isEmpty) {
-                    return 'Por favor, selecciona una categoría';
+                    return null; // No mostrar error aquí, lo mostramos abajo
                   }
                   return null;
                 },
-                // Estilo del ícono del dropdown
                 icon:
                     const Icon(Icons.arrow_drop_down, color: Color(0xFF5C3D2E)),
-                // Estilo del texto seleccionado
                 style: const TextStyle(color: Color(0xFF5C3D2E), fontSize: 16),
               ),
+              if (_categoryError)
+                const Padding(
+                  padding: EdgeInsets.only(top: 6, left: 4),
+                  child: Text(
+                    'Por favor, selecciona una categoría.',
+                    style: TextStyle(color: Colors.red, fontSize: 13),
+                  ),
+                ),
               const SizedBox(height: 16.0),
 
               TextFormField(
