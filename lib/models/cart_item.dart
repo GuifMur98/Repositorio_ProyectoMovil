@@ -11,22 +11,26 @@ class CartItem {
     required this.quantity,
   });
 
-  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-        id: json['_id']?.toString() ?? '',
+  factory CartItem.fromJson(Map<String, dynamic> json, {String? id}) =>
+      CartItem(
+        id: id ?? json['id']?.toString() ?? '',
         userId: json['userId'] ?? '',
         productId: json['productId'] ?? '',
         quantity: json['quantity'] ?? 1,
       );
 
+  factory CartItem.fromFirestore(Map<String, dynamic> json, String id) {
+    return CartItem.fromJson(json, id: id);
+  }
+
   Map<String, dynamic> toJson() {
-    final map = {
+    return {
+      'id': id,
       'userId': userId,
       'productId': productId,
       'quantity': quantity,
     };
-    if (id.isNotEmpty) {
-      map['_id'] = id;
-    }
-    return map;
   }
+
+  Map<String, dynamic> toFirestore() => toJson();
 }

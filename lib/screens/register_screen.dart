@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/user_service.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/models/user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -39,26 +39,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      final registeredUser = await UserService.register(
-        _nameController.text,
-        _emailController.text,
-        _passwordController.text,
+      final registeredUser = await AuthService.registerWithEmailPassword(
+        _nameController.text.trim(),
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
       );
 
       if (registeredUser != null) {
         final user = registeredUser['user'] as User;
         final token = registeredUser['token'] as String;
 
+        // Crear documento de usuario en Firestore
+        await FirebaseFirestore.instance.collection('users').doc(user.id).set({
+          'name': user.name,
+          'email': user.email,
+          'favoriteProducts': [],
+          'addresses': [],
+          'publishedProducts': [],
+          'purchaseHistory': [],
+        });
+
         // Guardar la sesión después de un registro exitoso
         await AuthService.saveSession(user, token);
 
         if (mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
+          Navigator.pushNamedAndRemoveUntil(
+              context, '/login', (route) => false);
         }
       } else {
         setState(() {
-          _errorMessage =
-              'El correo electrónico ya está registrado'; // O algún otro mensaje si UserService devuelve null por otra razón
+          _errorMessage = 'El correo electrónico ya está registrado';
         });
       }
     } catch (e) {
@@ -120,7 +130,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF5C3D2E)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/welcome', (route) => false);
+          },
         ),
       ),
       body: SafeArea(

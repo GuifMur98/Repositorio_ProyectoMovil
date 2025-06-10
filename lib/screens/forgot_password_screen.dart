@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -33,18 +33,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _successMessage = null;
     });
 
-    // Intentar enviar correo de recuperación
-    final success = await UserService.resetPassword(_emailController.text);
-
-    if (success) {
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: _emailController.text.trim(),
+      );
       setState(() {
         _successMessage =
             'Se ha enviado un correo con instrucciones para recuperar tu contraseña';
         _errorMessage = null; // Limpiar mensaje de error si hay éxito
       });
-    } else {
+    } catch (e) {
       setState(() {
-        _errorMessage = 'No se encontró una cuenta con ese correo electrónico';
+        _errorMessage =
+            'No se encontró una cuenta con ese correo electrónico o hubo un error: $e';
         _successMessage = null; // Limpiar mensaje de éxito si hay error
       });
     }
@@ -73,7 +74,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF5C3D2E)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/welcome', (route) => false);
+          },
         ),
       ),
       body: SafeArea(
@@ -233,7 +237,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         // Enlace para iniciar sesión
                         TextButton(
                           onPressed: () {
-                            Navigator.pushReplacementNamed(context, '/login');
+                            Navigator.pushNamedAndRemoveUntil(
+                                context, '/login', (route) => false);
                           },
                           child: const Text(
                             '¿Recordaste tu contraseña? Inicia sesión',

@@ -1,8 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/user.dart';
-import 'user_service.dart';
 import 'jwt_service.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
 class AuthService {
   static const String _userKey = 'current_user';
@@ -50,9 +50,8 @@ class AuthService {
       }
       // *********************************************************************
 
-      // Establecer el usuario actual
-      UserService.setCurrentUser(user);
-
+      // Establecer el usuario actual en memoria si es necesario
+      // Puedes agregar aquí lógica propia si necesitas mantener el usuario en memoria
       print('Sesión guardada para usuario: ${user.email}');
     } catch (e) {
       print('Error al guardar sesión: $e');
@@ -93,7 +92,7 @@ class AuthService {
             purchaseHistory:
                 List<String>.from(decodedToken['purchaseHistory'] ?? []),
           );
-          UserService.setCurrentUser(user);
+          // Puedes guardar el usuario en memoria aquí si lo necesitas
           print('Sesión cargada desde token para usuario: ${user.email}');
           return true;
         }
@@ -114,8 +113,9 @@ class AuthService {
       await _initPrefs();
       await _prefs?.remove(_userKey);
       await _prefs?.remove(_tokenKey);
-      UserService
-          .clearCurrentUser(); // Usar el método de UserService para limpiar
+      // Cerrar sesión en FirebaseAuth
+      await fb_auth.FirebaseAuth.instance.signOut();
+      // Si tienes lógica para limpiar usuario en memoria, agrégala aquí
       print('Sesión cerrada.');
     } catch (e) {
       print('Error al cerrar sesión: $e');
@@ -204,6 +204,58 @@ class AuthService {
       // Dependiendo del manejo de errores de JwtService.decodeToken, podrías relanzar
       // o retornar null. Aquí retornamos null en caso de error.
       return null;
+    }
+  }
+
+  // Login con FirebaseAuth
+  static Future<Map<String, dynamic>?> loginWithEmailPassword(
+      String email, String password) async {
+    try {
+      final credential = await fb_auth.FirebaseAuth.instance
+          .signInWithEmailAndPassword(email: email, password: password);
+      final fbUser = credential.user;
+      if (fbUser != null) {
+        // Puedes crear tu modelo User aquí si necesitas más datos
+        final user = User(
+          id: fbUser.uid,
+          name: fbUser.displayName ?? '',
+          email: fbUser.email ?? '',
+          password: '',
+        );
+        // Firebase no da un token JWT por defecto, pero puedes usar el idToken si lo necesitas
+        final token = await fbUser.getIdToken();
+        return {'user': user, 'token': token};
+      }
+      return null;
+    } catch (e) {
+      print('Error en loginWithEmailPassword: $e');
+      rethrow;
+    }
+  }
+
+  // Registro con FirebaseAuth
+  static Future<Map<String, dynamic>?> registerWithEmailPassword(
+      String name, String email, String password) async {
+    try {
+      final credential = await fb_auth.FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+      final fbUser = credential.user;
+      if (fbUser != null) {
+        // Actualizar el displayName
+        await fbUser.updateDisplayName(name);
+        final user = User(
+          id: fbUser.uid,
+          name: name,
+          email: fbUser.email ?? '',
+          password: '',
+        );
+        final token = await fbUser.getIdToken();
+        return {'user': user, 'token': token};
+      }
+      return null;
+    } catch (e) {
+      print('Error en registerWithEmailPassword: $e');
+      rethrow;
     }
   }
 }

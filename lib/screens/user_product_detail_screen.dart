@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/user_service.dart';
-import '../services/product_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 
 class UserProductDetailScreen extends StatefulWidget {
@@ -29,15 +28,39 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
       _errorMessage = null;
     });
     try {
-      final product = await ProductService.getProductById(widget.productId);
-      setState(() {
-        _product = product;
-        _isLoading = false;
-      });
+      final doc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.productId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data()!;
+        setState(() {
+          _product = Product(
+            id: doc.id,
+            title: data['title'] ?? '',
+            description: data['description'] ?? '',
+            price: (data['price'] is int)
+                ? (data['price'] as int).toDouble()
+                : (data['price'] ?? 0.0),
+            imageUrls: (data['imageUrls'] as List<dynamic>? ?? [])
+                .map((e) => e.toString())
+                .toList(),
+            category: data['category'] ?? '',
+            sellerId: data['sellerId'] ?? '',
+            stock: data['stock'] ?? 0,
+          );
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _product = null;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
+        _errorMessage = 'Error al cargar el producto: $e';
         _isLoading = false;
-        _errorMessage = 'Error al cargar el producto';
       });
     }
   }

@@ -1,7 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../services/purchase_service.dart';
 import '../models/purchase.dart';
-import '../services/user_service.dart';
 
 class PurchaseHistoryScreen extends StatefulWidget {
   const PurchaseHistoryScreen({super.key});
@@ -12,28 +12,51 @@ class PurchaseHistoryScreen extends StatefulWidget {
 
 class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
   List<Purchase> _purchases = [];
-  bool _isLoading = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchPurchases();
+    _fetchPurchaseHistory();
   }
 
-  Future<void> _fetchPurchases() async {
-    final user = UserService.currentUser;
-    if (user == null) {
+  Future<void> _fetchPurchaseHistory() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('Usuario no autenticado');
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final data = userDoc.data();
+      List<Purchase> purchases = [];
+      if (data != null && data['purchaseHistory'] != null) {
+        final purchaseList = data['purchaseHistory'] as List<dynamic>;
+        // Debug: imprime la estructura de cada compra
+        for (var i = 0; i < purchaseList.length; i++) {
+          print('purchaseHistory[$i]: ' + purchaseList[i].toString());
+        }
+        purchases = purchaseList
+            .where((json) => json is Map<String, dynamic> || json is Map)
+            .map((json) =>
+                Purchase.fromJson(Map<String, dynamic>.from(json as Map)))
+            .toList();
+        purchases.sort((a, b) => b.date.compareTo(a.date));
+      }
+      setState(() {
+        _purchases = purchases;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error al obtener historial: ${e.toString()}');
       setState(() {
         _purchases = [];
         _isLoading = false;
       });
-      return;
     }
-    final purchases = await PurchaseService.getPurchasesByUser(user.id);
-    setState(() {
-      _purchases = purchases;
-      _isLoading = false;
-    });
   }
 
   @override

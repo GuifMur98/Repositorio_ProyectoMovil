@@ -9,15 +9,22 @@ class Category {
     this.description,
   });
 
-  factory Category.fromJson(Map<String, dynamic> json) => Category(
-        id: json['_id'] ?? '',
+  factory Category.fromJson(Map<String, dynamic> json, {String? id}) =>
+      Category(
+        id: id ?? json['id'] ?? '',
         name: json['name'] ?? '',
         description: json['description'],
       );
 
+  factory Category.fromFirestore(Map<String, dynamic> json, String id) {
+    return Category.fromJson(json, id: id);
+  }
+
   Map<String, dynamic> toJson() => {
-        '_id': id,
+        'id': id,
         'name': name,
         'description': description,
       };
+
+  Map<String, dynamic> toFirestore() => toJson();
 }

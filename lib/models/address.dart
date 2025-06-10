@@ -17,12 +17,10 @@ class Address {
     required this.country,
   });
 
-  factory Address.fromJson(Map<String, dynamic> json) {
+  factory Address.fromJson(Map<String, dynamic> json, {String? id}) {
     return Address(
-      id: json['_id'] != null
-          ? json['_id'].toString()
-          : '', // Convierte ObjectId a String
-      userId: json['userId'] != null ? json['userId'].toString() : '',
+      id: id ?? json['id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
       street: json['street'] ?? '',
       city: json['city'] ?? '',
       state: json['state'] ?? '',
@@ -31,8 +29,13 @@ class Address {
     );
   }
 
+  factory Address.fromFirestore(Map<String, dynamic> json, String id) {
+    return Address.fromJson(json, id: id);
+  }
+
   Map<String, dynamic> toJson() {
-    final data = <String, dynamic>{
+    return {
+      'id': id,
       'userId': userId,
       'street': street,
       'city': city,
@@ -40,10 +43,7 @@ class Address {
       'zipCode': zipCode,
       'country': country,
     };
-    // Solo incluir _id si es válido (para update, no para insert)
-    if (id != null && id.isNotEmpty) {
-      data['_id'] = id;
-    }
-    return data;
   }
+
+  Map<String, dynamic> toFirestore() => toJson();
 }

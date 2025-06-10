@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/user_service.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/models/user.dart';
 
@@ -34,9 +33,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final result = await UserService.login(
-        _emailController.text,
-        _passwordController.text,
+      final result = await AuthService.loginWithEmailPassword(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
       );
 
       if (result != null) {
@@ -47,8 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await AuthService.saveSession(user, token);
 
         if (mounted) {
-          // Usar pushReplacementNamed para evitar que el usuario regrese a la pantalla de login con el botón de atrás
-          Navigator.pushReplacementNamed(context, '/home');
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       } else {
         setState(() {
@@ -94,7 +92,10 @@ class _LoginScreenState extends State<LoginScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF5C3D2E)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/welcome', (route) => false);
+          },
         ),
       ),
       body: SafeArea(

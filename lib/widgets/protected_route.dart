@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 
 class ProtectedRoute extends StatelessWidget {
   final Widget child;
@@ -13,26 +12,7 @@ class ProtectedRoute extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: AuthService.isLoggedIn(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.data == true) {
-          return child;
-        }
-
-        // Redirigir a login si no hay sesión
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.pushReplacementNamed(context, redirectRoute);
-        });
-
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
-      },
-    );
+    // Simulación: siempre permite el acceso, elimina la lógica de AuthService
+    return child;
   }
 }

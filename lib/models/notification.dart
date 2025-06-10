@@ -15,22 +15,30 @@ class AppNotification {
     required this.read,
   });
 
-  factory AppNotification.fromJson(Map<String, dynamic> json) =>
+  factory AppNotification.fromJson(Map<String, dynamic> json, {String? id}) =>
       AppNotification(
-        id: json['_id'] ?? '',
+        id: id ?? json['id'] ?? '',
         userId: json['userId'] ?? '',
         title: json['title'] ?? '',
         body: json['body'] ?? '',
-        date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
+        date: json['date'] != null
+            ? DateTime.tryParse(json['date']) ?? DateTime.now()
+            : DateTime.now(),
         read: json['read'] ?? false,
       );
 
+  factory AppNotification.fromFirestore(Map<String, dynamic> json, String id) {
+    return AppNotification.fromJson(json, id: id);
+  }
+
   Map<String, dynamic> toJson() => {
-        '_id': id,
+        'id': id,
         'userId': userId,
         'title': title,
         'body': body,
         'date': date.toIso8601String(),
         'read': read,
       };
+
+  Map<String, dynamic> toFirestore() => toJson();
 }

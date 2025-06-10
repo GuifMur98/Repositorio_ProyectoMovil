@@ -1,9 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
-import 'package:proyecto/services/favorite_service.dart';
-import 'package:proyecto/services/user_service.dart';
-import 'package:proyecto/services/cart_item_service.dart';
-import 'package:proyecto/models/cart_item.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -24,42 +22,52 @@ class _ProductCardState extends State<ProductCard> {
   @override
   void initState() {
     super.initState();
-    _loadFavorite();
+    _loadFavoriteStatus();
   }
 
-  Future<void> _loadFavorite() async {
-    final fav = await FavoriteService.isFavoriteProduct(widget.product.id);
+  Future<void> _loadFavoriteStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userDoc = await userRef.get();
+    final data = userDoc.data() ?? {};
+    List favs = List<String>.from(data['favoriteProducts'] ?? []);
     setState(() {
-      isFavorite = fav;
+      isFavorite = favs.contains(widget.product.id);
     });
   }
 
   Future<void> _toggleFavorite(BuildContext context) async {
     setState(() {
       loadingFavorite = true;
+      isFavorite = !isFavorite;
     });
-    final user = UserService.currentUser;
-    if (user == null) {
-      setState(() {
-        loadingFavorite = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Debes iniciar sesión para agregar a favoritos.')),
-      );
-      return;
-    }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
     try {
-      await FavoriteService.toggleFavorite(widget.product.id);
-      await _loadFavorite();
+      final userDoc = await userRef.get();
+      final data = userDoc.data() ?? {};
+      List favs = List<String>.from(data['favoriteProducts'] ?? []);
+      if (isFavorite) {
+        if (!favs.contains(widget.product.id)) favs.add(widget.product.id);
+      } else {
+        favs.remove(widget.product.id);
+      }
+      await userRef.update({'favoriteProducts': favs});
       if (widget.onFavoriteToggle != null) widget.onFavoriteToggle!();
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
               isFavorite ? 'Agregado a favoritos' : 'Eliminado de favoritos')));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al actualizar favoritos.')),
-      );
+      setState(() {
+        isFavorite = !isFavorite;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Error al actualizar favoritos: $e'),
+          backgroundColor: Colors.red));
     } finally {
       setState(() {
         loadingFavorite = false;
@@ -71,37 +79,48 @@ class _ProductCardState extends State<ProductCard> {
     setState(() {
       loadingCart = true;
     });
-    final user = UserService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      setState(() {
-        loadingCart = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Debes iniciar sesión para agregar al carrito.')),
       );
+      setState(() {
+        loadingCart = false;
+      });
       return;
     }
+    final cartRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('cart');
     try {
-      final cartItem = CartItem(
-        id: '', // MongoDB generará el id
-        userId: user.id,
-        productId: widget.product.id,
-        quantity: 1,
-      );
-      await CartItemService.addCartItem(cartItem);
+      final cartItemQuery = await cartRef
+          .where('productId', isEqualTo: widget.product.id)
+          .limit(1)
+          .get();
+      if (cartItemQuery.docs.isNotEmpty) {
+        final doc = cartItemQuery.docs.first;
+        final currentQty = (doc['quantity'] ?? 1) as int;
+        await cartRef.doc(doc.id).update({'quantity': currentQty + 1});
+      } else {
+        await cartRef.add({
+          'userId': user.uid,
+          'productId': widget.product.id,
+          'quantity': 1,
+        });
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Producto agregado al carrito.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al agregar al carrito.')),
+        SnackBar(content: Text('Error al agregar al carrito: $e')),
       );
-    } finally {
-      setState(() {
-        loadingCart = false;
-      });
     }
+    setState(() {
+      loadingCart = false;
+    });
   }
 
   @override

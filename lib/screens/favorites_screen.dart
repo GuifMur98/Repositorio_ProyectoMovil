@@ -1,9 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/widgets/base_screen.dart';
-import 'package:proyecto/services/user_service.dart';
-import 'package:proyecto/services/product_service.dart';
 import 'package:proyecto/models/product.dart';
-import 'package:proyecto/widgets/product_card.dart'; // Asumiendo que tienes un widget para mostrar productos
+import 'package:proyecto/widgets/product_card.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -28,44 +28,38 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-
-    final currentUser = UserService.currentUser; // Obtener el usuario actual
-
-    if (currentUser == null) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Debes iniciar sesión para ver tus favoritos.';
-      });
-      return;
-    }
-
-    if (currentUser.favoriteProducts.isEmpty) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Aún no tienes productos favoritos.';
-      });
-      return;
-    }
-
     try {
-      // Obtener los detalles de cada producto favorito
-      List<Product> products = [];
-      for (String productId in currentUser.favoriteProducts) {
-        final product = await ProductService.getProductById(productId);
-        if (product != null) {
-          products.add(product);
-        }
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('Usuario no autenticado');
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      final favIds =
+          List<String>.from(userDoc.data()?['favoriteProducts'] ?? []);
+      if (favIds.isEmpty) {
+        setState(() {
+          _favoriteProducts = [];
+          _isLoading = false;
+        });
+        return;
       }
-
+      final productsSnap = await FirebaseFirestore.instance
+          .collection('products')
+          .where(FieldPath.documentId, whereIn: favIds)
+          .get();
+      final products = productsSnap.docs
+          .map((doc) => Product.fromJson(doc.data(), id: doc.id))
+          .toList();
       setState(() {
         _favoriteProducts = products;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
+        _favoriteProducts = [];
         _isLoading = false;
-        _errorMessage = 'Error al cargar favoritos: e.toString()}';
-        print('Error fetching favorite products: $e');
+        _errorMessage = 'Error al cargar favoritos: $e';
       });
     }
   }

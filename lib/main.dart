@@ -1,5 +1,6 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:proyecto/screens/welcome_screen.dart';
 import 'package:proyecto/screens/login_screen.dart';
 import 'package:proyecto/screens/register_screen.dart';
@@ -22,35 +23,26 @@ import 'package:proyecto/screens/edit_address_screen.dart';
 import 'package:proyecto/screens/categories_screen.dart';
 import 'package:proyecto/screens/category_screen.dart';
 import 'package:proyecto/screens/product_detail_screen.dart';
-import 'package:proyecto/services/user_service.dart';
-import 'package:proyecto/config/database.dart';
-import 'package:proyecto/config/cloudinary.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/widgets/protected_route.dart';
 import 'package:flutter/services.dart';
 import 'package:proyecto/screens/all_products_screen.dart';
 import 'package:proyecto/screens/chats_screen.dart';
+import 'package:proyecto/config/cloudinary.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // CloudinaryConfig.initialize(
+  //     cloudName: 'dr6axeogd', preset: 'TU_UPLOAD_PRESET');
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  try {
-    // Cargar variables de entorno
-    await dotenv.load(fileName: ".env");
-
-    // Inicializar Cloudinary
-    CloudinaryConfig.initialize();
-
-    // Conectar a MongoDB
-    await DatabaseConfig.connect();
-
-    // Cargar sesión si existe
-    await AuthService.loadSession();
-  } catch (e) {
+  try {} catch (e) {
     print('Error al inicializar la aplicación: $e');
   }
 
@@ -63,7 +55,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Proyecto Marketplace Movil',
+      title: 'TradeNest',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primarySwatch: Colors.blue,

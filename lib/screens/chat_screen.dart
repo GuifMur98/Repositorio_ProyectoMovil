@@ -1,11 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/message.dart';
-import '../services/message_service.dart';
-import '../services/user_service.dart';
-import '../services/notification_service.dart';
 import '../models/user.dart';
-import '../config/database.dart';
-import '../models/notification.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sellerId;
@@ -37,7 +32,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initChat() async {
-    final user = UserService.currentUser;
+    // TODO: Implementa la lógica de usuario y mensajes en memoria o con tu nueva fuente de datos
+    final user = null; // Simulación: usuario actual
     if (user == null || widget.sellerId == null) return;
     // Generar un chatId único para la conversación (orden alfabético para que sea único entre ambos usuarios)
     final ids = [user.id, widget.sellerId!];
@@ -47,35 +43,9 @@ class _ChatScreenState extends State<ChatScreen> {
       _chatId = chatId;
       _isLoading = true;
     });
-    final msgs = await MessageService.getMessagesByChat(chatId);
-    // Determinar el otro usuario correctamente
-    String? otherUserId;
-    if (msgs.isNotEmpty) {
-      // Si hay mensajes, el otro usuario es el que no soy yo
-      final firstMsg = msgs.first;
-      if (firstMsg.senderId != user.id) {
-        otherUserId = firstMsg.senderId;
-      } else {
-        // Buscar el primer mensaje que no sea mío
-        final otherMsg = msgs.firstWhere(
-          (m) => m.senderId != user.id,
-          orElse: () => firstMsg,
-        );
-        otherUserId = otherMsg.senderId == user.id && widget.sellerId != user.id
-            ? widget.sellerId
-            : otherMsg.senderId;
-      }
-    } else {
-      // Si no hay mensajes, el otro usuario es el sellerId si no soy yo
-      otherUserId = widget.sellerId != user.id ? widget.sellerId : null;
-    }
+    // Simulación: mensajes vacíos y sin consulta a base de datos
+    final msgs = <Message>[];
     User? otherUser;
-    if (otherUserId != null && otherUserId != user.id) {
-      final doc = await DatabaseConfig.users.findOne({'_id': otherUserId});
-      if (doc != null) {
-        otherUser = User.fromJson(doc);
-      }
-    }
     setState(() {
       _messages = msgs;
       _isLoading = false;
@@ -86,36 +56,22 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty || _chatId == null) return;
-    final user = UserService.currentUser;
+    // TODO: Implementa la lógica de usuario y mensajes en memoria o con tu nueva fuente de datos
+    final user = null; // Simulación: usuario actual
     if (user == null) return;
     final msg = Message(
       id: '',
       chatId: _chatId!,
-      senderId: user.id,
+      senderId: '', // user.id
       content: _messageController.text.trim(),
       timestamp: DateTime.now(),
     );
-    await MessageService.addMessage(msg);
     setState(() {
       _messages.add(msg);
     });
     _messageController.clear();
     _scrollToBottom();
-    // Notificación al otro usuario (solo si no soy yo mismo)
-    final receiverId =
-        user.id == widget.sellerId ? _messages.first.senderId : widget.sellerId;
-    if (receiverId != null && receiverId != user.id) {
-      await NotificationService.addNotification(
-        AppNotification(
-          id: '',
-          userId: receiverId,
-          title: 'Nuevo mensaje',
-          body: 'Tienes un nuevo mensaje de ${user.name}',
-          date: DateTime.now(),
-          read: false,
-        ),
-      );
-    }
+    // Simulación: aquí podrías agregar lógica para notificaciones en memoria
   }
 
   void _scrollToBottom() {
@@ -129,7 +85,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(Message message) {
-    final user = UserService.currentUser;
+    // TODO: Reemplazar UserService.currentUser por la obtención del usuario desde AuthService o el método que uses ahora
+    final user = null; // UserService.currentUser eliminado
     final isMe = user != null && message.senderId == user.id;
     final time = message.timestamp;
     return Align(
