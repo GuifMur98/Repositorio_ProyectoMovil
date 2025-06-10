@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 import '../widgets/product_card.dart';
 
@@ -37,37 +38,37 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     setState(() {
       _isLoading = true;
     });
-    // Simulación: aquí podrías cargar productos desde memoria o almacenamiento local
-    await Future.delayed(const Duration(milliseconds: 300));
-    // TODO: Reemplaza esta lista por tu lógica real de obtención de productos si lo deseas
-    final fetched = <Product>[
-      Product(
-        id: '1',
-        title: 'Camiseta',
-        description: 'Camiseta de algodón',
-        price: 19.99,
-        imageUrls: ['https://via.placeholder.com/150'],
-        category: 'Ropa',
-        sellerId: 'vendedor1',
-        stock: 10,
-      ),
-      Product(
-        id: '2',
-        title: 'Libro Flutter',
-        description: 'Aprende Flutter desde cero',
-        price: 29.99,
-        imageUrls: ['https://via.placeholder.com/150'],
-        category: 'Libros',
-        sellerId: 'vendedor2',
-        stock: 5,
-      ),
-      // Agrega más productos simulados si lo deseas
-    ];
-    setState(() {
-      _products = fetched;
-      _filteredProducts = fetched;
-      _isLoading = false;
-    });
+    try {
+      final query = await FirebaseFirestore.instance
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .get();
+      final fetched = query.docs
+          .map((doc) => Product(
+                id: doc.id,
+                title: doc['title'] ?? '',
+                description: doc['description'] ?? '',
+                price: (doc['price'] is int)
+                    ? (doc['price'] as int).toDouble()
+                    : (doc['price'] ?? 0.0).toDouble(),
+                imageUrls: List<String>.from(doc['imageUrls'] ?? []),
+                category: doc['category'] ?? '',
+                sellerId: doc['sellerId'] ?? '',
+                stock: doc['stock'] ?? 0,
+              ))
+          .toList();
+      setState(() {
+        _products = fetched;
+        _filteredProducts = fetched;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _products = [];
+        _filteredProducts = [];
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterProducts() {
