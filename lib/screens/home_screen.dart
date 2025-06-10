@@ -491,6 +491,14 @@ class _HomeScreenState extends State<HomeScreen> {
         currentIndex: _currentIndex,
         onTap: _onNavigationTap,
       ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF5C3D2E),
+        child: const Icon(Icons.chat, color: Colors.white),
+        onPressed: () {
+          Navigator.pushNamed(context, '/chats');
+        },
+        tooltip: 'Chats',
+      ),
     );
   }
 }

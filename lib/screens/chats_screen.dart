@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class ChatsScreen extends StatefulWidget {
@@ -34,21 +36,65 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   Future<void> _fetchChats() async {
-    // Simulación: chats en memoria. Implementa tu lógica real aquí si lo deseas
     setState(() {
-      _isLoading = false;
-      _chats = [
-        _ChatPreview(
-          chatId: '1_2',
-          otherUserId: '2',
-          otherUserName: 'Usuario Ejemplo',
-          lastMessage: '¡Hola! ¿Cómo estás?',
-          lastMessageTime: '10:30',
-        ),
-        // Agrega más chats simulados si lo deseas
-      ];
+      _isLoading = true;
       _error = null;
     });
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          _isLoading = false;
+          _error = 'No has iniciado sesión.';
+        });
+        return;
+      }
+      final chatQuery = await FirebaseFirestore.instance
+          .collection('chats')
+          .where('users', arrayContains: user.uid)
+          .orderBy('lastMessageTime', descending: true)
+          .get();
+      final chats = <_ChatPreview>[];
+      for (final doc in chatQuery.docs) {
+        final data = doc.data();
+        final users = List<String>.from(data['users'] ?? []);
+        final otherUserId =
+            users.firstWhere((id) => id != user.uid, orElse: () => '');
+        String otherUserName = 'Usuario';
+        // Obtener nombre del otro usuario
+        if (otherUserId.isNotEmpty) {
+          final otherUserDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(otherUserId)
+              .get();
+          otherUserName = otherUserDoc.data()?['name'] ?? 'Usuario';
+        }
+        chats.add(_ChatPreview(
+          chatId: doc.id,
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+          lastMessage: data['lastMessage'] ?? '',
+          lastMessageTime: data['lastMessageTime'] != null
+              ? _formatTime((data['lastMessageTime'] as Timestamp).toDate())
+              : '',
+        ));
+      }
+      setState(() {
+        _chats = chats;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Error al cargar chats: $e';
+      });
+    }
+  }
+
+  String _formatTime(DateTime dateTime) {
+    final hour = dateTime.hour.toString().padLeft(2, '0');
+    final minute = dateTime.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   @override

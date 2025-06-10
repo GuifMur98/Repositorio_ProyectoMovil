@@ -1,6 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:flutter/material.dart';
 import '../models/message.dart';
-import '../models/user.dart';
+import '../models/user.dart' as app_model;
 
 class ChatScreen extends StatefulWidget {
   final String? sellerId;
@@ -16,7 +18,8 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _chatId;
   bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
-  User? _otherUser;
+  app_model.User? _otherUser;
+  Stream<List<Message>>? _messagesStream;
 
   @override
   void dispose() {
@@ -32,46 +35,76 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initChat() async {
-    // TODO: Implementa la lógica de usuario y mensajes en memoria o con tu nueva fuente de datos
-    final user = null; // Simulación: usuario actual
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
     if (user == null || widget.sellerId == null) return;
     // Generar un chatId único para la conversación (orden alfabético para que sea único entre ambos usuarios)
-    final ids = [user.id, widget.sellerId!];
+    final ids = [user.uid, widget.sellerId!];
     ids.sort();
     final chatId = ids.join('_');
     setState(() {
       _chatId = chatId;
       _isLoading = true;
     });
-    // Simulación: mensajes vacíos y sin consulta a base de datos
-    final msgs = <Message>[];
-    User? otherUser;
+    // Obtener info del otro usuario
+    final otherUserDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.sellerId!)
+        .get();
+    app_model.User? otherUser;
+    if (otherUserDoc.exists) {
+      final data = otherUserDoc.data();
+      otherUser = app_model.User(
+        id: widget.sellerId!,
+        name: data?['name'] ?? 'Usuario',
+        email: data?['email'] ?? '',
+        password: '',
+        avatarUrl: data?['avatarUrl'],
+      );
+    }
+    // Escuchar mensajes en tiempo real
+    _messagesStream = FirebaseFirestore.instance
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .orderBy('timestamp')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              return Message(
+                id: doc.id,
+                chatId: chatId,
+                senderId: data['senderId'],
+                content: data['content'],
+                timestamp: (data['timestamp'] as Timestamp).toDate(),
+              );
+            }).toList());
     setState(() {
-      _messages = msgs;
-      _isLoading = false;
       _otherUser = otherUser;
+      _isLoading = false;
     });
-    _scrollToBottom();
   }
 
   Future<void> _sendMessage() async {
     if (_messageController.text.trim().isEmpty || _chatId == null) return;
-    // TODO: Implementa la lógica de usuario y mensajes en memoria o con tu nueva fuente de datos
-    final user = null; // Simulación: usuario actual
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    final msg = Message(
-      id: '',
-      chatId: _chatId!,
-      senderId: '', // user.id
-      content: _messageController.text.trim(),
-      timestamp: DateTime.now(),
-    );
-    setState(() {
-      _messages.add(msg);
-    });
+    final content = _messageController.text.trim();
+    final now = DateTime.now();
+    final messageData = {
+      'senderId': user.uid,
+      'content': content,
+      'timestamp': Timestamp.fromDate(now),
+    };
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(_chatId);
+    await chatRef.collection('messages').add(messageData);
+    // Actualizar info del chat (último mensaje)
+    await chatRef.set({
+      'users': [user.uid, widget.sellerId],
+      'lastMessage': content,
+      'lastMessageTime': Timestamp.fromDate(now),
+    }, SetOptions(merge: true));
     _messageController.clear();
     _scrollToBottom();
-    // Simulación: aquí podrías agregar lógica para notificaciones en memoria
   }
 
   void _scrollToBottom() {
@@ -85,9 +118,8 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildMessageBubble(Message message) {
-    // TODO: Reemplazar UserService.currentUser por la obtención del usuario desde AuthService o el método que uses ahora
-    final user = null; // UserService.currentUser eliminado
-    final isMe = user != null && message.senderId == user.id;
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
+    final isMe = user != null && message.senderId == user.uid;
     final time = message.timestamp;
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -184,41 +216,55 @@ class _ChatScreenState extends State<ChatScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _messages.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.chat_bubble_outline,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No hay mensajes aún',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 16,
+                : _messagesStream == null
+                    ? const SizedBox.shrink()
+                    : StreamBuilder<List<Message>>(
+                        stream: _messagesStream,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          final messages = snapshot.data ?? [];
+                          if (messages.isEmpty) {
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 64,
+                                    color: Colors.grey[400],
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    'No hay mensajes aún',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '¡Sé el primero en escribir!',
+                                    style: TextStyle(
+                                      color: Colors.grey[500],
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '¡Sé el primero en escribir!',
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          return _buildMessageBubble(_messages[index]);
+                            );
+                          }
+                          return ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            itemCount: messages.length,
+                            itemBuilder: (context, index) {
+                              return _buildMessageBubble(messages[index]);
+                            },
+                          );
                         },
                       ),
           ),
