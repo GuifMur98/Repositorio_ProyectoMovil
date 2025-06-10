@@ -1,12 +1,10 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/user.dart';
-import 'jwt_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
 class AuthService {
   static const String _userKey = 'current_user';
-  static const String _tokenKey = 'auth_token';
   static SharedPreferences? _prefs;
 
   // Inicializar SharedPreferences
@@ -22,14 +20,9 @@ class AuthService {
   }
 
   // Guardar sesión
-  static Future<void> saveSession(User user, String token) async {
+  static Future<void> saveSession(User user) async {
     try {
       await _initPrefs();
-
-      // Verificar que el token sea válido antes de guardar
-      if (!JwtService.verifyToken(token)) {
-        throw Exception('Token inválido o expirado');
-      }
 
       // Usar el método toJson del modelo User para obtener el mapa JSON
       final userJsonMap = user.toJson();
@@ -37,18 +30,6 @@ class AuthService {
       userJsonMap.remove('password');
 
       await _prefs?.setString(_userKey, jsonEncode(userJsonMap));
-      await _prefs?.setString(_tokenKey, token);
-
-      // *** Verificación añadida: Confirmar que el token se guardó correctamente ***
-      final savedToken = _prefs?.getString(_tokenKey);
-      if (savedToken == token) {
-        print('Token guardado y verificado exitosamente.');
-      } else {
-        print(
-            'Error: El token guardado no coincide con el token proporcionado.');
-        // Esto podría indicar un problema con shared_preferences
-      }
-      // *********************************************************************
 
       // Establecer el usuario actual en memoria si es necesario
       // Puedes agregar aquí lógica propia si necesitas mantener el usuario en memoria
@@ -65,37 +46,28 @@ class AuthService {
     try {
       await _initPrefs();
 
-      final token = _prefs?.getString(_tokenKey);
+      final userJson = _prefs?.getString(_userKey);
 
-      if (token != null) {
-        // Verificar si el token es válido y no ha expirado
-        if (!JwtService.verifyToken(token)) {
-          print('Token inválido o expirado.');
-          await logout(); // Cerrar sesión si el token no es válido
-          return false;
-        }
+      if (userJson != null) {
+        // Convertir el JSON guardado de vuelta a objeto User
+        final userMap = jsonDecode(userJson) as Map<String, dynamic>;
 
-        // Obtener el usuario desde el token
-        final decodedToken = JwtService.decodeToken(token);
-        if (decodedToken != null) {
-          final user = User(
-            id: decodedToken['sub'] as String,
-            name: decodedToken['name'] as String,
-            email: decodedToken['email'] as String,
-            password: '', // No hay password en el token
-            avatarUrl: decodedToken['avatarUrl'] as String?,
-            addresses: List<String>.from(decodedToken['addresses'] ?? []),
-            favoriteProducts:
-                List<String>.from(decodedToken['favoriteProducts'] ?? []),
-            publishedProducts:
-                List<String>.from(decodedToken['publishedProducts'] ?? []),
-            purchaseHistory:
-                List<String>.from(decodedToken['purchaseHistory'] ?? []),
-          );
-          // Puedes guardar el usuario en memoria aquí si lo necesitas
-          print('Sesión cargada desde token para usuario: ${user.email}');
-          return true;
-        }
+        final user = User(
+          id: userMap['id'] as String,
+          name: userMap['name'] as String,
+          email: userMap['email'] as String,
+          password: '', // No hay password en el almacenamiento local
+          avatarUrl: userMap['avatarUrl'] as String?,
+          addresses: List<String>.from(userMap['addresses'] ?? []),
+          favoriteProducts:
+              List<String>.from(userMap['favoriteProducts'] ?? []),
+          publishedProducts:
+              List<String>.from(userMap['publishedProducts'] ?? []),
+          purchaseHistory: List<String>.from(userMap['purchaseHistory'] ?? []),
+        );
+        // Puedes guardar el usuario en memoria aquí si lo necesitas
+        print('Sesión cargada para usuario: ${user.email}');
+        return true;
       }
 
       print('No hay sesión válida para cargar.');
@@ -112,7 +84,6 @@ class AuthService {
     try {
       await _initPrefs();
       await _prefs?.remove(_userKey);
-      await _prefs?.remove(_tokenKey);
       // Cerrar sesión en FirebaseAuth
       await fb_auth.FirebaseAuth.instance.signOut();
       // Si tienes lógica para limpiar usuario en memoria, agrégala aquí
@@ -123,88 +94,13 @@ class AuthService {
     }
   }
 
-  // Limpiar solo el token (usado internamente o si es necesario)
-  Future<void> clearToken() async {
-    try {
-      await _initPrefs();
-      await _prefs?.remove(_tokenKey);
-      print('Token de autenticación limpiado.');
-    } catch (e) {
-      print('Error al limpiar token: $e');
-      rethrow;
-    }
-  }
-
-  // Verificar si hay sesión activa (basado en token)
-  static Future<bool> isLoggedIn() async {
-    try {
-      await _initPrefs();
-      final token = _prefs?.getString(_tokenKey);
-
-      if (token == null) {
-        print('No hay token guardado.');
-        return false;
-      }
-
-      // Verificar si el token es válido y no ha expirado
-      if (!JwtService.verifyToken(token)) {
-        print('Token inválido o expirado.');
-        await logout(); // Cerrar sesión si el token no es válido
-        return false;
-      }
-
-      // Si hay token y es válido, la sesión se considera activa
-      // La carga de los datos del usuario se realiza en loadSession
-      return true;
-    } catch (e) {
-      print('Error al verificar sesión: $e');
-      await logout(); // Cerrar sesión en caso de error
-      return false;
-    }
-  }
-
-  // Obtener token guardado
-  Future<String?> getToken() async {
+  // Cargar usuario actual
+  static Future<User?> getCurrentUser() async {
     await _initPrefs();
-    return _prefs?.getString(_tokenKey);
-  }
-
-  // Decodificar token y crear objeto User
-  Future<User?> getUserFromToken(String token) async {
-    try {
-      // Verificar y decodificar el token
-      final decodedToken = JwtService.decodeToken(token);
-
-      // Si el token es inválido o expirado, decodeToken puede retornar null o lanzar error
-      // Ya verificamos la validez en loadSession/isLoggedIn, pero aquí manejamos el resultado
-      if (decodedToken == null) {
-        print('No se pudo decodificar el token o es inválido.');
-        return null;
-      }
-
-      final userData = decodedToken; // decodedToken es Map<String, dynamic>
-
-      // Reconstruir el objeto User desde el payload del token
-      // Asegurarse de pasar el password (vacío) y usar avatarUrl
-      final user = User(
-        id: userData['id'] as String,
-        name: userData['name'] as String,
-        email: userData['email'] as String,
-        password: '', // No hay password en el token
-        avatarUrl: userData['avatarUrl'] as String?, // Usar avatarUrl
-        addresses: List<String>.from(userData['addresses'] ?? []),
-        favoriteProducts: List<String>.from(userData['favoriteProducts'] ?? []),
-        publishedProducts:
-            List<String>.from(userData['publishedProducts'] ?? []),
-        purchaseHistory: List<String>.from(userData['purchaseHistory'] ?? []),
-      );
-      return user;
-    } catch (e) {
-      print('Error al obtener usuario desde token: $e');
-      // Dependiendo del manejo de errores de JwtService.decodeToken, podrías relanzar
-      // o retornar null. Aquí retornamos null en caso de error.
-      return null;
-    }
+    final userJson = _prefs?.getString(_userKey);
+    if (userJson == null) return null;
+    final userMap = jsonDecode(userJson);
+    return User.fromJson(userMap);
   }
 
   // Login con FirebaseAuth

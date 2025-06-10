@@ -40,10 +40,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (result != null) {
         final user = result['user'] as User;
-        final token = result['token'] as String;
 
         // Guardar la sesión después de un login exitoso
-        await AuthService.saveSession(user, token);
+        await AuthService.saveSession(user);
 
         if (mounted) {
           Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);

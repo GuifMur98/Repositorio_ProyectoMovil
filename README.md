@@ -1,6 +1,6 @@
 # TradeNest - Aplicación de Comercio Electrónico
 
-TradeNest es una aplicación móvil de comercio electrónico desarrollada con Flutter y MongoDB, que permite a los usuarios comprar y vender productos de manera fácil y segura.
+TradeNest es una aplicación móvil de comercio electrónico desarrollada con Flutter y Firebase/Firestore, que permite a los usuarios comprar y vender productos de manera fácil y segura.
 
 ## Características Principales
 
@@ -30,7 +30,7 @@ TradeNest es una aplicación móvil de comercio electrónico desarrollada con Fl
 
 ### Perfil de Usuario
 - Información personal editable
-- Historial de compras (persistente en MongoDB)
+- Historial de compras (persistente en Firestore)
 - Productos favoritos
 - Gestión de direcciones
 - Configuración de cuenta
@@ -40,14 +40,13 @@ TradeNest es una aplicación móvil de comercio electrónico desarrollada con Fl
 - Formulario para crear nuevos productos
 - Carga de imágenes
 - Categorización
-- Gestión de productos publicados (persistente en MongoDB)
+- Gestión de productos publicados (persistente en Firestore)
 
 ## Tecnologías Utilizadas
 
 - Flutter
 - Dart
-- MongoDB (persistencia en la nube, no local)
-- mongo_dart
+- Firebase (Firestore, Auth, Storage)
 - mailer (envío de correos reales)
 - Material Design
 - Navegación entre pantallas
@@ -72,10 +71,11 @@ flutter run
 
 ## Notas Importantes
 
-- Toda la información de usuarios, productos, compras y favoritos se almacena y consulta directamente en MongoDB.
+- Toda la información de usuarios, productos, compras y favoritos se almacena y consulta directamente en Firebase Firestore.
 - La recuperación de contraseña es real: el usuario recibe una contraseña temporal por email (requiere configuración de SMTP en producción).
 - El diseño de la app incluye mejoras visuales modernas en pantallas de perfil y edición de perfil.
 - Para el correcto funcionamiento del envío de correos, asegúrate de configurar las credenciales SMTP en el backend.
+- Las notificaciones y toda la lógica de la app se gestionan 100% desde el cliente Flutter usando Firebase .
 
 ## Estructura del Proyecto
 

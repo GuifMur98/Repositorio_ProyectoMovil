@@ -47,7 +47,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (registeredUser != null) {
         final user = registeredUser['user'] as User;
-        final token = registeredUser['token'] as String;
 
         // Crear documento de usuario en Firestore
         await FirebaseFirestore.instance.collection('users').doc(user.id).set({
@@ -60,7 +59,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         });
 
         // Guardar la sesión después de un registro exitoso
-        await AuthService.saveSession(user, token);
+        await AuthService.saveSession(user);
 
         if (mounted) {
           Navigator.pushNamedAndRemoveUntil(
