@@ -15,21 +15,31 @@ class Order {
     required this.status,
   });
 
-  factory Order.fromJson(Map<String, dynamic> json) => Order(
-        id: json['_id'] ?? '',
+  factory Order.fromJson(Map<String, dynamic> json, {String? id}) => Order(
+        id: id ?? json['id'] ?? '',
         userId: json['userId'] ?? '',
         productIds: List<String>.from(json['productIds'] ?? []),
-        total: (json['total'] ?? 0).toDouble(),
-        date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
+        total: (json['total'] is int)
+            ? (json['total'] as int).toDouble()
+            : (json['total'] ?? 0.0).toDouble(),
+        date: json['date'] != null
+            ? DateTime.tryParse(json['date']) ?? DateTime.now()
+            : DateTime.now(),
         status: json['status'] ?? '',
       );
 
+  factory Order.fromFirestore(Map<String, dynamic> json, String id) {
+    return Order.fromJson(json, id: id);
+  }
+
   Map<String, dynamic> toJson() => {
-        '_id': id,
+        'id': id,
         'userId': userId,
         'productIds': productIds,
         'total': total,
         'date': date.toIso8601String(),
         'status': status,
       };
+
+  Map<String, dynamic> toFirestore() => toJson();
 }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/address.dart';
 import '../services/address_service.dart';
-import '../services/user_service.dart';
 
 class AddAddressScreen extends StatefulWidget {
   const AddAddressScreen({super.key});
@@ -51,22 +50,18 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
       _isLoading = true;
     });
     try {
-      final user = UserService.currentUser;
-      if (user == null) {
-        throw Exception('Usuario no autenticado');
-      }
       final address = Address(
-        id: '', // MongoDB generará el id
-        userId: user.id,
+        id: '',
+        userId: '',
         street: street,
         city: city,
         state: state,
         zipCode: zipCode,
         country: country,
       );
-      await AddressService.addAddress(address);
+      final saved = await AddressService.addAddress(address);
       if (mounted) {
-        Navigator.pop(context, true); // Regresa y notifica éxito
+        Navigator.pop(context, saved); // Regresa el Address real
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/user_product_detail_screen.dart';
-import '../services/user_service.dart';
-import '../services/product_service.dart';
 import '../models/product.dart';
 
 class UserProductsScreen extends StatefulWidget {
@@ -27,26 +27,26 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final user = UserService.currentUser;
-    if (user == null) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Debes iniciar sesión para ver tus productos.';
-      });
-      return;
-    }
     try {
-      final allProducts = await ProductService.getProducts();
-      final userProducts =
-          allProducts.where((p) => p.sellerId == user.id).toList();
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('Usuario no autenticado');
+      final query = await FirebaseFirestore.instance
+          .collection('products')
+          .where('sellerId', isEqualTo: user.uid)
+          .orderBy('createdAt', descending: true)
+          .get();
+      final userProducts = query.docs
+          .map((doc) => Product.fromJson(doc.data(), id: doc.id))
+          .toList();
       setState(() {
         _products = userProducts;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
+        _products = [];
         _isLoading = false;
-        _errorMessage = 'Error al cargar productos';
+        _errorMessage = 'Error al cargar productos: $e';
       });
     }
   }

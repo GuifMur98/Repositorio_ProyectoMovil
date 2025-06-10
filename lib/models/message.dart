@@ -13,20 +13,27 @@ class Message {
     required this.timestamp,
   });
 
-  factory Message.fromJson(Map<String, dynamic> json) => Message(
-        id: json['_id'] ?? '',
+  factory Message.fromJson(Map<String, dynamic> json, {String? id}) => Message(
+        id: id ?? json['id'] ?? '',
         chatId: json['chatId'] ?? '',
         senderId: json['senderId'] ?? '',
         content: json['content'] ?? '',
-        timestamp: DateTime.parse(
-            json['timestamp'] ?? DateTime.now().toIso8601String()),
+        timestamp: json['timestamp'] != null
+            ? DateTime.tryParse(json['timestamp']) ?? DateTime.now()
+            : DateTime.now(),
       );
 
+  factory Message.fromFirestore(Map<String, dynamic> json, String id) {
+    return Message.fromJson(json, id: id);
+  }
+
   Map<String, dynamic> toJson() => {
-        '_id': id,
+        'id': id,
         'chatId': chatId,
         'senderId': senderId,
         'content': content,
         'timestamp': timestamp.toIso8601String(),
       };
+
+  Map<String, dynamic> toFirestore() => toJson();
 }

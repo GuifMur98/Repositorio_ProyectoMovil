@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
-import 'package:proyecto/services/product_service.dart';
 import 'package:proyecto/widgets/product_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -28,11 +28,16 @@ class _CategoryScreenState extends State<CategoryScreen> {
       _errorMessage = null;
     });
     try {
-      final products = await ProductService.getProducts();
-      final filtered =
-          products.where((p) => p.category == widget.category).toList();
+      final query = await FirebaseFirestore.instance
+          .collection('products')
+          .where('category', isEqualTo: widget.category)
+          .orderBy('createdAt', descending: true)
+          .get();
+      final products = query.docs
+          .map((doc) => Product.fromJson(doc.data(), id: doc.id))
+          .toList();
       setState(() {
-        _products = filtered;
+        _products = products;
         _isLoading = false;
       });
     } catch (e) {

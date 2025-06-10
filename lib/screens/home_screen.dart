@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/bottom_navigation.dart';
-import '../services/user_service.dart';
-import '../services/product_service.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/widgets/product_card.dart';
 
@@ -15,8 +15,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   int _currentIndex = 0;
-  bool _isLoadingProducts = false;
-  List<Map<String, dynamic>> _products = [];
   List<Map<String, dynamic>> _allProducts = [];
 
   final List<Map<String, dynamic>> _categories = [
@@ -61,78 +59,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchProducts(); // Llamar al método para obtener productos
+    // Ya no se usa _fetchProducts, los productos se obtienen en tiempo real desde Firestore
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-
-  // Método para cargar productos desde MongoDB
-  Future<void> _fetchProducts() async {
-    setState(() {
-      _isLoadingProducts = true;
-    });
-
-    try {
-      // Obtener los productos reales de la BD
-      final fetchedProducts = await ProductService.getProducts();
-
-      final productsList = fetchedProducts.map((product) {
-        return {
-          'id': product.id,
-          'title': product.title,
-          'description': product.description,
-          'price': product.price,
-          'image': product.imageUrls.isNotEmpty
-              ? product.imageUrls.first
-              : 'assets/images/Logo_PMiniatura.png',
-          'category': product.category,
-          'imageUrls': product.imageUrls,
-          'sellerId': product.sellerId,
-          'stock': product.stock,
-        };
-      }).toList();
-
-      setState(() {
-        _allProducts = productsList;
-        _products = productsList;
-        _isLoadingProducts = false;
-      });
-    } catch (e) {
-      print('Error al cargar productos: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al cargar los productos. Inténtalo de nuevo.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() {
-        _isLoadingProducts = false;
-      });
-    }
-  }
-
-  void _filterProducts(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _products = List<Map<String, dynamic>>.from(_allProducts);
-      } else {
-        _products = _allProducts.where((product) {
-          final titleLower = product['title'].toString().toLowerCase();
-          final descriptionLower =
-              product['description'].toString().toLowerCase();
-          final categoryLower = product['category'].toString().toLowerCase();
-          final searchLower = query.toLowerCase();
-
-          return titleLower.contains(searchLower) ||
-              descriptionLower.contains(searchLower) ||
-              categoryLower.contains(searchLower);
-        }).toList();
-      }
-    });
   }
 
   void _onNavigationTap(int index) {
@@ -158,89 +91,110 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildProductsGrid() {
-    if (_isLoadingProducts) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_products.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error al cargar productos'));
+        }
+        final docs = snapshot.data?.docs ?? [];
+        if (docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'No se encontraron productos',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Intenta con otra búsqueda',
+                  style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                ),
+              ],
+            ),
+          );
+        }
+        // Filtrado por búsqueda
+        final filteredDocs = docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final titleLower = (data['title'] ?? '').toString().toLowerCase();
+          final descriptionLower =
+              (data['description'] ?? '').toString().toLowerCase();
+          final categoryLower =
+              (data['category'] ?? '').toString().toLowerCase();
+          final searchLower = _searchController.text.toLowerCase();
+          return titleLower.contains(searchLower) ||
+              descriptionLower.contains(searchLower) ||
+              categoryLower.contains(searchLower);
+        }).toList();
+        final showSeeMore = filteredDocs.length > 10;
+        final productsToShow = filteredDocs.take(10).toList();
+        return Column(
           children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No se encontraron productos',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.60,
+                crossAxisSpacing: 16.0,
+                mainAxisSpacing: 20.0,
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Intenta con otra búsqueda',
-              style: TextStyle(color: Colors.grey[500], fontSize: 14),
-            ),
-          ],
-        ),
-      );
-    }
-    final showSeeMore = _products.length > 10;
-    final productsToShow = _products.take(10).toList();
-    return Column(
-      children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.60,
-            crossAxisSpacing: 16.0,
-            mainAxisSpacing: 20.0,
-          ),
-          itemCount: productsToShow.length,
-          itemBuilder: (context, index) {
-            final p = productsToShow[index];
-            final product = Product(
-              id: p['id'] ?? '',
-              title: p['title'] ?? '',
-              description: p['description'] ?? '',
-              price: p['price'] is double
-                  ? p['price']
-                  : double.tryParse(p['price'].toString()) ?? 0.0,
-              imageUrls: p['imageUrls'] != null
-                  ? List<String>.from(p['imageUrls'])
-                  : (p['image'] != null ? [p['image']] : []),
-              category: p['category'] ?? '',
-              sellerId: p['sellerId'] ?? '',
-              stock: p['stock'] is int
-                  ? p['stock']
-                  : int.tryParse(p['stock']?.toString() ?? '') ?? 0,
-            );
-            return ProductCard(product: product);
-          },
-        ),
-        if (showSeeMore)
-          Padding(
-            padding: const EdgeInsets.only(top: 16.0),
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/all-products');
+              itemCount: productsToShow.length,
+              itemBuilder: (context, index) {
+                final doc = productsToShow[index];
+                final data = doc.data() as Map<String, dynamic>;
+                final product = Product(
+                  id: doc.id,
+                  title: data['title'] ?? '',
+                  description: data['description'] ?? '',
+                  price: (data['price'] is int)
+                      ? (data['price'] as int).toDouble()
+                      : (data['price'] ?? 0.0).toDouble(),
+                  imageUrls: List<String>.from(data['imageUrls'] ?? []),
+                  category: data['category'] ?? '',
+                  sellerId: data['sellerId'] ?? '',
+                  stock: data['stock'] ?? 0,
+                );
+                return ProductCard(product: product);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5C3D2E),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            ),
+            if (showSeeMore)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/all-products');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF5C3D2E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Ver más productos'),
                 ),
               ),
-              child: const Text('Ver más productos'),
-            ),
-          ),
-      ],
+          ],
+        );
+      },
     );
   }
 
@@ -369,6 +323,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final fbUser = FirebaseAuth.instance.currentUser;
+    final userName = fbUser?.displayName ?? fbUser?.email ?? '';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -399,7 +356,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   child: TextField(
                     controller: _searchController,
-                    onChanged: _filterProducts,
+                    onChanged: (_) {
+                      setState(() {});
+                    }, // Actualiza el filtro en tiempo real
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF5C3D2E),
@@ -431,7 +390,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 onPressed: () {
                                   _searchController.clear();
-                                  _filterProducts('');
+                                  setState(() {});
                                 },
                               ),
                             )
@@ -445,15 +404,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              // Icono de notificaciones
               IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.white,
-                  size: 24,
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+                icon: const Icon(Icons.notifications_none,
+                    color: Color.fromARGB(255, 255, 255, 255), size: 28),
+                tooltip: 'Notificaciones',
                 onPressed: () {
                   Navigator.pushNamed(context, '/notifications');
                 },
@@ -463,79 +418,74 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 40.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
+        child: Column(
+          children: [
+            // Sección de bienvenida con fondo café, texto blanco, centrado y esquinas inferiores redondeadas
+            Padding(
+              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+              child: Container(
                 width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 decoration: const BoxDecoration(
                   color: Color(0xFF5C3D2E),
                   borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
                   ),
                 ),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
-                      UserService.currentUser != null
-                          ? '¡Bienvenido ${UserService.currentUser!.name}!'
-                          : '¡Bienvenido!',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      '¡Bienvenido${userName.isNotEmpty ? ', $userName' : ''}!',
                       textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'A un lugar para comprar y vender productos de calidad.',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      'Descubre productos únicos y apoya a vendedores locales.',
                       textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.1,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              _buildCategories(),
-              const SizedBox(height: 24),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Productos Destacados',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF5C3D2E),
+            ),
+            const SizedBox(height: 8),
+            _buildCategories(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Productos destacados',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF5C3D2E),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  _buildProductsGrid(),
+                  const SizedBox(height: 40),
+                ],
               ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildProductsGrid(),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.pushNamed(context, '/chats');
-        },
-        backgroundColor: const Color(0xFF5C3D2E),
-        icon: const Icon(Icons.chat, color: Colors.white),
-        label: const Text('Chats', style: TextStyle(color: Colors.white)),
       ),
       bottomNavigationBar: CustomBottomNavigation(
         currentIndex: _currentIndex,

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/message_service.dart';
-import '../services/user_service.dart';
 
 class ChatsScreen extends StatefulWidget {
   const ChatsScreen({super.key});
@@ -22,14 +20,6 @@ class _ChatPreview {
     required this.lastMessage,
     required this.lastMessageTime,
   });
-
-  factory _ChatPreview.fromMap(Map<String, dynamic> map) => _ChatPreview(
-        chatId: map['chatId'] ?? '',
-        otherUserId: map['otherUserId'] ?? '',
-        otherUserName: map['otherUserName'] ?? 'Usuario',
-        lastMessage: map['lastMessage'] ?? '',
-        lastMessageTime: map['lastMessageTime'] ?? '',
-      );
 }
 
 class _ChatsScreenState extends State<ChatsScreen> {
@@ -44,28 +34,21 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   Future<void> _fetchChats() async {
-    final user = UserService.currentUser;
-    if (user == null) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Debes iniciar sesión para ver tus chats.';
-      });
-      return;
-    }
-    try {
-      final chatPreviews = await MessageService.getUserChatPreviews(user.id) as List<Map<String, dynamic>>;
-      setState(() {
-        _chats = chatPreviews
-            .map((map) => _ChatPreview.fromMap(map))
-            .toList();
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Error al cargar chats: $e';
-      });
-    }
+    // Simulación: chats en memoria. Implementa tu lógica real aquí si lo deseas
+    setState(() {
+      _isLoading = false;
+      _chats = [
+        _ChatPreview(
+          chatId: '1_2',
+          otherUserId: '2',
+          otherUserName: 'Usuario Ejemplo',
+          lastMessage: '¡Hola! ¿Cómo estás?',
+          lastMessageTime: '10:30',
+        ),
+        // Agrega más chats simulados si lo deseas
+      ];
+      _error = null;
+    });
   }
 
   @override
@@ -98,12 +81,14 @@ class _ChatsScreenState extends State<ChatsScreen> {
                               child: Icon(Icons.person, color: Colors.white),
                             ),
                             title: Text(chat.otherUserName,
-                                style: const TextStyle(fontWeight: FontWeight.bold)),
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
                             subtitle: Text(chat.lastMessage,
                                 maxLines: 1, overflow: TextOverflow.ellipsis),
                             trailing: Text(
                               chat.lastMessageTime,
-                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.grey),
                             ),
                             onTap: () {
                               Navigator.pushNamed(

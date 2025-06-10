@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/notification_service.dart';
-import '../models/notification.dart';
-import '../services/user_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -11,49 +8,57 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  List<AppNotification> _notifications = [];
-  bool _isLoading = true;
+  List<AppNotification> _notifications = [
+    // Simulación de notificaciones en memoria
+    AppNotification(
+      id: '1',
+      userId: 'user1',
+      title: '¡Bienvenido!',
+      body: 'Gracias por unirte a la app.',
+      date: DateTime.now().subtract(const Duration(hours: 1)),
+      read: false,
+    ),
+    AppNotification(
+      id: '2',
+      userId: 'user1',
+      title: 'Compra realizada',
+      body: 'Tu compra fue exitosa.',
+      date: DateTime.now().subtract(const Duration(days: 1)),
+      read: true,
+    ),
+    // Agrega más notificaciones simuladas si lo deseas
+  ];
+  bool _isLoading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _fetchNotifications();
+    // Simulación: los datos ya están cargados en memoria
+    _isLoading = false;
   }
 
   Future<void> _fetchNotifications() async {
-    final user = UserService.currentUser;
-    if (user == null) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Debes iniciar sesión para ver tus notificaciones.';
-      });
-      return;
-    }
-    try {
-      final notifications =
-          await NotificationService.getNotificationsByUser(user.id);
-      setState(() {
-        _notifications = notifications
-          ..sort((a, b) => b.date.compareTo(a.date));
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Error al cargar notificaciones: $e';
-      });
-    }
+    // Simulación: los datos ya están en memoria
+    setState(() {
+      _isLoading = false;
+      _error = null;
+    });
   }
 
   Future<void> _markAsRead(String id) async {
-    await NotificationService.markAsRead(id);
-    _fetchNotifications();
+    setState(() {
+      final idx = _notifications.indexWhere((n) => n.id == id);
+      if (idx != -1) {
+        _notifications[idx] = _notifications[idx].copyWith(read: true);
+      }
+    });
   }
 
   Future<void> _deleteNotification(String id) async {
-    await NotificationService.deleteNotification(id);
-    _fetchNotifications();
+    setState(() {
+      _notifications.removeWhere((n) => n.id == id);
+    });
   }
 
   @override
@@ -146,5 +151,34 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } else {
       return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
     }
+  }
+}
+
+class AppNotification {
+  final String id;
+  final String userId;
+  final String title;
+  final String body;
+  final DateTime date;
+  final bool read;
+
+  AppNotification({
+    required this.id,
+    required this.userId,
+    required this.title,
+    required this.body,
+    required this.date,
+    required this.read,
+  });
+
+  AppNotification copyWith({bool? read}) {
+    return AppNotification(
+      id: id,
+      userId: userId,
+      title: title,
+      body: body,
+      date: date,
+      read: read ?? this.read,
+    );
   }
 }

@@ -9,15 +9,22 @@ class Favorite {
     required this.productId,
   });
 
-  factory Favorite.fromJson(Map<String, dynamic> json) => Favorite(
-        id: json['_id'] ?? '',
+  factory Favorite.fromJson(Map<String, dynamic> json, {String? id}) =>
+      Favorite(
+        id: id ?? json['id'] ?? '',
         userId: json['userId'] ?? '',
         productId: json['productId'] ?? '',
       );
 
+  factory Favorite.fromFirestore(Map<String, dynamic> json, String id) {
+    return Favorite.fromJson(json, id: id);
+  }
+
   Map<String, dynamic> toJson() => {
-        '_id': id,
+        'id': id,
         'userId': userId,
         'productId': productId,
       };
+
+  Map<String, dynamic> toFirestore() => toJson();
 }

@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/widgets/base_screen.dart';
-import 'package:proyecto/services/cart_item_service.dart';
-import 'package:proyecto/models/cart_item.dart';
-import 'package:proyecto/services/product_service.dart';
-import 'package:proyecto/models/product.dart';
-import 'package:proyecto/services/user_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import '../models/cart_item.dart';
+import '../models/product.dart';
 import '../models/address.dart';
 import '../services/address_service.dart';
-import '../models/purchase.dart';
-import '../services/purchase_service.dart';
-import '../config/database.dart';
-import 'package:mongo_dart/mongo_dart.dart' as mdb;
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -20,9 +15,10 @@ class CartScreen extends StatefulWidget {
 }
 
 class _CartScreenState extends State<CartScreen> {
+  // Eliminar simulación, inicializar como vacío
   List<CartItem> _cartItems = [];
   Map<String, Product> _products = {};
-  bool _isLoading = true;
+  bool _isLoading = false;
   String? _errorMessage;
 
   // Variables para tipos de envío y dirección seleccionada
@@ -32,123 +28,123 @@ class _CartScreenState extends State<CartScreen> {
     {'label': 'Recogida en tienda', 'cost': 0.0},
   ];
   int _selectedShippingIndex = 0;
-  String? _selectedAddress;
-  List<String> _userAddresses = [];
+  Address? _selectedAddressObj;
   List<Address> _addressObjects = [];
 
-  // Flag para controlar la expansión del ExpansionTile de la factura
   bool _isFacturaExpanded = false;
 
   @override
   void initState() {
     super.initState();
-    _fetchCart();
+    _fetchCartItems();
     _fetchAddresses();
   }
 
-  Future<void> _fetchCart() async {
+  Future<void> _fetchAddresses() async {
+    try {
+      final addresses = await AddressService.getAddresses();
+      setState(() {
+        _addressObjects = addresses;
+        if (_addressObjects.isNotEmpty && _selectedAddressObj == null) {
+          _selectedAddressObj = _addressObjects.first;
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _addressObjects = [];
+        _selectedAddressObj = null;
+      });
+    }
+  }
+
+  Future<void> _fetchCartItems() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
-    final user = UserService.currentUser;
-    if (user == null) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Debes iniciar sesión para ver tu carrito.';
-      });
-      return;
-    }
     try {
-      final items = await CartItemService.getCartItemsByUser(user.id);
-      final products = <String, Product>{};
-      for (final item in items) {
-        final product = await ProductService.getProductById(item.productId);
-        if (product != null) {
-          products[item.productId] = product;
+      final user = await fb_auth.FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        setState(() {
+          _cartItems = [];
+          _products = {};
+          _isLoading = false;
+        });
+        return;
+      }
+      final cartSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('cart')
+          .get();
+      final cartItems = cartSnapshot.docs
+          .map((doc) => CartItem.fromFirestore(doc.data(), doc.id))
+          .toList();
+      // Fetch product details for each cart item
+      Map<String, Product> products = {};
+      for (final item in cartItems) {
+        final prodDoc = await FirebaseFirestore.instance
+            .collection('products')
+            .doc(item.productId)
+            .get();
+        if (prodDoc.exists) {
+          products[item.productId] =
+              Product.fromJson(prodDoc.data()!, id: prodDoc.id);
         }
       }
       setState(() {
-        _cartItems = items;
+        _cartItems = cartItems;
         _products = products;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
+        _errorMessage = 'Error al cargar el carrito: $e';
         _isLoading = false;
-        _errorMessage = 'Error al cargar el carrito.';
       });
     }
   }
 
-  Future<void> _fetchAddresses() async {
-    final user = UserService.currentUser;
-    if (user == null) return;
-    final addresses = await AddressService.getAddressesByUser(user.id);
-    setState(() {
-      _addressObjects = addresses;
-      _userAddresses = addresses
-          .map((a) =>
-              a.street +
-              ', ' +
-              a.city +
-              (a.state.isNotEmpty ? ', ' + a.state : '') +
-              ', ' +
-              a.country)
-          .toList();
-      if (_userAddresses.isNotEmpty && _selectedAddress == null) {
-        _selectedAddress = _userAddresses.first;
-      }
-    });
-  }
-
   Future<void> _removeCartItem(String id) async {
+    final user = await fb_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
     try {
-      await CartItemService.deleteCartItem(id);
-      await _fetchCart();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('cart')
+          .doc(id)
+          .delete();
+      await _fetchCartItems();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Producto eliminado del carrito.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Error al eliminar: ' +
-                (e.toString().isNotEmpty
-                    ? e.toString()
-                    : 'Error desconocido'))),
+        SnackBar(content: Text('Error al eliminar: $e')),
       );
     }
   }
 
   Future<void> _updateQuantity(CartItem item, int newQty) async {
     if (newQty < 1) return;
+    final user = await fb_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
     try {
-      final updated = CartItem(
-        id: item.id,
-        userId: item.userId,
-        productId: item.productId,
-        quantity: newQty,
-      );
-      await CartItemService.updateCartItem(updated);
-      await _fetchCart();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('cart')
+          .doc(item.id)
+          .update({'quantity': newQty});
+      await _fetchCartItems();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Cantidad actualizada a $newQty.')),
       );
-      // Log para depuración
-      // ignore: avoid_print
-      print(
-          'Cantidad actualizada para el producto ${item.productId} a $newQty');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Error al actualizar cantidad: ' +
-                (e.toString().isNotEmpty
-                    ? e.toString()
-                    : 'Error desconocido'))),
+        SnackBar(content: Text('Error al actualizar cantidad: $e')),
       );
-      // Log para depuración
-      // ignore: avoid_print
-      print('Error al actualizar cantidad: $e');
     }
   }
 
@@ -162,63 +158,246 @@ class _CartScreenState extends State<CartScreen> {
 
   double get _shipping => _subtotal > 0
       ? _shippingOptions[_selectedShippingIndex]['cost'] as double
-      : 0.0; // Ejemplo: envío fijo
+      : 0.0;
 
   double get _total => _subtotal + _isv + _shipping;
 
   Future<void> _finalizePurchase() async {
-    final user = UserService.currentUser;
-    if (user == null) return;
     if (_cartItems.isEmpty) return;
-
-    // Construir lista de productos para la compra
-    final products = _cartItems.map((item) {
-      final product = _products[item.productId];
-      return {
-        'title': product?.title ?? '',
-        'quantity': item.quantity,
-        'price': product?.price ?? 0.0,
-      };
-    }).toList();
-
-    final purchase = Purchase(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userId: user.id,
-      products: products,
-      total: _total,
-      date: DateTime.now(),
-    );
-
-    await PurchaseService.addPurchase(purchase);
-
-    // Agregar el ID de la compra al historial del usuario
+    final user = await fb_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
     try {
-      final userId = user.id;
-      await DatabaseConfig.users.updateOne(
-        mdb.where.id(mdb.ObjectId.fromHexString(userId)),
-        mdb.modify.push('purchaseHistory', purchase.id),
-      );
+      // 1. Obtener los productos del carrito
+      final products = _cartItems.map((item) {
+        final product = _products[item.productId];
+        return {
+          'title': product?.title ?? '',
+          'quantity': item.quantity,
+          'price': product?.price ?? 0.0,
+        };
+      }).toList();
+      // 2. Crear el objeto de compra
+      final purchase = {
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
+        'userId': user.uid,
+        'products': products,
+        'total': _total,
+        'date': DateTime.now().toIso8601String(),
+      };
+      // 3. Agregar la compra al historial del usuario
+      final userRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+      await userRef.update({
+        'purchaseHistory': FieldValue.arrayUnion([purchase])
+      });
+      // 4. Limpiar el carrito
+      final cartRef = userRef.collection('cart');
+      final cartSnapshot = await cartRef.get();
+      for (final doc in cartSnapshot.docs) {
+        await doc.reference.delete();
+      }
+      setState(() {
+        _cartItems.clear();
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('¡Compra realizada con éxito!')),
+        );
+        Navigator.pushNamed(context, '/purchase-history');
+      }
     } catch (e) {
-      print('Error al actualizar purchaseHistory del usuario: $e');
-    }
-
-    // Limpiar carrito
-    for (final item in _cartItems) {
-      await CartItemService.deleteCartItem(item.id);
-    }
-    await _fetchCart();
-
-    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('¡Compra realizada con éxito!')),
+        SnackBar(content: Text('Error al finalizar la compra: $e')),
       );
-      // Cambia pushReplacementNamed por pushNamed para evitar error de historial vacío
-      Navigator.pushNamed(context, '/purchase-history');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final facturaWidget = Material(
+      elevation: 12,
+      color: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            StatefulBuilder(
+              builder: (context, setSBState) {
+                return ExpansionTile(
+                  initiallyExpanded: false,
+                  tilePadding: EdgeInsets.zero,
+                  onExpansionChanged: (expanded) {
+                    setState(() {
+                      _isFacturaExpanded = expanded;
+                    });
+                    setSBState(() {});
+                  },
+                  title: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Factura',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold)),
+                      if (!_isFacturaExpanded)
+                        Text(
+                          _total.toStringAsFixed(2),
+                          style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
+                    ],
+                  ),
+                  children: [
+                    // Selector de dirección
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text('Dirección:',
+                              style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _addressObjects.isEmpty
+                                ? const Text('No hay direcciones',
+                                    textAlign: TextAlign.end)
+                                : DropdownButton<Address>(
+                                    value: _selectedAddressObj,
+                                    isExpanded: true,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _selectedAddressObj = value;
+                                      });
+                                    },
+                                    items: _addressObjects
+                                        .map((address) => DropdownMenuItem(
+                                              value: address,
+                                              child: Text(
+                                                address.street +
+                                                    ', ' +
+                                                    address.city +
+                                                    (address.state.isNotEmpty
+                                                        ? ', ' + address.state
+                                                        : '') +
+                                                    ', ' +
+                                                    address.country,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ))
+                                        .toList(),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Selector de tipo de envío
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text('Tipo de envío:',
+                              style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: DropdownButton<int>(
+                              value: _selectedShippingIndex,
+                              isExpanded: true,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedShippingIndex = value!;
+                                });
+                              },
+                              items: List.generate(
+                                _shippingOptions.length,
+                                (i) => DropdownMenuItem(
+                                  value: i,
+                                  child: Text(_shippingOptions[i]['label']),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Desglose de factura
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Subtotal:', style: TextStyle(fontSize: 18)),
+                        Text(_subtotal.toStringAsFixed(2),
+                            style: const TextStyle(fontSize: 18)),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('ISV (15%):',
+                            style: TextStyle(fontSize: 18)),
+                        Text(_isv.toStringAsFixed(2),
+                            style: const TextStyle(fontSize: 18)),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Envío:', style: TextStyle(fontSize: 18)),
+                        Text(_shipping.toStringAsFixed(2),
+                            style: const TextStyle(fontSize: 18)),
+                      ],
+                    ),
+                    const Divider(height: 24, thickness: 1),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total:',
+                            style: TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.bold)),
+                        Text(_total.toStringAsFixed(2),
+                            style: const TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            if (_selectedShippingIndex != 2 && (_selectedAddressObj == null))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(
+                  'Debes seleccionar una dirección para el envío.',
+                  style: TextStyle(
+                      color: Colors.red[700], fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ElevatedButton(
+              onPressed:
+                  (_selectedShippingIndex == 2 || (_selectedAddressObj != null))
+                      ? _finalizePurchase
+                      : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5C3D2E),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30)),
+              ),
+              child: const Text('Finalizar compra',
+                  style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+      ),
+    );
+
     return BaseScreen(
       currentIndex: 3,
       onNavigationTap: (index) {
@@ -271,368 +450,148 @@ class _CartScreenState extends State<CartScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.shopping_cart_outlined,
-                              size: 80, color: Colors.brown),
-                          SizedBox(height: 24),
+                              size: 80, color: Color(0xFF5C3D2E)),
+                          SizedBox(height: 16),
                           Text(
-                            'Tu carrito está vacío.',
+                            'Tu carrito está vacío',
                             style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.brown,
-                            ),
-                            textAlign: TextAlign.center,
+                                fontSize: 20,
+                                color: Color(0xFF5C3D2E),
+                                fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     )
-                  : Column(
-                      children: [
-                        Expanded(
-                          child: ListView.separated(
-                            padding: const EdgeInsets.all(16),
-                            itemCount: _cartItems.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 12),
-                            itemBuilder: (context, i) {
-                              final item = _cartItems[i];
-                              final product = _products[item.productId];
-                              if (product == null) {
-                                return const SizedBox();
-                              }
-                              return Card(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16)),
-                                elevation: 3,
-                                margin: const EdgeInsets.symmetric(
-                                    vertical: 4, horizontal: 0),
-                                color: const Color(0xFFF5F0E8),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 10, horizontal: 8),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(12),
-                                        child: product.imageUrls.isNotEmpty
-                                            ? Image.network(
-                                                product.imageUrls.first,
-                                                width: 64,
-                                                height: 64,
-                                                fit: BoxFit.cover)
-                                            : Image.asset(
-                                                'assets/images/Logo_PMiniatura.png',
-                                                width: 64,
-                                                height: 64),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              product.title,
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 16,
-                                                  color: Color(0xFF2C1810)),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'Categoría: ${product.category}',
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: Colors.brown),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              'Precio: ${product.price.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                  fontSize: 15,
-                                                  color: Color(0xFF5C3D2E),
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ],
+                  : SingleChildScrollView(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Reemplazo de Expanded+ListView por ListView.separated shrinkWrap
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(0),
+                              itemCount: _cartItems.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, i) {
+                                final item = _cartItems[i];
+                                final product = _products[item.productId];
+                                if (product == null) {
+                                  return const SizedBox();
+                                }
+                                return Card(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16)),
+                                  elevation: 3,
+                                  margin: const EdgeInsets.symmetric(
+                                      vertical: 4, horizontal: 0),
+                                  color: const Color(0xFFF5F0E8),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 10, horizontal: 8),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                          child: product.imageUrls.isNotEmpty
+                                              ? Image.network(
+                                                  product.imageUrls.first,
+                                                  width: 64,
+                                                  height: 64,
+                                                  fit: BoxFit.cover)
+                                              : Image.asset(
+                                                  'assets/images/Logo_PMiniatura.png',
+                                                  width: 64,
+                                                  height: 64),
                                         ),
-                                      ),
-                                      Column(
-                                        children: [
-                                          Row(
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              IconButton(
-                                                icon: const Icon(
-                                                    Icons.remove_circle_outline,
-                                                    color: Colors.brown),
-                                                onPressed: () =>
-                                                    _updateQuantity(item,
-                                                        item.quantity - 1),
+                                              Text(
+                                                product.title,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                    color: Color(0xFF2C1810)),
                                               ),
-                                              Text('${item.quantity}',
-                                                  style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 16)),
-                                              IconButton(
-                                                icon: const Icon(
-                                                    Icons.add_circle_outline,
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Categoría: ${product.category}',
+                                                style: const TextStyle(
+                                                    fontSize: 13,
                                                     color: Colors.brown),
-                                                onPressed: () =>
-                                                    _updateQuantity(item,
-                                                        item.quantity + 1),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Precio: ${product.price.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                    fontSize: 15,
+                                                    color: Color(0xFF5C3D2E),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                             ],
                                           ),
-                                          IconButton(
-                                            icon: const Icon(
-                                                Icons.delete_outline,
-                                                color: Colors.red),
-                                            onPressed: () =>
-                                                _removeCartItem(item.id),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              StatefulBuilder(
-                                builder: (context, setSBState) {
-                                  return ExpansionTile(
-                                    initiallyExpanded: false,
-                                    tilePadding: EdgeInsets.zero,
-                                    onExpansionChanged: (expanded) {
-                                      setState(() {
-                                        _isFacturaExpanded = expanded;
-                                      });
-                                      setSBState(() {});
-                                    },
-                                    title: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Factura',
-                                            style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold)),
-                                        if (!_isFacturaExpanded)
-                                          Text(
-                                            _total.toStringAsFixed(2),
-                                            style: const TextStyle(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black),
-                                          ),
+                                        ),
+                                        Column(
+                                          children: [
+                                            Row(
+                                              children: [
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons
+                                                          .remove_circle_outline,
+                                                      color: Colors.brown),
+                                                  onPressed: () =>
+                                                      _updateQuantity(item,
+                                                          item.quantity - 1),
+                                                ),
+                                                Text('${item.quantity}',
+                                                    style: const TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 16)),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons.add_circle_outline,
+                                                      color: Colors.brown),
+                                                  onPressed: () =>
+                                                      _updateQuantity(item,
+                                                          item.quantity + 1),
+                                                ),
+                                              ],
+                                            ),
+                                            IconButton(
+                                              icon: const Icon(
+                                                  Icons.delete_outline,
+                                                  color: Colors.red),
+                                              onPressed: () =>
+                                                  _removeCartItem(item.id),
+                                            ),
+                                          ],
+                                        ),
                                       ],
                                     ),
-                                    children: [
-                                      // Selector de dirección
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 4.0),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            const Text('Dirección:',
-                                                style: TextStyle(fontSize: 16)),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: _addressObjects.isEmpty
-                                                  ? const Text(
-                                                      'No hay direcciones',
-                                                      textAlign: TextAlign.end)
-                                                  : DropdownButton<Address>(
-                                                      value: _addressObjects
-                                                          .firstWhere(
-                                                        (a) =>
-                                                            _userAddresses.indexOf(
-                                                                _selectedAddress ??
-                                                                    '') ==
-                                                            _addressObjects
-                                                                .indexOf(a),
-                                                        orElse: () =>
-                                                            _addressObjects
-                                                                .first,
-                                                      ),
-                                                      isExpanded: true,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          _selectedAddress = value ==
-                                                                  null
-                                                              ? null
-                                                              : _userAddresses[
-                                                                  _addressObjects
-                                                                      .indexOf(
-                                                                          value)];
-                                                        });
-                                                      },
-                                                      items: _addressObjects
-                                                          .map((address) =>
-                                                              DropdownMenuItem(
-                                                                value: address,
-                                                                child: Text(
-                                                                  address.street +
-                                                                      ', ' +
-                                                                      address
-                                                                          .city +
-                                                                      (address.state
-                                                                              .isNotEmpty
-                                                                          ? ', ' +
-                                                                              address
-                                                                                  .state
-                                                                          : '') +
-                                                                      ', ' +
-                                                                      address
-                                                                          .country,
-                                                                  overflow:
-                                                                      TextOverflow
-                                                                          .ellipsis,
-                                                                ),
-                                                              ))
-                                                          .toList(),
-                                                    ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      // Selector de tipo de envío
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 4.0),
-                                        child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.center,
-                                          children: [
-                                            const Text('Tipo de envío:',
-                                                style: TextStyle(fontSize: 16)),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: DropdownButton<int>(
-                                                value: _selectedShippingIndex,
-                                                isExpanded: true,
-                                                onChanged: (value) {
-                                                  setState(() {
-                                                    _selectedShippingIndex =
-                                                        value!;
-                                                  });
-                                                },
-                                                items: List.generate(
-                                                  _shippingOptions.length,
-                                                  (i) => DropdownMenuItem(
-                                                    value: i,
-                                                    child: Text(
-                                                        _shippingOptions[i]
-                                                            ['label']),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      // Desglose de factura
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Text('Subtotal:',
-                                              style: TextStyle(fontSize: 18)),
-                                          Text(_subtotal.toStringAsFixed(2),
-                                              style: const TextStyle(
-                                                  fontSize: 18)),
-                                        ],
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Text('ISV (15%):',
-                                              style: TextStyle(fontSize: 18)),
-                                          Text(_isv.toStringAsFixed(2),
-                                              style: const TextStyle(
-                                                  fontSize: 18)),
-                                        ],
-                                      ),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Text('Envío:',
-                                              style: TextStyle(fontSize: 18)),
-                                          Text(_shipping.toStringAsFixed(2),
-                                              style: const TextStyle(
-                                                  fontSize: 18)),
-                                        ],
-                                      ),
-                                      const Divider(height: 24, thickness: 1),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Text('Total:',
-                                              style: TextStyle(
-                                                  fontSize: 22,
-                                                  fontWeight: FontWeight.bold)),
-                                          Text(_total.toStringAsFixed(2),
-                                              style: const TextStyle(
-                                                  fontSize: 22,
-                                                  fontWeight: FontWeight.bold)),
-                                        ],
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              if (_selectedShippingIndex != 2 &&
-                                  (_selectedAddress == null ||
-                                      _selectedAddress!.isEmpty))
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: Text(
-                                    'Debes seleccionar una dirección para el envío.',
-                                    style: TextStyle(
-                                        color: Colors.red[700],
-                                        fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center,
                                   ),
-                                ),
-                              ElevatedButton(
-                                onPressed: (_selectedShippingIndex == 2 ||
-                                        (_selectedAddress != null &&
-                                            _selectedAddress!.isNotEmpty))
-                                    ? _finalizePurchase
-                                    : null,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF5C3D2E),
-                                  foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 16),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(30)),
-                                ),
-                                child: const Text('Finalizar compra',
-                                    style: TextStyle(fontSize: 16)),
-                              ),
-                            ],
-                          ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
+      bottomBar: _cartItems.isNotEmpty ? facturaWidget : null,
     );
   }
 }

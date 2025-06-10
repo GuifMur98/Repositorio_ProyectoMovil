@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import '../widgets/base_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-
-import '../models/product.dart';
-import '../services/product_service.dart';
-import '../services/user_service.dart';
-import '../config/database.dart';
-import 'package:mongo_dart/mongo_dart.dart' as mdb;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:proyecto/config/cloudinary.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -123,6 +120,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
+  Future<List<String>> _uploadImagesToCloudinary(List<File> images) async {
+    // Mientras Cloudinary no esté implementado, simplemente retorna una lista vacía
+    return [];
+  }
+
   void _saveProduct() async {
     setState(() {
       _imageError = false;
@@ -132,12 +134,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
 
-    if (_images.isEmpty) {
-      setState(() {
-        _imageError = true;
-      });
-      return;
-    }
+    // Eliminada la validación obligatoria de imágenes
+    // if (_images.isEmpty) {
+    //   setState(() {
+    //     _imageError = true;
+    //   });
+    //   return;
+    // }
 
     if (_selectedCategory == null) {
       setState(() {
@@ -150,54 +153,65 @@ class _AddProductScreenState extends State<AddProductScreen> {
       _isLoading = true;
     });
 
-    // TODO: 1. Subir imágenes a Cloudinary
-    List<String> imageUrls = [];
+    try {
+      // 1. Subir imágenes a Cloudinary (si hay)
+      final imageUrls = _images.isNotEmpty
+          ? await _uploadImagesToCloudinary(_images)
+          : <String>[];
 
-    final newProduct = Product(
-      id: '', // MongoDB generará el ID automáticamente
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      price: double.tryParse(_priceController.text.trim()) ?? 0.0,
-      imageUrls: imageUrls,
-      category: _selectedCategory!,
-      sellerId: UserService.currentUser?.id ?? 'unknown',
-      stock: int.tryParse(_stockController.text.trim()) ?? 0,
-    );
-
-    // 3. Guardar en MongoDB
-    final insertedProductId = await ProductService.createProduct(newProduct);
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (insertedProductId != null) {
-      // Agregar el ID del producto publicado al usuario
-      final userId = UserService.currentUser?.id;
-      if (userId != null) {
-        // Limpiar el ID si viene como ObjectId("...")
-        String cleanId = userId;
-        if (userId.startsWith('ObjectId(')) {
-          cleanId = userId.substring(9, userId.length - 1).replaceAll('"', '');
-        }
-        await DatabaseConfig.users.updateOne(
-          mdb.where.id(mdb.ObjectId.fromHexString(cleanId)),
-          mdb.modify.push('publishedProducts', insertedProductId),
-        );
+      // 2. Obtener el usuario autenticado
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
       }
-      // Mostrar mensaje de éxito y navegar al Home
+
+      // 3. Crear el producto
+      final productData = {
+        'title': _titleController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'price': double.parse(_priceController.text.trim()),
+        'imageUrls': imageUrls,
+        'category': _selectedCategory,
+        'sellerId': user.uid,
+        'stock': int.parse(_stockController.text.trim()),
+        'createdAt': FieldValue.serverTimestamp(),
+      };
+
+      // 4. Guardar en Firestore y obtener el ID
+      final docRef = await FirebaseFirestore.instance
+          .collection('products')
+          .add(productData);
+
+      // Crear subcolección 'comments' vacía (puedes agregar un doc inicial si lo deseas)
+      await docRef.collection('comments').add({
+        'text': '¡Sé el primero en comentar!',
+        'createdAt': FieldValue.serverTimestamp(),
+        'userId': user.uid,
+        'isSystem': true,
+      });
+
+      setState(() {
+        _isLoading = false;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Producto publicado con éxito!'),
           backgroundColor: Colors.green,
         ),
       );
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      // Mostrar mensaje de error al guardar en BD
+      // Ir directamente al Home después de publicar
+      Navigator.pushReplacementNamed(
+        context,
+        '/home',
+      );
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al publicar producto. Inténtalo de nuevo.'),
+        SnackBar(
+          content: Text('Error al publicar producto: $e'),
           backgroundColor: Colors.red,
         ),
       );

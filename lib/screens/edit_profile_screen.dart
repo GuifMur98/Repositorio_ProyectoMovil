@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -18,10 +19,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final user = UserService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      _nameController.text = user.name;
-      _emailController.text = user.email;
+      _nameController.text = user.displayName ?? '';
+      _emailController.text = user.email ?? '';
     }
   }
 
@@ -54,7 +55,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    final user = UserService.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       setState(() {
         _error = 'No hay usuario logueado.';
@@ -62,24 +63,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    final success = await UserService.updateProfile(
-      userId: user.id,
-      name: name,
-      email: email,
-      password: password.isNotEmpty ? password : null,
-    );
-
-    if (success) {
-      setState(() {
-        _error = null;
-      });
+    setState(() {
+      _error = null;
+    });
+    try {
+      // Actualizar nombre
+      if (name != user.displayName) {
+        await user.updateDisplayName(name);
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'name': name});
+      }
+      // Actualizar email
+      if (email != user.email) {
+        await user.updateEmail(email);
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'email': email});
+      }
+      // Actualizar contraseña
+      if (password.isNotEmpty) {
+        await user.updatePassword(password);
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Perfil actualizado correctamente.')),
       );
       Navigator.pop(context);
-    } else {
+    } catch (e) {
       setState(() {
-        _error = 'Error al actualizar el perfil.';
+        _error = 'Error al actualizar el perfil: $e';
       });
     }
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:proyecto/services/user_service.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/widgets/base_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -15,9 +15,9 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = UserService.currentUser;
-
-    if (user == null) {
+    // Obtener el usuario autenticado desde FirebaseAuth
+    final fbUser = fb_auth.FirebaseAuth.instance.currentUser;
+    if (fbUser == null) {
       return const Scaffold(
         body: Center(
           child: Text('No hay usuario iniciado sesión'),
@@ -88,10 +88,10 @@ class ProfileScreen extends StatelessWidget {
                     child: CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.white,
-                      backgroundImage: user.avatarUrl != null
-                          ? NetworkImage(user.avatarUrl!)
+                      backgroundImage: fbUser.photoURL != null
+                          ? NetworkImage(fbUser.photoURL!)
                           : null,
-                      child: user.avatarUrl == null
+                      child: fbUser.photoURL == null
                           ? const Icon(
                               Icons.person,
                               size: 50,
@@ -102,7 +102,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    user.name,
+                    fbUser.displayName ?? 'Usuario',
                     style: const TextStyle(
                       fontSize: 28, // Aumentado
                       fontWeight: FontWeight.bold,
@@ -111,7 +111,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    user.email,
+                    fbUser.email ?? 'Sin email',
                     style: const TextStyle(
                       fontSize: 20, // Aumentado
                       color: Colors.white70,

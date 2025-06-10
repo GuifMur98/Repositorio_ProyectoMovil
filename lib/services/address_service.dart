@@ -1,43 +1,70 @@
-import 'package:mongo_dart/mongo_dart.dart';
-import '../config/database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/address.dart';
 
 class AddressService {
-  static Future<List<Address>> getAddressesByUser(String userId) async {
-    final docs =
-        await DatabaseConfig.addresses.find({'userId': userId}).toList();
-    return docs.map((doc) => Address.fromJson(doc)).toList();
+  static final _firestore = FirebaseFirestore.instance;
+  static final _auth = FirebaseAuth.instance;
+
+  /// Obtiene todas las direcciones del usuario autenticado
+  static Future<List<Address>> getAddresses() async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Usuario no autenticado');
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('addresses')
+        .get();
+    return snapshot.docs
+        .map((doc) => Address.fromFirestore(doc.data(), doc.id))
+        .toList();
   }
 
-  static Future<Address?> getAddressById(String id) async {
-    final doc =
-        await DatabaseConfig.addresses.findOne({'_id': ObjectId.parse(id)});
-    return doc != null ? Address.fromJson(doc) : null;
-  }
-
+  /// Crea una nueva dirección para el usuario autenticado
   static Future<Address> addAddress(Address address) async {
-    // Inserta la dirección y obtiene el _id generado
-    final result = await DatabaseConfig.addresses.insertOne(address.toJson());
-    print('Resultado de insertOne: $result');
-    if (result.isSuccess && result.id != null) {
-      // Recupera el documento recién insertado usando el _id generado
-      final insertedDoc =
-          await DatabaseConfig.addresses.findOne({'_id': result.id});
-      print('Dirección guardada: $insertedDoc');
-      return Address.fromJson(insertedDoc!);
-    } else {
-      throw Exception('No se pudo guardar la dirección');
-    }
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Usuario no autenticado');
+    final ref = _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('addresses')
+        .doc();
+    final addressData = address.copyWith(id: ref.id, userId: user.uid).toJson();
+    await ref.set(addressData);
+    return Address.fromFirestore(addressData, ref.id);
   }
 
-  static Future<void> updateAddress(Address address) async {
-    await DatabaseConfig.addresses.update(
-      {'_id': ObjectId.parse(address.id)},
-      address.toJson(),
+  /// Elimina una dirección por su id
+  static Future<void> deleteAddress(String addressId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Usuario no autenticado');
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('addresses')
+        .doc(addressId)
+        .delete();
+  }
+}
+
+extension AddressCopyWith on Address {
+  Address copyWith({
+    String? id,
+    String? userId,
+    String? street,
+    String? city,
+    String? state,
+    String? zipCode,
+    String? country,
+  }) {
+    return Address(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      street: street ?? this.street,
+      city: city ?? this.city,
+      state: state ?? this.state,
+      zipCode: zipCode ?? this.zipCode,
+      country: country ?? this.country,
     );
-  }
-
-  static Future<void> deleteAddress(String id) async {
-    await DatabaseConfig.addresses.remove({'_id': ObjectId.parse(id)});
   }
 }

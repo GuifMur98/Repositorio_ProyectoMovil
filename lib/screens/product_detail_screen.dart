@@ -1,10 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import '../services/product_service.dart';
-import '../services/favorite_service.dart';
-import '../services/cart_item_service.dart';
-import '../services/user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import '../models/product.dart';
-import '../models/cart_item.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -28,102 +25,132 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _loadProduct() async {
+    // Obtiene el producto desde Firestore usando el id
     try {
-      final product = await ProductService.getProductById(widget.productId);
-      if (product != null) {
+      final doc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(widget.productId)
+          .get();
+      if (doc.exists) {
+        final data = doc.data()!;
         setState(() {
-          _product = product;
-          _isFavorite = FavoriteService.isFavoriteProduct(product.id);
+          _product = Product.fromJson(data, id: doc.id);
           _isLoading = false;
         });
+        await _loadFavoriteStatus();
       } else {
         setState(() {
+          _product = null;
           _isLoading = false;
         });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No se pudo cargar el producto'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
       }
     } catch (e) {
       setState(() {
+        _product = null;
         _isLoading = false;
       });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al cargar el producto: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     }
   }
 
   Future<void> _toggleFavorite() async {
     if (_product == null) return;
-
-    final isCurrentlyFavorite = FavoriteService.isFavoriteProduct(_product!.id);
-    bool success;
-
-    if (isCurrentlyFavorite) {
-      success = await FavoriteService.removeFavoriteProduct(_product!.id);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto removido de favoritos'),
-            backgroundColor: Color(0xFF5C3D2E),
-          ),
-        );
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    try {
+      // Si el documento no existe, créalo con los campos mínimos
+      final userDoc = await userRef.get();
+      if (!userDoc.exists) {
+        await userRef.set({
+          'favoriteProducts': [],
+          'name': user.displayName ?? '',
+          'email': user.email ?? '',
+        });
       }
-    } else {
-      success = await FavoriteService.addFavoriteProduct(_product!.id);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Producto agregado a favoritos'),
-            backgroundColor: Color(0xFF5C3D2E),
-          ),
-        );
-      }
-    }
-
-    if (success && mounted) {
+      final data = (await userRef.get()).data() ?? {};
+      List favs = List<String>.from(data['favoriteProducts'] ?? []);
       setState(() {
-        _isFavorite = !isCurrentlyFavorite;
+        _isFavorite = !_isFavorite;
       });
+      if (_isFavorite) {
+        if (!favs.contains(_product!.id)) favs.add(_product!.id);
+      } else {
+        favs.remove(_product!.id);
+      }
+      await userRef.update({'favoriteProducts': favs});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_isFavorite
+              ? 'Producto agregado a favoritos'
+              : 'Producto removido de favoritos'),
+          backgroundColor: const Color(0xFF5C3D2E),
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        _isFavorite = !_isFavorite;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al actualizar favoritos: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
+    if (user == null || _product == null) return;
+    final userRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final userDoc = await userRef.get();
+    final data = userDoc.data() ?? {};
+    List favs = List<String>.from(data['favoriteProducts'] ?? []);
+    setState(() {
+      _isFavorite = favs.contains(_product!.id);
+    });
   }
 
   Future<void> _addToCart() async {
     if (_product == null) return;
-    final user = UserService.currentUser;
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Debes iniciar sesión para agregar al carrito.'),
-        ),
+            content: Text('Debes iniciar sesión para agregar al carrito.')),
       );
       return;
     }
+    final cartRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .collection('cart');
     try {
-      final cartItem = CartItem(
-        id: '', // MongoDB generará el id
-        userId: user.id,
-        productId: _product!.id,
-        quantity: 1,
-      );
-      await CartItemService.addCartItem(cartItem);
+      final cartItemQuery = await cartRef
+          .where('productId', isEqualTo: _product!.id)
+          .limit(1)
+          .get();
+      if (cartItemQuery.docs.isNotEmpty) {
+        // Ya existe, incrementar cantidad
+        final doc = cartItemQuery.docs.first;
+        final currentQty = (doc['quantity'] ?? 1) as int;
+        await cartRef.doc(doc.id).update({'quantity': currentQty + 1});
+      } else {
+        // Nuevo item
+        await cartRef.add({
+          'userId': user.uid,
+          'productId': _product!.id,
+          'quantity': 1,
+        });
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Producto agregado al carrito.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al agregar al carrito.')),
+        SnackBar(content: Text('Error al agregar al carrito: $e')),
       );
     }
   }
@@ -337,9 +364,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   const SizedBox(height: 16),
                   Builder(
                     builder: (context) {
-                      final user = UserService.currentUser;
+                      final fbUser = fb_auth.FirebaseAuth.instance.currentUser;
                       final isSeller =
-                          user != null && _product!.sellerId == user.id;
+                          fbUser != null && _product!.sellerId == fbUser.uid;
                       if (isSeller) {
                         return Container(
                           width: double.infinity,

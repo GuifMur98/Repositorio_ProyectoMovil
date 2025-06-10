@@ -7,6 +7,7 @@ class BaseScreen extends StatelessWidget {
   final Function(int) onNavigationTap;
   final PreferredSizeWidget? appBar;
   final bool showBottomNavigation;
+  final Widget? bottomBar;
 
   const BaseScreen({
     super.key,
@@ -15,6 +16,7 @@ class BaseScreen extends StatelessWidget {
     required this.onNavigationTap,
     this.appBar,
     this.showBottomNavigation = true,
+    this.bottomBar,
   });
 
   @override
@@ -23,9 +25,15 @@ class BaseScreen extends StatelessWidget {
       appBar: appBar,
       body: body,
       bottomNavigationBar: showBottomNavigation
-          ? CustomBottomNavigation(
-              currentIndex: currentIndex,
-              onTap: onNavigationTap,
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (bottomBar != null) bottomBar!,
+                CustomBottomNavigation(
+                  currentIndex: currentIndex,
+                  onTap: onNavigationTap,
+                ),
+              ],
             )
           : null,
     );

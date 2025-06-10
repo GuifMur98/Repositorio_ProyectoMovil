@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/product_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 import '../widgets/product_card.dart';
 
@@ -38,12 +38,37 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     setState(() {
       _isLoading = true;
     });
-    final fetched = await ProductService.getProducts();
-    setState(() {
-      _products = fetched;
-      _filteredProducts = fetched;
-      _isLoading = false;
-    });
+    try {
+      final query = await FirebaseFirestore.instance
+          .collection('products')
+          .orderBy('createdAt', descending: true)
+          .get();
+      final fetched = query.docs
+          .map((doc) => Product(
+                id: doc.id,
+                title: doc['title'] ?? '',
+                description: doc['description'] ?? '',
+                price: (doc['price'] is int)
+                    ? (doc['price'] as int).toDouble()
+                    : (doc['price'] ?? 0.0).toDouble(),
+                imageUrls: List<String>.from(doc['imageUrls'] ?? []),
+                category: doc['category'] ?? '',
+                sellerId: doc['sellerId'] ?? '',
+                stock: doc['stock'] ?? 0,
+              ))
+          .toList();
+      setState(() {
+        _products = fetched;
+        _filteredProducts = fetched;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _products = [];
+        _filteredProducts = [];
+        _isLoading = false;
+      });
+    }
   }
 
   void _filterProducts() {

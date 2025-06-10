@@ -27,7 +27,7 @@ class User {
       'id': id,
       'name': name,
       'email': email,
-      // No incluir password aquí por seguridad si es para almacenamiento local o tokens
+      'password': password,
       'avatarUrl': avatarUrl,
       'addresses': addresses,
       'favoriteProducts': favoriteProducts,
@@ -37,26 +37,24 @@ class User {
   }
 
   // Constructor de fábrica para crear un objeto User desde un mapa JSON (de MongoDB)
-  factory User.fromJson(Map<String, dynamic> json) {
-    // Sincroniza ambos campos si existen en la base
-    final List<String> favs = List<String>.from(json['favoriteProducts'] ?? []);
-    final List<String> favIds =
-        List<String>.from(json['favoriteProductIds'] ?? []);
-    final Set<String> allFavs = {...favs, ...favIds};
+  factory User.fromJson(Map<String, dynamic> json, {String? id}) {
     return User(
-      id: json['_id'].toString(), // MongoDB usa '_id'
-      name: json['name'],
-      email: json['email'],
-      password: json['password'] as String? ?? '', // Manejar password opcional
-      avatarUrl:
-          json['avatarUrl'] as String?, // Manejar avatarUrl opcional y tipo
-      addresses: List<String>.from(
-          json['addresses'] ?? []), // Manejar listas opcionales
-      favoriteProducts: allFavs.toList(),
-      publishedProducts: List<String>.from(
-          json['publishedProducts'] ?? []), // Manejar listas opcionales
-      purchaseHistory: List<String>.from(
-          json['purchaseHistory'] ?? []), // Manejar listas opcionales
+      id: id ?? json['id'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
+      password: json['password'] ?? '',
+      avatarUrl: json['avatarUrl'],
+      addresses: List<String>.from(json['addresses'] ?? []),
+      favoriteProducts: List<String>.from(json['favoriteProducts'] ?? []),
+      publishedProducts: List<String>.from(json['publishedProducts'] ?? []),
+      purchaseHistory: List<String>.from(json['purchaseHistory'] ?? []),
     );
   }
+
+  // Para usar con Firestore snapshots
+  factory User.fromFirestore(Map<String, dynamic> json, String id) {
+    return User.fromJson(json, id: id);
+  }
+
+  Map<String, dynamic> toFirestore() => toJson();
 }
