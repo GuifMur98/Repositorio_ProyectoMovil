@@ -6,6 +6,7 @@ import '../models/cart_item.dart';
 import '../models/product.dart';
 import '../models/address.dart';
 import '../services/address_service.dart';
+import '../services/notification_service.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -174,6 +175,7 @@ class _CartScreenState extends State<CartScreen> {
           'title': product?.title ?? '',
           'quantity': item.quantity,
           'price': product?.price ?? 0.0,
+          'sellerId': product?.sellerId ?? '',
         };
       }).toList();
       // 2. Crear el objeto de compra
@@ -190,6 +192,29 @@ class _CartScreenState extends State<CartScreen> {
       await userRef.update({
         'purchaseHistory': FieldValue.arrayUnion([purchase])
       });
+      // Notificar al comprador
+      await NotificationService.createNotificationForUser(
+        userId: user.uid,
+        title: '¡Compra realizada!',
+        body:
+            'Tu compra por un total de L. ${_total.toStringAsFixed(2)} fue exitosa.',
+      );
+      // Notificar a cada vendedor involucrado
+      final notifiedSellers = <String>{};
+      for (final prod in products) {
+        final sellerId = prod['sellerId'] as String?;
+        if (sellerId != null &&
+            sellerId.isNotEmpty &&
+            sellerId != user.uid &&
+            !notifiedSellers.contains(sellerId)) {
+          await NotificationService.createNotificationForUser(
+            userId: sellerId,
+            title: '¡Has realizado una venta!',
+            body: 'Has vendido "${prod['title']}".',
+          );
+          notifiedSellers.add(sellerId);
+        }
+      }
       // 4. Limpiar el carrito
       final cartRef = userRef.collection('cart');
       final cartSnapshot = await cartRef.get();

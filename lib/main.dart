@@ -112,7 +112,11 @@ class MyApp extends StatelessWidget {
           final sellerId = args is Map && args['sellerId'] != null
               ? args['sellerId'] as String
               : null;
-          return ProtectedRoute(child: ChatScreen(sellerId: sellerId));
+          final chatId = args is Map && args['chatId'] != null
+              ? args['chatId'] as String
+              : null;
+          return ProtectedRoute(
+              child: ChatScreen(sellerId: sellerId, chatId: chatId));
         },
         '/add-address': (context) =>
             ProtectedRoute(child: const AddAddressScreen()),

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
+import 'package:proyecto/services/notification_service.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -33,12 +34,14 @@ class _ProductCardState extends State<ProductCard> {
     final userDoc = await userRef.get();
     final data = userDoc.data() ?? {};
     List favs = List<String>.from(data['favoriteProducts'] ?? []);
+    if (!mounted) return;
     setState(() {
       isFavorite = favs.contains(widget.product.id);
     });
   }
 
   Future<void> _toggleFavorite(BuildContext context) async {
+    if (!mounted) return;
     setState(() {
       loadingFavorite = true;
       isFavorite = !isFavorite;
@@ -53,15 +56,26 @@ class _ProductCardState extends State<ProductCard> {
       List favs = List<String>.from(data['favoriteProducts'] ?? []);
       if (isFavorite) {
         if (!favs.contains(widget.product.id)) favs.add(widget.product.id);
+        // Notificar al vendedor si no es el mismo usuario
+        if (widget.product.sellerId != user.uid) {
+          await NotificationService.createNotificationForUser(
+            userId: widget.product.sellerId,
+            title: '¡Tu producto ha sido agregado a favoritos!',
+            body:
+                'El producto "${widget.product.title}" fue marcado como favorito.',
+          );
+        }
       } else {
         favs.remove(widget.product.id);
       }
       await userRef.update({'favoriteProducts': favs});
       if (widget.onFavoriteToggle != null) widget.onFavoriteToggle!();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
               isFavorite ? 'Agregado a favoritos' : 'Eliminado de favoritos')));
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         isFavorite = !isFavorite;
       });
@@ -69,6 +83,7 @@ class _ProductCardState extends State<ProductCard> {
           content: Text('Error al actualizar favoritos: $e'),
           backgroundColor: Colors.red));
     } finally {
+      if (!mounted) return;
       setState(() {
         loadingFavorite = false;
       });
@@ -76,11 +91,13 @@ class _ProductCardState extends State<ProductCard> {
   }
 
   Future<void> _addToCart(BuildContext context) async {
+    if (!mounted) return;
     setState(() {
       loadingCart = true;
     });
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Debes iniciar sesión para agregar al carrito.')),
@@ -110,14 +127,17 @@ class _ProductCardState extends State<ProductCard> {
           'quantity': 1,
         });
       }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Producto agregado al carrito.')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al agregar al carrito: $e')),
       );
     }
+    if (!mounted) return;
     setState(() {
       loadingCart = false;
     });

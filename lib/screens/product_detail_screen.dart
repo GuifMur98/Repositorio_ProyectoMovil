@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'package:proyecto/services/notification_service.dart';
 import '../models/product.dart';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -75,6 +76,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
       if (_isFavorite) {
         if (!favs.contains(_product!.id)) favs.add(_product!.id);
+        // Notificar al vendedor si no es el mismo usuario
+        if (_product!.sellerId != user.uid) {
+          await NotificationService.createNotificationForUser(
+            userId: _product!.sellerId,
+            title: '¡Tu producto ha sido agregado a favoritos!',
+            body: 'El producto "${_product!.title}" fue marcado como favorito.',
+          );
+        }
       } else {
         favs.remove(_product!.id);
       }

@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../widgets/bottom_navigation.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/widgets/product_card.dart';
+import 'package:proyecto/services/notification_service.dart';
+import '../models/notification.dart' as model;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +18,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   int _currentIndex = 0;
   List<Map<String, dynamic>> _allProducts = [];
+  int _unreadNotifications = 0;
+  late final Stream<List<model.AppNotification>> _notificationsStream;
 
   final List<Map<String, dynamic>> _categories = [
     {
@@ -59,7 +63,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Ya no se usa _fetchProducts, los productos se obtienen en tiempo real desde Firestore
+    _notificationsStream = NotificationService.getUserNotificationsStream();
+    _notificationsStream.listen((notifications) {
+      final unread = notifications.where((n) => !n.read).length;
+      if (mounted) {
+        setState(() {
+          _unreadNotifications = unread;
+        });
+      }
+    });
   }
 
   @override
@@ -404,14 +416,45 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ),
-              // Icono de notificaciones
-              IconButton(
-                icon: const Icon(Icons.notifications_none,
-                    color: Color.fromARGB(255, 255, 255, 255), size: 28),
-                tooltip: 'Notificaciones',
-                onPressed: () {
-                  Navigator.pushNamed(context, '/notifications');
-                },
+              // Icono de notificaciones con badge
+              Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none,
+                        color: Color.fromARGB(255, 255, 255, 255), size: 28),
+                    tooltip: 'Notificaciones',
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/notifications');
+                    },
+                  ),
+                  if (_unreadNotifications > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          _unreadNotifications > 9
+                              ? '9+'
+                              : '$_unreadNotifications',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),

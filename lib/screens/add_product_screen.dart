@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:proyecto/config/cloudinary.dart';
+import 'package:proyecto/services/notification_service.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -189,6 +189,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
         'userId': user.uid,
         'isSystem': true,
       });
+
+      // Notificar al vendedor (confirmación)
+      await NotificationService.createNotificationForUser(
+        userId: user.uid,
+        title: '¡Producto publicado!',
+        body:
+            'Tu producto "${_titleController.text.trim()}" ha sido publicado exitosamente.',
+      );
+      // (Opcional) Notificar a todos los usuarios activos: requiere iterar sobre usuarios y crear notificaciones
+      // await NotificationService.createNotificationForAllUsers(
+      //   title: 'Nuevo producto disponible',
+      //   body: 'Se ha publicado un nuevo producto en la categoría ${_selectedCategory}.',
+      // );
 
       setState(() {
         _isLoading = false;

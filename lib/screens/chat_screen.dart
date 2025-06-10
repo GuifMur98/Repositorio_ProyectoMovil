@@ -3,10 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:flutter/material.dart';
 import '../models/message.dart';
 import '../models/user.dart' as app_model;
+import '../services/notification_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sellerId;
-  const ChatScreen({super.key, this.sellerId});
+  final String? chatId;
+  const ChatScreen({super.key, this.sellerId, this.chatId});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -14,7 +16,6 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
-  List<Message> _messages = [];
   String? _chatId;
   bool _isLoading = true;
   final ScrollController _scrollController = ScrollController();
@@ -36,32 +37,46 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _initChat() async {
     final user = fb_auth.FirebaseAuth.instance.currentUser;
-    if (user == null || widget.sellerId == null) return;
-    // Generar un chatId único para la conversación (orden alfabético para que sea único entre ambos usuarios)
-    final ids = [user.uid, widget.sellerId!];
-    ids.sort();
-    final chatId = ids.join('_');
+    if (user == null) return;
+    String? chatId = widget.chatId;
+    String? otherUserId = widget.sellerId;
+    if (chatId == null && otherUserId != null) {
+      // Generar chatId si no viene por argumento
+      final ids = [user.uid, otherUserId];
+      ids.sort();
+      chatId = ids.join('_');
+    }
+    if (chatId == null) return;
     setState(() {
       _chatId = chatId;
       _isLoading = true;
     });
-    // Obtener info del otro usuario
+    // Obtener info del otro usuario si no está
+    if (otherUserId == null) {
+      // Buscar el otro usuario en la colección de chats
+      final chatDoc = await FirebaseFirestore.instance
+          .collection('chats')
+          .doc(chatId)
+          .get();
+      final users = List<String>.from(chatDoc.data()?['users'] ?? []);
+      otherUserId = users.firstWhere((id) => id != user.uid, orElse: () => '');
+    }
+    if (otherUserId == null || otherUserId.isEmpty) return;
     final otherUserDoc = await FirebaseFirestore.instance
         .collection('users')
-        .doc(widget.sellerId!)
+        .doc(otherUserId)
         .get();
     app_model.User? otherUser;
     if (otherUserDoc.exists) {
       final data = otherUserDoc.data();
       otherUser = app_model.User(
-        id: widget.sellerId!,
+        id: otherUserId,
         name: data?['name'] ?? 'Usuario',
         email: data?['email'] ?? '',
         password: '',
         avatarUrl: data?['avatarUrl'],
       );
     }
-    // Escuchar mensajes en tiempo real
     _messagesStream = FirebaseFirestore.instance
         .collection('chats')
         .doc(chatId)
@@ -72,7 +87,7 @@ class _ChatScreenState extends State<ChatScreen> {
               final data = doc.data();
               return Message(
                 id: doc.id,
-                chatId: chatId,
+                chatId: chatId!,
                 senderId: data['senderId'],
                 content: data['content'],
                 timestamp: (data['timestamp'] as Timestamp).toDate(),
@@ -103,6 +118,17 @@ class _ChatScreenState extends State<ChatScreen> {
       'lastMessage': content,
       'lastMessageTime': Timestamp.fromDate(now),
     }, SetOptions(merge: true));
+
+    // Crear notificación para el receptor si no soy yo
+    if (widget.sellerId != null && widget.sellerId != user.uid) {
+      await NotificationService.createNotificationForUser(
+        userId: widget.sellerId!,
+        title: 'Nuevo mensaje',
+        body: 'Has recibido un nuevo mensaje: "$content"',
+        chatId: _chatId, 
+        senderId: user.uid, 
+      );
+    }
     _messageController.clear();
     _scrollToBottom();
   }
