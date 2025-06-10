@@ -125,8 +125,8 @@ class _ChatScreenState extends State<ChatScreen> {
         userId: widget.sellerId!,
         title: 'Nuevo mensaje',
         body: 'Has recibido un nuevo mensaje: "$content"',
-        chatId: _chatId, 
-        senderId: user.uid, 
+        chatId: _chatId,
+        senderId: user.uid,
       );
     }
     _messageController.clear();
