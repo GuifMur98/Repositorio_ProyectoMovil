@@ -28,12 +28,10 @@ import 'package:proyecto/widgets/protected_route.dart';
 import 'package:flutter/services.dart';
 import 'package:proyecto/screens/all_products_screen.dart';
 import 'package:proyecto/screens/chats_screen.dart';
-import 'package:proyecto/config/cloudinary.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // CloudinaryConfig.initialize(
-  //     cloudName: 'dr6axeogd', preset: 'TU_UPLOAD_PRESET');
+  // Inicializar Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
