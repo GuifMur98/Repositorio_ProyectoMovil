@@ -131,14 +131,19 @@ class _ChatsScreenState extends State<ChatsScreen> {
                         itemBuilder: (context, index) {
                           final chat = _chats[index];
                           return ListTile(
-                            leading: chat.otherUserAvatar != null && chat.otherUserAvatar!.isNotEmpty
+                            leading: chat.otherUserAvatar != null &&
+                                    chat.otherUserAvatar!.isNotEmpty
                                 ? (() {
                                     final avatar = chat.otherUserAvatar!;
-                                    if ((avatar.startsWith('/9j') || avatar.startsWith('iVBOR')) && avatar.length > 100) {
+                                    if ((avatar.startsWith('/9j') ||
+                                            avatar.startsWith('iVBOR')) &&
+                                        avatar.length > 100) {
                                       try {
                                         return CircleAvatar(
-                                          backgroundColor: const Color(0xFF5C3D2E),
-                                          backgroundImage: MemoryImage(base64Decode(avatar)),
+                                          backgroundColor:
+                                              const Color(0xFF5C3D2E),
+                                          backgroundImage:
+                                              MemoryImage(base64Decode(avatar)),
                                         );
                                       } catch (_) {}
                                     }
@@ -150,7 +155,8 @@ class _ChatsScreenState extends State<ChatsScreen> {
                                   })()
                                 : const CircleAvatar(
                                     backgroundColor: Color(0xFF5C3D2E),
-                                    child: Icon(Icons.person, color: Colors.white),
+                                    child:
+                                        Icon(Icons.person, color: Colors.white),
                                   ),
                             title: Text(chat.otherUserName,
                                 style: const TextStyle(
