@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ class _ChatPreview {
   final String chatId;
   final String otherUserId;
   final String otherUserName;
+  final String? otherUserAvatar;
   final String lastMessage;
   final String lastMessageTime;
   _ChatPreview({
@@ -21,6 +23,7 @@ class _ChatPreview {
     required this.otherUserName,
     required this.lastMessage,
     required this.lastMessageTime,
+    this.otherUserAvatar,
   });
 }
 
@@ -61,18 +64,21 @@ class _ChatsScreenState extends State<ChatsScreen> {
         final otherUserId =
             users.firstWhere((id) => id != user.uid, orElse: () => '');
         String otherUserName = 'Usuario';
-        // Obtener nombre del otro usuario
+        String? otherUserAvatar;
+        // Obtener nombre y avatar del otro usuario
         if (otherUserId.isNotEmpty) {
           final otherUserDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(otherUserId)
               .get();
           otherUserName = otherUserDoc.data()?['name'] ?? 'Usuario';
+          otherUserAvatar = otherUserDoc.data()?['avatarUrl'];
         }
         chats.add(_ChatPreview(
           chatId: doc.id,
           otherUserId: otherUserId,
           otherUserName: otherUserName,
+          otherUserAvatar: otherUserAvatar,
           lastMessage: data['lastMessage'] ?? '',
           lastMessageTime: data['lastMessageTime'] != null
               ? _formatTime((data['lastMessageTime'] as Timestamp).toDate())
@@ -92,9 +98,12 @@ class _ChatsScreenState extends State<ChatsScreen> {
   }
 
   String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    // Convertir a zona central (UTC-6, America/Tegucigalpa)
+    final central = dateTime.toUtc().subtract(const Duration(hours: 6));
+    int hour = central.hour % 12 == 0 ? 12 : central.hour % 12;
+    final minute = central.minute.toString().padLeft(2, '0');
+    final ampm = central.hour < 12 ? 'a.m.' : 'p.m.';
+    return '$hour:$minute $ampm';
   }
 
   @override
@@ -122,10 +131,27 @@ class _ChatsScreenState extends State<ChatsScreen> {
                         itemBuilder: (context, index) {
                           final chat = _chats[index];
                           return ListTile(
-                            leading: const CircleAvatar(
-                              backgroundColor: Color(0xFF5C3D2E),
-                              child: Icon(Icons.person, color: Colors.white),
-                            ),
+                            leading: chat.otherUserAvatar != null && chat.otherUserAvatar!.isNotEmpty
+                                ? (() {
+                                    final avatar = chat.otherUserAvatar!;
+                                    if ((avatar.startsWith('/9j') || avatar.startsWith('iVBOR')) && avatar.length > 100) {
+                                      try {
+                                        return CircleAvatar(
+                                          backgroundColor: const Color(0xFF5C3D2E),
+                                          backgroundImage: MemoryImage(base64Decode(avatar)),
+                                        );
+                                      } catch (_) {}
+                                    }
+                                    // Si no es base64, intentar como URL
+                                    return CircleAvatar(
+                                      backgroundColor: const Color(0xFF5C3D2E),
+                                      backgroundImage: NetworkImage(avatar),
+                                    );
+                                  })()
+                                : const CircleAvatar(
+                                    backgroundColor: Color(0xFF5C3D2E),
+                                    child: Icon(Icons.person, color: Colors.white),
+                                  ),
                             title: Text(chat.otherUserName,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold)),

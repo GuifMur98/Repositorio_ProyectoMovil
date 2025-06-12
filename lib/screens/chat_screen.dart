@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import '../models/message.dart';
 import '../models/user.dart' as app_model;
 import '../services/notification_service.dart';
@@ -168,7 +169,14 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+              // Ajustar a zona central (UTC-6) y formato 12h
+              () {
+                final central = time.toUtc().subtract(const Duration(hours: 6));
+                int hour = central.hour % 12 == 0 ? 12 : central.hour % 12;
+                final minute = central.minute.toString().padLeft(2, '0');
+                final ampm = central.hour < 12 ? 'a.m.' : 'p.m.';
+                return '$hour:$minute $ampm';
+              }(),
               style: TextStyle(
                 color: isMe
                     ? Colors.white70
@@ -191,11 +199,32 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 0,
         title: Row(
           children: [
-            const CircleAvatar(
-              radius: 20,
-              backgroundColor: Color(0xFF5C3D2E),
-              child: Icon(Icons.person, size: 20, color: Colors.white),
-            ),
+            _otherUser?.avatarUrl != null && _otherUser!.avatarUrl!.isNotEmpty
+                ? (() {
+                    final avatar = _otherUser!.avatarUrl!;
+                    if ((avatar.startsWith('/9j') ||
+                            avatar.startsWith('iVBOR')) &&
+                        avatar.length > 100) {
+                      try {
+                        return CircleAvatar(
+                          radius: 20,
+                          backgroundColor: const Color(0xFF5C3D2E),
+                          backgroundImage: MemoryImage(base64Decode(avatar)),
+                        );
+                      } catch (_) {}
+                    }
+                    // Si no es base64, intentar como URL
+                    return CircleAvatar(
+                      radius: 20,
+                      backgroundColor: const Color(0xFF5C3D2E),
+                      backgroundImage: NetworkImage(avatar),
+                    );
+                  })()
+                : const CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Color(0xFF5C3D2E),
+                    child: Icon(Icons.person, size: 20, color: Colors.white),
+                  ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

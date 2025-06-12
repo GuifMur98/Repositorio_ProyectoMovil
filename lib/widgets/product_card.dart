@@ -181,8 +181,11 @@ class _ProductCardState extends State<ProductCard> {
                           // Validar base64: debe ser suficientemente largo y decodificable
                           bool isBase64Image(String s) {
                             // Heurística: empieza con '/9j' (JPEG) o 'iVBOR' (PNG) y es largo
-                            return (s.startsWith('/9j') || s.startsWith('iVBOR')) && s.length > 100;
+                            return (s.startsWith('/9j') ||
+                                    s.startsWith('iVBOR')) &&
+                                s.length > 100;
                           }
+
                           if (isBase64Image(img)) {
                             try {
                               final bytes = base64Decode(img);

@@ -104,23 +104,27 @@ class ProfileScreen extends StatelessWidget {
                                       GestureDetector(
                                         child: const Row(
                                           children: [
-                                            Icon(Icons.camera_alt, color: Color(0xFF5C3D2E)),
+                                            Icon(Icons.camera_alt,
+                                                color: Color(0xFF5C3D2E)),
                                             SizedBox(width: 8),
                                             Text('Tomar foto'),
                                           ],
                                         ),
-                                        onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                                        onTap: () => Navigator.of(context)
+                                            .pop(ImageSource.camera),
                                       ),
                                       const SizedBox(height: 16),
                                       GestureDetector(
                                         child: const Row(
                                           children: [
-                                            Icon(Icons.photo_library, color: Color(0xFF5C3D2E)),
+                                            Icon(Icons.photo_library,
+                                                color: Color(0xFF5C3D2E)),
                                             SizedBox(width: 8),
                                             Text('Seleccionar de galería'),
                                           ],
                                         ),
-                                        onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                                        onTap: () => Navigator.of(context)
+                                            .pop(ImageSource.gallery),
                                       ),
                                     ],
                                   ),
@@ -128,11 +132,15 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             );
                             if (source == null) return;
-                            final picked = await picker.pickImage(source: source, imageQuality: 80);
+                            final picked = await picker.pickImage(
+                                source: source, imageQuality: 80);
                             if (picked != null) {
                               final bytes = await picked.readAsBytes();
                               final base64img = base64Encode(bytes);
-                              await FirebaseFirestore.instance.collection('users').doc(fbUser.uid).update({'avatarUrl': base64img});
+                              await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .doc(fbUser.uid)
+                                  .update({'avatarUrl': base64img});
                               await fbUser.updatePhotoURL(base64img);
                               (context as Element).markNeedsBuild();
                             }
@@ -144,17 +152,21 @@ class ProfileScreen extends StatelessWidget {
                                 .get(),
                             builder: (context, snapshot) {
                               String? avatarBase64;
-                              if (snapshot.hasData && snapshot.data!.data() != null) {
-                                final data = snapshot.data!.data() as Map<String, dynamic>;
+                              if (snapshot.hasData &&
+                                  snapshot.data!.data() != null) {
+                                final data = snapshot.data!.data()
+                                    as Map<String, dynamic>;
                                 avatarBase64 = data['avatarUrl'];
                               }
                               return CircleAvatar(
                                 radius: 50,
                                 backgroundColor: Colors.white,
-                                backgroundImage: (avatarBase64 != null && avatarBase64.isNotEmpty)
+                                backgroundImage: (avatarBase64 != null &&
+                                        avatarBase64.isNotEmpty)
                                     ? MemoryImage(base64Decode(avatarBase64))
                                     : null,
-                                child: (avatarBase64 == null || avatarBase64.isEmpty)
+                                child: (avatarBase64 == null ||
+                                        avatarBase64.isEmpty)
                                     ? const Icon(
                                         Icons.person,
                                         size: 50,
@@ -180,7 +192,8 @@ class ProfileScreen extends StatelessWidget {
                               ],
                             ),
                             padding: const EdgeInsets.all(4),
-                            child: const Icon(Icons.edit, size: 20, color: Color(0xFF5C3D2E)),
+                            child: const Icon(Icons.edit,
+                                size: 20, color: Color(0xFF5C3D2E)),
                           ),
                         ),
                       ],

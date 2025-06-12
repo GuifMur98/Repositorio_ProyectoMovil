@@ -527,30 +527,43 @@ class _CartScreenState extends State<CartScreen> {
                                               BorderRadius.circular(12),
                                           child: product.imageUrls.isNotEmpty
                                               ? (() {
-                                                  final img = product.imageUrls.first;
+                                                  final img =
+                                                      product.imageUrls.first;
                                                   bool isBase64Image(String s) {
-                                                    return (s.startsWith('/9j') || s.startsWith('iVBOR')) && s.length > 100;
+                                                    return (s.startsWith(
+                                                                '/9j') ||
+                                                            s.startsWith(
+                                                                'iVBOR')) &&
+                                                        s.length > 100;
                                                   }
+
                                                   if (isBase64Image(img)) {
                                                     try {
-                                                      final bytes = base64Decode(img);
-                                                      if (bytes.lengthInBytes > 5 * 1024 * 1024) {
-                                                        throw Exception('Imagen demasiado grande');
+                                                      final bytes =
+                                                          base64Decode(img);
+                                                      if (bytes.lengthInBytes >
+                                                          5 * 1024 * 1024) {
+                                                        throw Exception(
+                                                            'Imagen demasiado grande');
                                                       }
                                                       return Image.memory(
                                                         bytes,
                                                         width: 64,
                                                         height: 64,
                                                         fit: BoxFit.cover,
-                                                        errorBuilder: (context, error, stackTrace) {
+                                                        errorBuilder: (context,
+                                                            error, stackTrace) {
                                                           return Container(
                                                             width: 64,
                                                             height: 64,
-                                                            color: const Color(0xFFE1D4C2),
+                                                            color: const Color(
+                                                                0xFFE1D4C2),
                                                             child: const Icon(
-                                                              Icons.image_not_supported_outlined,
+                                                              Icons
+                                                                  .image_not_supported_outlined,
                                                               size: 28,
-                                                              color: Color(0xFF5C3D2E),
+                                                              color: Color(
+                                                                  0xFF5C3D2E),
                                                             ),
                                                           );
                                                         },
@@ -559,11 +572,14 @@ class _CartScreenState extends State<CartScreen> {
                                                       return Container(
                                                         width: 64,
                                                         height: 64,
-                                                        color: const Color(0xFFE1D4C2),
+                                                        color: const Color(
+                                                            0xFFE1D4C2),
                                                         child: const Icon(
-                                                          Icons.image_not_supported_outlined,
+                                                          Icons
+                                                              .image_not_supported_outlined,
                                                           size: 28,
-                                                          color: Color(0xFF5C3D2E),
+                                                          color:
+                                                              Color(0xFF5C3D2E),
                                                         ),
                                                       );
                                                     }
@@ -573,15 +589,19 @@ class _CartScreenState extends State<CartScreen> {
                                                     width: 64,
                                                     height: 64,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder: (context, error, stackTrace) {
+                                                    errorBuilder: (context,
+                                                        error, stackTrace) {
                                                       return Container(
                                                         width: 64,
                                                         height: 64,
-                                                        color: const Color(0xFFE1D4C2),
+                                                        color: const Color(
+                                                            0xFFE1D4C2),
                                                         child: const Icon(
-                                                          Icons.image_not_supported_outlined,
+                                                          Icons
+                                                              .image_not_supported_outlined,
                                                           size: 28,
-                                                          color: Color(0xFF5C3D2E),
+                                                          color:
+                                                              Color(0xFF5C3D2E),
                                                         ),
                                                       );
                                                     },

@@ -144,23 +144,27 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   GestureDetector(
                                     child: const Row(
                                       children: [
-                                        Icon(Icons.camera_alt, color: Color(0xFF5C3D2E)),
+                                        Icon(Icons.camera_alt,
+                                            color: Color(0xFF5C3D2E)),
                                         SizedBox(width: 8),
                                         Text('Tomar foto'),
                                       ],
                                     ),
-                                    onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                                    onTap: () => Navigator.of(context)
+                                        .pop(ImageSource.camera),
                                   ),
                                   const SizedBox(height: 16),
                                   GestureDetector(
                                     child: const Row(
                                       children: [
-                                        Icon(Icons.photo_library, color: Color(0xFF5C3D2E)),
+                                        Icon(Icons.photo_library,
+                                            color: Color(0xFF5C3D2E)),
                                         SizedBox(width: 8),
                                         Text('Seleccionar de galería'),
                                       ],
                                     ),
-                                    onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                                    onTap: () => Navigator.of(context)
+                                        .pop(ImageSource.gallery),
                                   ),
                                 ],
                               ),
@@ -168,35 +172,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ),
                         );
                         if (source == null) return;
-                        final picked = await picker.pickImage(source: source, imageQuality: 80);
+                        final picked = await picker.pickImage(
+                            source: source, imageQuality: 80);
                         if (picked != null) {
                           final bytes = await picked.readAsBytes();
                           final base64img = base64Encode(bytes);
                           final user = FirebaseAuth.instance.currentUser;
                           if (user != null) {
-                            await FirebaseFirestore.instance.collection('users').doc(user.uid).update({'avatarUrl': base64img});
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .update({'avatarUrl': base64img});
                             await user.updatePhotoURL(base64img);
                             setState(() {});
                           }
                         }
                       },
                       child: FutureBuilder<DocumentSnapshot>(
-                        future: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).get(),
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(FirebaseAuth.instance.currentUser?.uid)
+                            .get(),
                         builder: (context, snapshot) {
                           String? avatarBase64;
-                          if (snapshot.hasData && snapshot.data!.data() != null) {
-                            final data = snapshot.data!.data() as Map<String, dynamic>;
+                          if (snapshot.hasData &&
+                              snapshot.data!.data() != null) {
+                            final data =
+                                snapshot.data!.data() as Map<String, dynamic>;
                             avatarBase64 = data['avatarUrl'];
                           }
                           return CircleAvatar(
                             radius: 60,
                             backgroundColor: Colors.white,
-                            backgroundImage: (avatarBase64 != null && avatarBase64.isNotEmpty)
+                            backgroundImage: (avatarBase64 != null &&
+                                    avatarBase64.isNotEmpty)
                                 ? MemoryImage(base64Decode(avatarBase64))
                                 : null,
-                            child: (avatarBase64 == null || avatarBase64.isEmpty)
-                                ? const Icon(Icons.person, size: 60, color: Color(0xFF5C3D2E))
-                                : null,
+                            child:
+                                (avatarBase64 == null || avatarBase64.isEmpty)
+                                    ? const Icon(Icons.person,
+                                        size: 60, color: Color(0xFF5C3D2E))
+                                    : null,
                           );
                         },
                       ),
@@ -216,7 +232,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           ],
                         ),
                         padding: const EdgeInsets.all(4),
-                        child: const Icon(Icons.edit, size: 22, color: Color(0xFF5C3D2E)),
+                        child: const Icon(Icons.edit,
+                            size: 22, color: Color(0xFF5C3D2E)),
                       ),
                     ),
                   ],
