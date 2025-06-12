@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/services/notification_service.dart';
+import 'dart:convert';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -175,24 +176,72 @@ class _ProductCardState extends State<ProductCard> {
                     top: Radius.circular(16),
                   ),
                   child: widget.product.imageUrls.isNotEmpty
-                      ? Image.network(
-                          widget.product.imageUrls.first,
-                          height: 120,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 120,
-                              width: double.infinity,
-                              color: const Color(0xFFE1D4C2),
-                              child: const Icon(
-                                Icons.image_not_supported_outlined,
-                                size: 40,
-                                color: Color(0xFF5C3D2E),
-                              ),
-                            );
-                          },
-                        )
+                      ? (() {
+                          final img = widget.product.imageUrls.first;
+                          // Validar base64: debe ser suficientemente largo y decodificable
+                          bool isBase64Image(String s) {
+                            // Heurística: empieza con '/9j' (JPEG) o 'iVBOR' (PNG) y es largo
+                            return (s.startsWith('/9j') || s.startsWith('iVBOR')) && s.length > 100;
+                          }
+                          if (isBase64Image(img)) {
+                            try {
+                              final bytes = base64Decode(img);
+                              // Validar tamaño razonable (no más de 5MB)
+                              if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+                                throw Exception('Imagen demasiado grande');
+                              }
+                              return Image.memory(
+                                bytes,
+                                height: 120,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    height: 120,
+                                    width: double.infinity,
+                                    color: const Color(0xFFE1D4C2),
+                                    child: const Icon(
+                                      Icons.image_not_supported_outlined,
+                                      size: 40,
+                                      color: Color(0xFF5C3D2E),
+                                    ),
+                                  );
+                                },
+                              );
+                            } catch (e) {
+                              // Si falla la decodificación, mostrar placeholder
+                              return Container(
+                                height: 120,
+                                width: double.infinity,
+                                color: const Color(0xFFE1D4C2),
+                                child: const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 40,
+                                  color: Color(0xFF5C3D2E),
+                                ),
+                              );
+                            }
+                          }
+                          // Si no es base64, intentar como URL
+                          return Image.network(
+                            img,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 120,
+                                width: double.infinity,
+                                color: const Color(0xFFE1D4C2),
+                                child: const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 40,
+                                  color: Color(0xFF5C3D2E),
+                                ),
+                              );
+                            },
+                          );
+                        })()
                       : Image.asset(
                           'assets/images/Logo_PMiniatura.png',
                           height: 120,

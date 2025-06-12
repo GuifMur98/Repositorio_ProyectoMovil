@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:convert';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -126,13 +128,98 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(60),
                 ),
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.white,
-                  backgroundImage:
-                      null, // Aquí podrías poner NetworkImage si tienes avatar
-                  child: const Icon(Icons.person,
-                      size: 60, color: Color(0xFF5C3D2E)),
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final picker = ImagePicker();
+                        final source = await showDialog<ImageSource>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Seleccionar imagen'),
+                            content: SingleChildScrollView(
+                              child: ListBody(
+                                children: <Widget>[
+                                  GestureDetector(
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.camera_alt, color: Color(0xFF5C3D2E)),
+                                        SizedBox(width: 8),
+                                        Text('Tomar foto'),
+                                      ],
+                                    ),
+                                    onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  GestureDetector(
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.photo_library, color: Color(0xFF5C3D2E)),
+                                        SizedBox(width: 8),
+                                        Text('Seleccionar de galería'),
+                                      ],
+                                    ),
+                                    onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                        if (source == null) return;
+                        final picked = await picker.pickImage(source: source, imageQuality: 80);
+                        if (picked != null) {
+                          final bytes = await picked.readAsBytes();
+                          final base64img = base64Encode(bytes);
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            await FirebaseFirestore.instance.collection('users').doc(user.uid).update({'avatarUrl': base64img});
+                            await user.updatePhotoURL(base64img);
+                            setState(() {});
+                          }
+                        }
+                      },
+                      child: FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance.collection('users').doc(FirebaseAuth.instance.currentUser?.uid).get(),
+                        builder: (context, snapshot) {
+                          String? avatarBase64;
+                          if (snapshot.hasData && snapshot.data!.data() != null) {
+                            final data = snapshot.data!.data() as Map<String, dynamic>;
+                            avatarBase64 = data['avatarUrl'];
+                          }
+                          return CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.white,
+                            backgroundImage: (avatarBase64 != null && avatarBase64.isNotEmpty)
+                                ? MemoryImage(base64Decode(avatarBase64))
+                                : null,
+                            child: (avatarBase64 == null || avatarBase64.isEmpty)
+                                ? const Icon(Icons.person, size: 60, color: Color(0xFF5C3D2E))
+                                : null,
+                          );
+                        },
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: const Icon(Icons.edit, size: 22, color: Color(0xFF5C3D2E)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),

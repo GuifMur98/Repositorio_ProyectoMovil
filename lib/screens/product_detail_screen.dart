@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:proyecto/services/notification_service.dart';
 import '../models/product.dart';
+import 'dart:convert';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -246,8 +247,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           fit: BoxFit.cover,
                         );
                       }
+                      final img = _product!.imageUrls[index];
+                      if (img.startsWith('/9j') || img.length > 100) {
+                        // Probable base64
+                        try {
+                          return Image.memory(
+                            base64Decode(img),
+                            fit: BoxFit.cover,
+                          );
+                        } catch (_) {}
+                      }
                       return Image.network(
-                        _product!.imageUrls[index],
+                        img,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Image.asset(

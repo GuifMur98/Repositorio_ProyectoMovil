@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/widgets/base_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
+import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -85,19 +88,102 @@ class ProfileScreen extends StatelessWidget {
                         width: 3,
                       ),
                     ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.white,
-                      backgroundImage: fbUser.photoURL != null
-                          ? NetworkImage(fbUser.photoURL!)
-                          : null,
-                      child: fbUser.photoURL == null
-                          ? const Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Color(0xFF5C3D2E),
-                            )
-                          : null,
+                    child: Stack(
+                      alignment: Alignment.bottomRight,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            final picker = ImagePicker();
+                            final source = await showDialog<ImageSource>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Seleccionar imagen'),
+                                content: SingleChildScrollView(
+                                  child: ListBody(
+                                    children: <Widget>[
+                                      GestureDetector(
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.camera_alt, color: Color(0xFF5C3D2E)),
+                                            SizedBox(width: 8),
+                                            Text('Tomar foto'),
+                                          ],
+                                        ),
+                                        onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      GestureDetector(
+                                        child: const Row(
+                                          children: [
+                                            Icon(Icons.photo_library, color: Color(0xFF5C3D2E)),
+                                            SizedBox(width: 8),
+                                            Text('Seleccionar de galería'),
+                                          ],
+                                        ),
+                                        onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                            if (source == null) return;
+                            final picked = await picker.pickImage(source: source, imageQuality: 80);
+                            if (picked != null) {
+                              final bytes = await picked.readAsBytes();
+                              final base64img = base64Encode(bytes);
+                              await FirebaseFirestore.instance.collection('users').doc(fbUser.uid).update({'avatarUrl': base64img});
+                              await fbUser.updatePhotoURL(base64img);
+                              (context as Element).markNeedsBuild();
+                            }
+                          },
+                          child: FutureBuilder<DocumentSnapshot>(
+                            future: FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(fbUser.uid)
+                                .get(),
+                            builder: (context, snapshot) {
+                              String? avatarBase64;
+                              if (snapshot.hasData && snapshot.data!.data() != null) {
+                                final data = snapshot.data!.data() as Map<String, dynamic>;
+                                avatarBase64 = data['avatarUrl'];
+                              }
+                              return CircleAvatar(
+                                radius: 50,
+                                backgroundColor: Colors.white,
+                                backgroundImage: (avatarBase64 != null && avatarBase64.isNotEmpty)
+                                    ? MemoryImage(base64Decode(avatarBase64))
+                                    : null,
+                                child: (avatarBase64 == null || avatarBase64.isEmpty)
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 50,
+                                        color: Color(0xFF5C3D2E),
+                                      )
+                                    : null,
+                              );
+                            },
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 4,
+                          right: 4,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.all(4),
+                            child: const Icon(Icons.edit, size: 20, color: Color(0xFF5C3D2E)),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),

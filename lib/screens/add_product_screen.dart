@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:proyecto/services/notification_service.dart';
+import 'dart:convert';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class AddProductScreen extends StatefulWidget {
   const AddProductScreen({super.key});
@@ -120,11 +122,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
   }
 
-  Future<List<String>> _uploadImagesToCloudinary(List<File> images) async {
-    // Mientras Cloudinary no esté implementado, simplemente retorna una lista vacía
-    return [];
+  // Método para convertir una imagen a base64
+  Future<String> _imageFileToBase64(File imageFile) async {
+    final compressed = await FlutterImageCompress.compressWithFile(
+      imageFile.absolute.path,
+      quality: 70,
+    );
+    return base64Encode(compressed ?? await imageFile.readAsBytes());
   }
 
+  // Modificado: Guardar imágenes como base64 en Firestore
   void _saveProduct() async {
     setState(() {
       _imageError = false;
@@ -133,87 +140,65 @@ class _AddProductScreenState extends State<AddProductScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
-    // Eliminada la validación obligatoria de imágenes
-    // if (_images.isEmpty) {
-    //   setState(() {
-    //     _imageError = true;
-    //   });
-    //   return;
-    // }
-
+    if (_images.isEmpty) {
+      setState(() {
+        _imageError = true;
+      });
+      return;
+    }
     if (_selectedCategory == null) {
       setState(() {
         _categoryError = true;
       });
       return;
     }
-
     setState(() {
       _isLoading = true;
     });
-
     try {
-      // 1. Subir imágenes a Cloudinary (si hay)
-      final imageUrls = _images.isNotEmpty
-          ? await _uploadImagesToCloudinary(_images)
-          : <String>[];
-
-      // 2. Obtener el usuario autenticado
+      // Convertir imágenes a base64
+      final imageBase64List = <String>[];
+      for (final img in _images) {
+        imageBase64List.add(await _imageFileToBase64(img));
+      }
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('Usuario no autenticado');
       }
-
-      // 3. Crear el producto
       final productData = {
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.parse(_priceController.text.trim()),
-        'imageUrls': imageUrls,
+        'imageUrls': imageBase64List,
         'category': _selectedCategory,
         'sellerId': user.uid,
         'stock': int.parse(_stockController.text.trim()),
         'createdAt': FieldValue.serverTimestamp(),
       };
-
-      // 4. Guardar en Firestore y obtener el ID
       final docRef = await FirebaseFirestore.instance
           .collection('products')
           .add(productData);
-
-      // Crear subcolección 'comments' vacía (puedes agregar un doc inicial si lo deseas)
       await docRef.collection('comments').add({
         'text': '¡Sé el primero en comentar!',
         'createdAt': FieldValue.serverTimestamp(),
         'userId': user.uid,
         'isSystem': true,
       });
-
-      // Notificar al vendedor (confirmación)
       await NotificationService.createNotificationForUser(
         userId: user.uid,
         title: '¡Producto publicado!',
         body:
             'Tu producto "${_titleController.text.trim()}" ha sido publicado exitosamente.',
       );
-      // (Opcional) Notificar a todos los usuarios activos: requiere iterar sobre usuarios y crear notificaciones
-      // await NotificationService.createNotificationForAllUsers(
-      //   title: 'Nuevo producto disponible',
-      //   body: 'Se ha publicado un nuevo producto en la categoría ${_selectedCategory}.',
-      // );
-
       setState(() {
         _isLoading = false;
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Producto publicado con éxito!'),
           backgroundColor: Colors.green,
         ),
       );
-      // Ir directamente al Home después de publicar
       Navigator.pushReplacementNamed(
         context,
         '/home',

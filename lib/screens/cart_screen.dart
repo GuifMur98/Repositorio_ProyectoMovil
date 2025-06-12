@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:proyecto/widgets/base_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -525,11 +526,67 @@ class _CartScreenState extends State<CartScreen> {
                                           borderRadius:
                                               BorderRadius.circular(12),
                                           child: product.imageUrls.isNotEmpty
-                                              ? Image.network(
-                                                  product.imageUrls.first,
-                                                  width: 64,
-                                                  height: 64,
-                                                  fit: BoxFit.cover)
+                                              ? (() {
+                                                  final img = product.imageUrls.first;
+                                                  bool isBase64Image(String s) {
+                                                    return (s.startsWith('/9j') || s.startsWith('iVBOR')) && s.length > 100;
+                                                  }
+                                                  if (isBase64Image(img)) {
+                                                    try {
+                                                      final bytes = base64Decode(img);
+                                                      if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+                                                        throw Exception('Imagen demasiado grande');
+                                                      }
+                                                      return Image.memory(
+                                                        bytes,
+                                                        width: 64,
+                                                        height: 64,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context, error, stackTrace) {
+                                                          return Container(
+                                                            width: 64,
+                                                            height: 64,
+                                                            color: const Color(0xFFE1D4C2),
+                                                            child: const Icon(
+                                                              Icons.image_not_supported_outlined,
+                                                              size: 28,
+                                                              color: Color(0xFF5C3D2E),
+                                                            ),
+                                                          );
+                                                        },
+                                                      );
+                                                    } catch (e) {
+                                                      return Container(
+                                                        width: 64,
+                                                        height: 64,
+                                                        color: const Color(0xFFE1D4C2),
+                                                        child: const Icon(
+                                                          Icons.image_not_supported_outlined,
+                                                          size: 28,
+                                                          color: Color(0xFF5C3D2E),
+                                                        ),
+                                                      );
+                                                    }
+                                                  }
+                                                  return Image.network(
+                                                    img,
+                                                    width: 64,
+                                                    height: 64,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stackTrace) {
+                                                      return Container(
+                                                        width: 64,
+                                                        height: 64,
+                                                        color: const Color(0xFFE1D4C2),
+                                                        child: const Icon(
+                                                          Icons.image_not_supported_outlined,
+                                                          size: 28,
+                                                          color: Color(0xFF5C3D2E),
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                })()
                                               : Image.asset(
                                                   'assets/images/Logo_PMiniatura.png',
                                                   width: 64,
