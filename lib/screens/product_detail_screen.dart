@@ -248,25 +248,57 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         );
                       }
                       final img = _product!.imageUrls[index];
-                      if (img.startsWith('/9j') || img.length > 100) {
-                        // Probable base64
-                        try {
-                          return Image.memory(
-                            base64Decode(img),
-                            fit: BoxFit.cover,
-                          );
-                        } catch (_) {}
+                      bool isBase64Image(String s) {
+                        return (s.startsWith('/9j') || s.startsWith('iVBOR')) &&
+                            s.length > 100;
                       }
-                      return Image.network(
-                        img,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Image.asset(
-                            'assets/images/Logo_PMiniatura.png',
+
+                      if (isBase64Image(img)) {
+                        try {
+                          final bytes = base64Decode(img);
+                          if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+                            throw Exception('Imagen demasiado grande');
+                          }
+                          return Image.memory(
+                            bytes,
                             fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                color: const Color(0xFFE1D4C2),
+                                child: const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  size: 40,
+                                  color: Color(0xFF5C3D2E),
+                                ),
+                              );
+                            },
                           );
-                        },
-                      );
+                        } catch (e) {
+                          return Container(
+                            color: const Color(0xFFE1D4C2),
+                            child: const Icon(
+                              Icons.image_not_supported_outlined,
+                              size: 40,
+                              color: Color(0xFF5C3D2E),
+                            ),
+                          );
+                        }
+                      } else {
+                        return Image.network(
+                          img,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: const Color(0xFFE1D4C2),
+                              child: const Icon(
+                                Icons.image_not_supported_outlined,
+                                size: 40,
+                                color: Color(0xFF5C3D2E),
+                              ),
+                            );
+                          },
+                        );
+                      }
                     },
                   ),
                   if (_product!.imageUrls.length > 1)

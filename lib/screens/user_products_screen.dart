@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/user_product_detail_screen.dart';
 import '../models/product.dart';
+import 'dart:convert';
 
 class UserProductsScreen extends StatefulWidget {
   const UserProductsScreen({super.key});
@@ -110,12 +111,89 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                       topLeft: Radius.circular(16),
                                       bottomLeft: Radius.circular(16),
                                     ),
-                                    child: product.imageUrls.isNotEmpty
-                                        ? Image.network(product.imageUrls.first,
-                                            fit: BoxFit.cover)
-                                        : Image.asset(
+                                    child: Builder(
+                                      builder: (context) {
+                                        if (product.imageUrls.isNotEmpty) {
+                                          final img = product.imageUrls.first;
+                                          bool isBase64Image(String s) {
+                                            return (s.startsWith('/9j') ||
+                                                    s.startsWith('iVBOR')) &&
+                                                s.length > 100;
+                                          }
+
+                                          if (isBase64Image(img)) {
+                                            try {
+                                              final bytes = base64Decode(img);
+                                              if (bytes.lengthInBytes >
+                                                  5 * 1024 * 1024) {
+                                                throw Exception(
+                                                    'Imagen demasiado grande');
+                                              }
+                                              return Image.memory(
+                                                bytes,
+                                                width: 120,
+                                                height: 120,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (context, error, stackTrace) {
+                                                  return Container(
+                                                    width: 120,
+                                                    height: 120,
+                                                    color: const Color(0xFFE1D4C2),
+                                                    child: const Icon(
+                                                      Icons
+                                                          .image_not_supported_outlined,
+                                                      size: 40,
+                                                      color: Color(0xFF5C3D2E),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            } catch (e) {
+                                              return Container(
+                                                width: 120,
+                                                height: 120,
+                                                color: const Color(0xFFE1D4C2),
+                                                child: const Icon(
+                                                  Icons
+                                                      .image_not_supported_outlined,
+                                                  size: 40,
+                                                  color: Color(0xFF5C3D2E),
+                                                ),
+                                              );
+                                            }
+                                          } else {
+                                            return Image.network(
+                                              img,
+                                              width: 120,
+                                              height: 120,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return Container(
+                                                  width: 120,
+                                                  height: 120,
+                                                  color: const Color(0xFFE1D4C2),
+                                                  child: const Icon(
+                                                    Icons
+                                                        .image_not_supported_outlined,
+                                                    size: 40,
+                                                    color: Color(0xFF5C3D2E),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          }
+                                        } else {
+                                          return Image.asset(
                                             'assets/images/Logo_PMiniatura.png',
-                                            fit: BoxFit.cover),
+                                            width: 120,
+                                            height: 120,
+                                            fit: BoxFit.cover,
+                                          );
+                                        }
+                                      },
+                                    ),
                                   ),
                                 ),
                                 Expanded(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
+import 'dart:convert';
 
 class UserProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -108,15 +109,76 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: _product!.imageUrls.isNotEmpty
-                                    ? Image.network(_product!.imageUrls.first,
-                                        height: 240,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover)
+                                    ? Builder(
+                                        builder: (context) {
+                                          final img = _product!.imageUrls.first;
+                                          bool isBase64Image(String s) {
+                                            return (s.startsWith('/9j') || s.startsWith('iVBOR')) && s.length > 100;
+                                          }
+                                          if (isBase64Image(img)) {
+                                            try {
+                                              final bytes = base64Decode(img);
+                                              if (bytes.lengthInBytes > 5 * 1024 * 1024) {
+                                                throw Exception('Imagen demasiado grande');
+                                              }
+                                              return Image.memory(
+                                                bytes,
+                                                height: 240,
+                                                width: double.infinity,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Container(
+                                                    height: 240,
+                                                    width: double.infinity,
+                                                    color: const Color(0xFFE1D4C2),
+                                                    child: const Icon(
+                                                      Icons.image_not_supported_outlined,
+                                                      size: 40,
+                                                      color: Color(0xFF5C3D2E),
+                                                    ),
+                                                  );
+                                                },
+                                              );
+                                            } catch (e) {
+                                              return Container(
+                                                height: 240,
+                                                width: double.infinity,
+                                                color: const Color(0xFFE1D4C2),
+                                                child: const Icon(
+                                                  Icons.image_not_supported_outlined,
+                                                  size: 40,
+                                                  color: Color(0xFF5C3D2E),
+                                                ),
+                                              );
+                                            }
+                                          } else {
+                                            return Image.network(
+                                              img,
+                                              height: 240,
+                                              width: double.infinity,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Container(
+                                                  height: 240,
+                                                  width: double.infinity,
+                                                  color: const Color(0xFFE1D4C2),
+                                                  child: const Icon(
+                                                    Icons.image_not_supported_outlined,
+                                                    size: 40,
+                                                    color: Color(0xFF5C3D2E),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          }
+                                        },
+                                      )
                                     : Image.asset(
                                         'assets/images/Logo_PMiniatura.png',
                                         height: 240,
                                         width: double.infinity,
-                                        fit: BoxFit.cover),
+                                        fit: BoxFit.cover,
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -161,38 +223,26 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                 ],
                               ),
                               child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text('Precio',
-                                          style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.grey)),
+                                      const Text('Precio', style: TextStyle(fontSize: 16, color: Colors.grey)),
                                       Text(
                                         '\$ ${_product!.price.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                            fontSize: 26,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF5C3D2E)),
+                                        style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF5C3D2E)),
                                       ),
                                     ],
                                   ),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      const Text('Stock',
-                                          style: TextStyle(
-                                              fontSize: 16,
-                                              color: Colors.grey)),
-                                      Text('${_product!.stock}',
-                                          style: const TextStyle(
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF5C3D2E))),
+                                      const Text('Stock', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                                      Text(
+                                        '${_product!.stock}',
+                                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF5C3D2E)),
+                                      ),
                                     ],
                                   ),
                                 ],
