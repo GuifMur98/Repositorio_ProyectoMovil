@@ -134,12 +134,13 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                 width: 120,
                                                 height: 120,
                                                 fit: BoxFit.cover,
-                                                errorBuilder:
-                                                    (context, error, stackTrace) {
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
                                                   return Container(
                                                     width: 120,
                                                     height: 120,
-                                                    color: const Color(0xFFE1D4C2),
+                                                    color:
+                                                        const Color(0xFFE1D4C2),
                                                     child: const Icon(
                                                       Icons
                                                           .image_not_supported_outlined,
@@ -173,7 +174,8 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                 return Container(
                                                   width: 120,
                                                   height: 120,
-                                                  color: const Color(0xFFE1D4C2),
+                                                  color:
+                                                      const Color(0xFFE1D4C2),
                                                   child: const Icon(
                                                     Icons
                                                         .image_not_supported_outlined,
