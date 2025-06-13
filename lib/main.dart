@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
@@ -167,7 +168,7 @@ class AuthWrapper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
-      future: AuthService.loadSession(),
+      future: _checkSessionAndAuth(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -175,35 +176,28 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        if (snapshot.hasError) {
-          print('Error al cargar sesión: ${snapshot.error}');
-          // Redirigir a welcome en caso de error
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (snapshot.hasError || snapshot.data != true) {
+          // Redirigir a welcome y limpiar sesión local
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await AuthService.logout();
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/welcome',
-              (route) => false,
+              (route) => false, 
             );
           });
           return const Scaffold(
               body: Center(child: CircularProgressIndicator()));
         }
 
-        if (snapshot.data == true) {
-          return const HomeScreen();
-        }
-
-        // Redirigir a welcome y limpiar el historial
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/welcome',
-            (route) => false,
-          );
-        });
-
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const HomeScreen();
       },
     );
+  }
+
+  Future<bool> _checkSessionAndAuth() async {
+    final localSession = await AuthService.loadSession();
+    final fbUser = fb_auth.FirebaseAuth.instance.currentUser;
+    return localSession && fbUser != null;
   }
 }
