@@ -131,6 +131,50 @@ class _ChatsScreenState extends State<ChatsScreen> {
                         itemBuilder: (context, index) {
                           final chat = _chats[index];
                           return ListTile(
+                            onLongPress: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  title: const Text('Eliminar chat'),
+                                  content: const Text(
+                                      '¿Seguro que deseas eliminar este chat? Esta acción no se puede deshacer.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, false),
+                                      child: const Text('Cancelar'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context, true),
+                                      child: const Text('Eliminar',
+                                          style: TextStyle(color: Colors.red)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm == true) {
+                                try {
+                                  await FirebaseFirestore.instance
+                                      .collection('chats')
+                                      .doc(chat.chatId)
+                                      .delete();
+                                  setState(() {
+                                    _chats.removeAt(index);
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Chat eliminado')),
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content:
+                                            Text('Error al eliminar chat: $e')),
+                                  );
+                                }
+                              }
+                            },
                             leading: chat.otherUserAvatar != null &&
                                     chat.otherUserAvatar!.isNotEmpty
                                 ? (() {
