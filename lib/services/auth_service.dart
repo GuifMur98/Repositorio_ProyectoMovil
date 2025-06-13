@@ -111,18 +111,27 @@ class AuthService {
           .signInWithEmailAndPassword(email: email, password: password);
       final fbUser = credential.user;
       if (fbUser != null) {
-        // Puedes crear tu modelo User aquí si necesitas más datos
         final user = User(
           id: fbUser.uid,
           name: fbUser.displayName ?? '',
           email: fbUser.email ?? '',
           password: '',
         );
-        // Firebase no da un token JWT por defecto, pero puedes usar el idToken si lo necesitas
         final token = await fbUser.getIdToken();
         return {'user': user, 'token': token};
       }
       return null;
+    } on fb_auth.FirebaseAuthException catch (e) {
+      // Errores comunes de login
+      if (e.code == 'user-not-found' || e.code == 'wrong-password') {
+        throw Exception('Credenciales incorrectas');
+      } else if (e.code == 'invalid-email') {
+        throw Exception('Correo electrónico inválido');
+      } else if (e.code == 'user-disabled') {
+        throw Exception('La cuenta está deshabilitada');
+      } else {
+        throw Exception('Error de autenticación');
+      }
     } catch (e) {
       print('Error en loginWithEmailPassword: $e');
       rethrow;

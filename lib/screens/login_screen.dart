@@ -54,7 +54,19 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error al iniciar sesión: $e';
+        if (e is Exception &&
+            e.toString().contains('Credenciales incorrectas')) {
+          _errorMessage = 'Correo o contraseña incorrectos';
+        } else if (e is Exception &&
+            e.toString().contains('Correo electrónico inválido')) {
+          _errorMessage = 'Correo electrónico inválido';
+        } else if (e is Exception && e.toString().contains('deshabilitada')) {
+          _errorMessage = 'La cuenta está deshabilitada';
+        } else if (e is Exception && e.toString().contains('autenticación')) {
+          _errorMessage = 'Error de autenticación. Intenta de nuevo.';
+        } else {
+          _errorMessage = 'Error al iniciar sesión';
+        }
       });
     } finally {
       if (mounted) {
