@@ -86,84 +86,96 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
           ? const Center(child: CustomImageSpinner(size: 40))
           : _purchases.isEmpty
               ? const Center(child: Text('No has realizado compras.'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _purchases.length,
-                  itemBuilder: (context, index) {
-                    final compra = _purchases[index];
-                    final productos = compra.products
-                        .map((e) => e['title'] as String)
-                        .join(', ');
-                    final total = compra.total;
-                    final fecha = compra.date;
-                    final fechaFormateada =
-                        '${fecha.day}/${fecha.month}/${fecha.year}';
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double maxContentWidth = 700;
+                    final double horizontalPadding =
+                        constraints.maxWidth > maxContentWidth
+                            ? (constraints.maxWidth - maxContentWidth) / 2
+                            : 0.0;
+                    return ListView.builder(
+                      padding: EdgeInsets.fromLTRB(horizontalPadding + 16, 16,
+                          horizontalPadding + 16, 16),
+                      itemCount: _purchases.length,
+                      itemBuilder: (context, index) {
+                        final compra = _purchases[index];
+                        final productos = compra.products
+                            .map((e) => e['title'] as String)
+                            .join(', ');
+                        final total = compra.total;
+                        final fecha = compra.date;
+                        final fechaFormateada =
+                            '${fecha.day}/${fecha.month}/${fecha.year}';
 
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.shopping_bag_outlined,
-                                  color: Color(0xFF5C3D2E),
-                                  size: 24,
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Icon(
+                                      Icons.shopping_bag_outlined,
+                                      color: Color(0xFF5C3D2E),
+                                      size: 24,
+                                    ),
+                                    Text(
+                                      'Compra del $fechaFormateada',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF5C3D2E),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                const SizedBox(height: 12),
                                 Text(
-                                  'Compra del $fechaFormateada',
+                                  productos,
                                   style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF5C3D2E),
+                                    fontSize: 14,
+                                    color: Colors.grey,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 8),
+                                const Divider(),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      'Total',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF5C3D2E),
+                                      ),
+                                    ),
+                                    Text(
+                                      '\$${total.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF5C3D2E),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            Text(
-                              productos,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 8),
-                            const Divider(),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Total',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF5C3D2E),
-                                  ),
-                                ),
-                                Text(
-                                  '\$${total.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF5C3D2E),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),

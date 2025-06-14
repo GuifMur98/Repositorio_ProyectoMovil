@@ -229,7 +229,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                       ? const Center(child: Text('No hay productos'))
                       : LayoutBuilder(
                           builder: (context, constraints) {
-                            final crossAxisCount = constraints.maxWidth < 600 ? 2 : 3;
+                            final crossAxisCount =
+                                constraints.maxWidth < 600 ? 2 : 3;
                             final childAspectRatio = constraints.maxWidth < 400
                                 ? 0.60
                                 : constraints.maxWidth < 600
@@ -237,7 +238,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                     : 0.75;
                             return GridView.builder(
                               padding: const EdgeInsets.all(12),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: crossAxisCount,
                                 childAspectRatio: childAspectRatio,
                                 crossAxisSpacing: 16.0,

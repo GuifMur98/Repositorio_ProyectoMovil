@@ -144,19 +144,25 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                     )
                   : LayoutBuilder(
                       builder: (context, constraints) {
-                        final crossAxisCount = constraints.maxWidth < 600 ? 2 : 3;
+                        final crossAxisCount =
+                            constraints.maxWidth < 600 ? 2 : 3;
                         final childAspectRatio = constraints.maxWidth < 400
                             ? 0.60
                             : constraints.maxWidth < 600
                                 ? 0.65
                                 : 0.75;
                         final double maxGridWidth = 900;
-                        final double horizontalPadding = constraints.maxWidth > maxGridWidth ? (constraints.maxWidth - maxGridWidth) / 2 : 8.0;
+                        final double horizontalPadding =
+                            constraints.maxWidth > maxGridWidth
+                                ? (constraints.maxWidth - maxGridWidth) / 2
+                                : 8.0;
                         return Padding(
-                          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding),
                           child: GridView.builder(
                             padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: crossAxisCount,
                               childAspectRatio: childAspectRatio,
                               crossAxisSpacing: 16.0,

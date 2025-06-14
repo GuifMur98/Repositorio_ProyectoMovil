@@ -93,8 +93,9 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => UserProductDetailScreen(
-                                            productId: product.id),
+                                        builder: (context) =>
+                                            UserProductDetailScreen(
+                                                productId: product.id),
                                       ),
                                     );
                                   },
@@ -118,17 +119,21 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                           ),
                                           child: Builder(
                                             builder: (context) {
-                                              if (product.imageUrls.isNotEmpty) {
-                                                final img = product.imageUrls.first;
+                                              if (product
+                                                  .imageUrls.isNotEmpty) {
+                                                final img =
+                                                    product.imageUrls.first;
                                                 bool isBase64Image(String s) {
                                                   return (s.startsWith('/9j') ||
-                                                          s.startsWith('iVBOR')) &&
+                                                          s.startsWith(
+                                                              'iVBOR')) &&
                                                       s.length > 100;
                                                 }
 
                                                 if (isBase64Image(img)) {
                                                   try {
-                                                    final bytes = base64Decode(img);
+                                                    final bytes =
+                                                        base64Decode(img);
                                                     if (bytes.lengthInBytes >
                                                         5 * 1024 * 1024) {
                                                       throw Exception(
@@ -139,18 +144,19 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                       width: 120,
                                                       height: 120,
                                                       fit: BoxFit.cover,
-                                                      errorBuilder: (context, error,
-                                                          stackTrace) {
+                                                      errorBuilder: (context,
+                                                          error, stackTrace) {
                                                         return Container(
                                                           width: 120,
                                                           height: 120,
-                                                          color:
-                                                              const Color(0xFFE1D4C2),
+                                                          color: const Color(
+                                                              0xFFE1D4C2),
                                                           child: const Icon(
                                                             Icons
                                                                 .image_not_supported_outlined,
                                                             size: 40,
-                                                            color: Color(0xFF5C3D2E),
+                                                            color: Color(
+                                                                0xFF5C3D2E),
                                                           ),
                                                         );
                                                       },
@@ -159,12 +165,14 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                     return Container(
                                                       width: 120,
                                                       height: 120,
-                                                      color: const Color(0xFFE1D4C2),
+                                                      color: const Color(
+                                                          0xFFE1D4C2),
                                                       child: const Icon(
                                                         Icons
                                                             .image_not_supported_outlined,
                                                         size: 40,
-                                                        color: Color(0xFF5C3D2E),
+                                                        color:
+                                                            Color(0xFF5C3D2E),
                                                       ),
                                                     );
                                                   }
@@ -174,18 +182,19 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                     width: 120,
                                                     height: 120,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (context, error, stackTrace) {
+                                                    errorBuilder: (context,
+                                                        error, stackTrace) {
                                                       return Container(
                                                         width: 120,
                                                         height: 120,
-                                                        color:
-                                                            const Color(0xFFE1D4C2),
+                                                        color: const Color(
+                                                            0xFFE1D4C2),
                                                         child: const Icon(
                                                           Icons
                                                               .image_not_supported_outlined,
                                                           size: 40,
-                                                          color: Color(0xFF5C3D2E),
+                                                          color:
+                                                              Color(0xFF5C3D2E),
                                                         ),
                                                       );
                                                     },
@@ -243,10 +252,12 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                       product.category,
                                                       style: const TextStyle(
                                                         color: Colors.grey,
-                                                        fontSize: 16, // Aumentado
+                                                        fontSize:
+                                                            16, // Aumentado
                                                       ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ],
@@ -264,10 +275,12 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                         } else {
                           // Two-column grid for larger screens
                           final crossAxisCount = 2;
-                          final childAspectRatio = constraints.maxWidth < 900 ? 2.8 : 3.2;
+                          final childAspectRatio =
+                              constraints.maxWidth < 900 ? 2.8 : 3.2;
                           return GridView.builder(
                             padding: const EdgeInsets.all(16),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: crossAxisCount,
                               childAspectRatio: childAspectRatio,
                               crossAxisSpacing: 24.0,
@@ -285,8 +298,9 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => UserProductDetailScreen(
-                                            productId: product.id),
+                                        builder: (context) =>
+                                            UserProductDetailScreen(
+                                                productId: product.id),
                                       ),
                                     );
                                   },
@@ -310,17 +324,21 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                           ),
                                           child: Builder(
                                             builder: (context) {
-                                              if (product.imageUrls.isNotEmpty) {
-                                                final img = product.imageUrls.first;
+                                              if (product
+                                                  .imageUrls.isNotEmpty) {
+                                                final img =
+                                                    product.imageUrls.first;
                                                 bool isBase64Image(String s) {
                                                   return (s.startsWith('/9j') ||
-                                                          s.startsWith('iVBOR')) &&
+                                                          s.startsWith(
+                                                              'iVBOR')) &&
                                                       s.length > 100;
                                                 }
 
                                                 if (isBase64Image(img)) {
                                                   try {
-                                                    final bytes = base64Decode(img);
+                                                    final bytes =
+                                                        base64Decode(img);
                                                     if (bytes.lengthInBytes >
                                                         5 * 1024 * 1024) {
                                                       throw Exception(
@@ -331,18 +349,19 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                       width: 120,
                                                       height: 120,
                                                       fit: BoxFit.cover,
-                                                      errorBuilder: (context, error,
-                                                          stackTrace) {
+                                                      errorBuilder: (context,
+                                                          error, stackTrace) {
                                                         return Container(
                                                           width: 120,
                                                           height: 120,
-                                                          color:
-                                                              const Color(0xFFE1D4C2),
+                                                          color: const Color(
+                                                              0xFFE1D4C2),
                                                           child: const Icon(
                                                             Icons
                                                                 .image_not_supported_outlined,
                                                             size: 40,
-                                                            color: Color(0xFF5C3D2E),
+                                                            color: Color(
+                                                                0xFF5C3D2E),
                                                           ),
                                                         );
                                                       },
@@ -351,12 +370,14 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                     return Container(
                                                       width: 120,
                                                       height: 120,
-                                                      color: const Color(0xFFE1D4C2),
+                                                      color: const Color(
+                                                          0xFFE1D4C2),
                                                       child: const Icon(
                                                         Icons
                                                             .image_not_supported_outlined,
                                                         size: 40,
-                                                        color: Color(0xFF5C3D2E),
+                                                        color:
+                                                            Color(0xFF5C3D2E),
                                                       ),
                                                     );
                                                   }
@@ -366,18 +387,19 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                     width: 120,
                                                     height: 120,
                                                     fit: BoxFit.cover,
-                                                    errorBuilder:
-                                                        (context, error, stackTrace) {
+                                                    errorBuilder: (context,
+                                                        error, stackTrace) {
                                                       return Container(
                                                         width: 120,
                                                         height: 120,
-                                                        color:
-                                                            const Color(0xFFE1D4C2),
+                                                        color: const Color(
+                                                            0xFFE1D4C2),
                                                         child: const Icon(
                                                           Icons
                                                               .image_not_supported_outlined,
                                                           size: 40,
-                                                          color: Color(0xFF5C3D2E),
+                                                          color:
+                                                              Color(0xFF5C3D2E),
                                                         ),
                                                       );
                                                     },
@@ -435,10 +457,12 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
                                                       product.category,
                                                       style: const TextStyle(
                                                         color: Colors.grey,
-                                                        fontSize: 16, // Aumentado
+                                                        fontSize:
+                                                            16, // Aumentado
                                                       ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ],

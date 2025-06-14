@@ -489,66 +489,117 @@ class _CartScreenState extends State<CartScreen> {
                         ],
                       ),
                     )
-                  : SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // Reemplazo de Expanded+ListView por ListView.separated shrinkWrap
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              padding: const EdgeInsets.all(0),
-                              itemCount: _cartItems.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, i) {
-                                final item = _cartItems[i];
-                                final product = _products[item.productId];
-                                if (product == null) {
-                                  return const SizedBox();
-                                }
-                                return Card(
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16)),
-                                  elevation: 3,
-                                  margin: const EdgeInsets.symmetric(
-                                      vertical: 4, horizontal: 0),
-                                  color: const Color(0xFFF5F0E8),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10, horizontal: 8),
-                                    child: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.center,
-                                      children: [
-                                        ClipRRect(
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final double maxContentWidth = 700;
+                        final double horizontalPadding =
+                            constraints.maxWidth > maxContentWidth
+                                ? (constraints.maxWidth - maxContentWidth) / 2
+                                : 0.0;
+                        return SingleChildScrollView(
+                          child: Padding(
+                            padding: EdgeInsets.fromLTRB(horizontalPadding + 16,
+                                16, horizontalPadding + 16, 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                ListView.separated(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.all(0),
+                                  itemCount: _cartItems.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(height: 12),
+                                  itemBuilder: (context, i) {
+                                    final item = _cartItems[i];
+                                    final product = _products[item.productId];
+                                    if (product == null) {
+                                      return const SizedBox();
+                                    }
+                                    return Card(
+                                      shape: RoundedRectangleBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
-                                          child: product.imageUrls.isNotEmpty
-                                              ? (() {
-                                                  final img =
-                                                      product.imageUrls.first;
-                                                  bool isBase64Image(String s) {
-                                                    return (s.startsWith(
-                                                                '/9j') ||
-                                                            s.startsWith(
-                                                                'iVBOR')) &&
-                                                        s.length > 100;
-                                                  }
-
-                                                  if (isBase64Image(img)) {
-                                                    try {
-                                                      final bytes =
-                                                          base64Decode(img);
-                                                      if (bytes.lengthInBytes >
-                                                          5 * 1024 * 1024) {
-                                                        throw Exception(
-                                                            'Imagen demasiado grande');
+                                              BorderRadius.circular(16)),
+                                      elevation: 3,
+                                      margin: const EdgeInsets.symmetric(
+                                          vertical: 4, horizontal: 0),
+                                      color: const Color(0xFFF5F0E8),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 10, horizontal: 8),
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.center,
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              child: product
+                                                      .imageUrls.isNotEmpty
+                                                  ? (() {
+                                                      final img = product
+                                                          .imageUrls.first;
+                                                      bool isBase64Image(
+                                                          String s) {
+                                                        return (s.startsWith(
+                                                                    '/9j') ||
+                                                                s.startsWith(
+                                                                    'iVBOR')) &&
+                                                            s.length > 100;
                                                       }
-                                                      return Image.memory(
-                                                        bytes,
+
+                                                      if (isBase64Image(img)) {
+                                                        try {
+                                                          final bytes =
+                                                              base64Decode(img);
+                                                          if (bytes
+                                                                  .lengthInBytes >
+                                                              5 * 1024 * 1024) {
+                                                            throw Exception(
+                                                                'Imagen demasiado grande');
+                                                          }
+                                                          return Image.memory(
+                                                            bytes,
+                                                            width: 64,
+                                                            height: 64,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (context, error,
+                                                                    stackTrace) {
+                                                              return Container(
+                                                                width: 64,
+                                                                height: 64,
+                                                                color: const Color(
+                                                                    0xFFE1D4C2),
+                                                                child:
+                                                                    const Icon(
+                                                                  Icons
+                                                                      .image_not_supported_outlined,
+                                                                  size: 28,
+                                                                  color: Color(
+                                                                      0xFF5C3D2E),
+                                                                ),
+                                                              );
+                                                            },
+                                                          );
+                                                        } catch (e) {
+                                                          return Container(
+                                                            width: 64,
+                                                            height: 64,
+                                                            color: const Color(
+                                                                0xFFE1D4C2),
+                                                            child: const Icon(
+                                                              Icons
+                                                                  .image_not_supported_outlined,
+                                                              size: 28,
+                                                              color: Color(
+                                                                  0xFF5C3D2E),
+                                                            ),
+                                                          );
+                                                        }
+                                                      }
+                                                      return Image.network(
+                                                        img,
                                                         width: 64,
                                                         height: 64,
                                                         fit: BoxFit.cover,
@@ -569,130 +620,103 @@ class _CartScreenState extends State<CartScreen> {
                                                           );
                                                         },
                                                       );
-                                                    } catch (e) {
-                                                      return Container(
-                                                        width: 64,
-                                                        height: 64,
-                                                        color: const Color(
-                                                            0xFFE1D4C2),
-                                                        child: const Icon(
-                                                          Icons
-                                                              .image_not_supported_outlined,
-                                                          size: 28,
-                                                          color:
-                                                              Color(0xFF5C3D2E),
-                                                        ),
-                                                      );
-                                                    }
-                                                  }
-                                                  return Image.network(
-                                                    img,
-                                                    width: 64,
-                                                    height: 64,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (context,
-                                                        error, stackTrace) {
-                                                      return Container(
-                                                        width: 64,
-                                                        height: 64,
-                                                        color: const Color(
-                                                            0xFFE1D4C2),
-                                                        child: const Icon(
-                                                          Icons
-                                                              .image_not_supported_outlined,
-                                                          size: 28,
-                                                          color:
-                                                              Color(0xFF5C3D2E),
-                                                        ),
-                                                      );
-                                                    },
-                                                  );
-                                                })()
-                                              : Image.asset(
-                                                  'assets/images/Logo_PMiniatura.png',
-                                                  width: 64,
-                                                  height: 64),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                product.title,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                    color: Color(0xFF2C1810)),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Categoría: ${product.category}',
-                                                style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.brown),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Precio: ${product.price.toStringAsFixed(2)}',
-                                                style: const TextStyle(
-                                                    fontSize: 15,
-                                                    color: Color(0xFF5C3D2E),
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Column(
-                                          children: [
-                                            Row(
-                                              children: [
-                                                IconButton(
-                                                  icon: const Icon(
-                                                      Icons
-                                                          .remove_circle_outline,
-                                                      color: Colors.brown),
-                                                  onPressed: () =>
-                                                      _updateQuantity(item,
-                                                          item.quantity - 1),
-                                                ),
-                                                Text('${item.quantity}',
+                                                    })()
+                                                  : Image.asset(
+                                                      'assets/images/Logo_PMiniatura.png',
+                                                      width: 64,
+                                                      height: 64),
+                                            ),
+                                            const SizedBox(width: 14),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    product.title,
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                     style: const TextStyle(
                                                         fontWeight:
                                                             FontWeight.bold,
-                                                        fontSize: 16)),
+                                                        fontSize: 16,
+                                                        color:
+                                                            Color(0xFF2C1810)),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'Categoría: ${product.category}',
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors.brown),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'Precio: ${product.price.toStringAsFixed(2)}',
+                                                    style: const TextStyle(
+                                                        fontSize: 15,
+                                                        color:
+                                                            Color(0xFF5C3D2E),
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Column(
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                          Icons
+                                                              .remove_circle_outline,
+                                                          color: Colors.brown),
+                                                      onPressed: () =>
+                                                          _updateQuantity(
+                                                              item,
+                                                              item.quantity -
+                                                                  1),
+                                                    ),
+                                                    Text('${item.quantity}',
+                                                        style: const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 16)),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                          Icons
+                                                              .add_circle_outline,
+                                                          color: Colors.brown),
+                                                      onPressed: () =>
+                                                          _updateQuantity(
+                                                              item,
+                                                              item.quantity +
+                                                                  1),
+                                                    ),
+                                                  ],
+                                                ),
                                                 IconButton(
                                                   icon: const Icon(
-                                                      Icons.add_circle_outline,
-                                                      color: Colors.brown),
+                                                      Icons.delete_outline,
+                                                      color: Colors.red),
                                                   onPressed: () =>
-                                                      _updateQuantity(item,
-                                                          item.quantity + 1),
+                                                      _removeCartItem(item.id),
                                                 ),
                                               ],
                                             ),
-                                            IconButton(
-                                              icon: const Icon(
-                                                  Icons.delete_outline,
-                                                  color: Colors.red),
-                                              onPressed: () =>
-                                                  _removeCartItem(item.id),
-                                            ),
                                           ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     ),
       bottomBar: _cartItems.isNotEmpty ? facturaWidget : null,
     );
