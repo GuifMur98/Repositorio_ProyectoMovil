@@ -142,23 +142,35 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         ],
                       ),
                     )
-                  : GridView.builder(
-                      padding: const EdgeInsets.all(8.0),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2, // 2 columnas
-                        childAspectRatio:
-                            0.60, // Igual que home para que el card se vea bien
-                        crossAxisSpacing: 16.0,
-                        mainAxisSpacing: 20.0,
-                      ),
-                      itemCount: _favoriteProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _favoriteProducts[index];
-                        // Asumiendo que tienes un ProductCard widget para mostrar cada producto
-                        return ProductCard(
-                          product: product,
-                          onFavoriteToggle: _fetchFavoriteProducts,
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final crossAxisCount = constraints.maxWidth < 600 ? 2 : 3;
+                        final childAspectRatio = constraints.maxWidth < 400
+                            ? 0.60
+                            : constraints.maxWidth < 600
+                                ? 0.65
+                                : 0.75;
+                        final double maxGridWidth = 900;
+                        final double horizontalPadding = constraints.maxWidth > maxGridWidth ? (constraints.maxWidth - maxGridWidth) / 2 : 8.0;
+                        return Padding(
+                          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                          child: GridView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: childAspectRatio,
+                              crossAxisSpacing: 16.0,
+                              mainAxisSpacing: 20.0,
+                            ),
+                            itemCount: _favoriteProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = _favoriteProducts[index];
+                              return ProductCard(
+                                product: product,
+                                onFavoriteToggle: _fetchFavoriteProducts,
+                              );
+                            },
+                          ),
                         );
                       },
                     ),

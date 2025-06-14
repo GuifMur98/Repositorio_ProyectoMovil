@@ -83,20 +83,29 @@ class _CategoryScreenState extends State<CategoryScreen> {
                         ],
                       ),
                     )
-                  : GridView.builder(
-                      padding: const EdgeInsets.all(8.0),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 0.65, // Ajustado para evitar overflow
-                        crossAxisSpacing: 8.0,
-                        mainAxisSpacing: 8.0,
-                      ),
-                      itemCount: _products.length,
-                      itemBuilder: (context, index) {
-                        final product = _products[index];
-                        return ProductCard(
-                          product: product,
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        final crossAxisCount =
+                            constraints.maxWidth < 600 ? 2 : 3;
+                        final childAspectRatio = constraints.maxWidth < 400
+                            ? 0.60
+                            : constraints.maxWidth < 600
+                                ? 0.65
+                                : 0.75;
+                        return GridView.builder(
+                          padding: const EdgeInsets.all(8.0),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            childAspectRatio: childAspectRatio,
+                            crossAxisSpacing: 8.0,
+                            mainAxisSpacing: 8.0,
+                          ),
+                          itemCount: _products.length,
+                          itemBuilder: (context, index) {
+                            final product = _products[index];
+                            return ProductCard(product: product);
+                          },
                         );
                       },
                     ),

@@ -476,43 +476,65 @@ class _HomeScreenState extends State<HomeScreen> {
             // Sección de bienvenida con fondo café, texto blanco, centrado y esquinas inferiores redondeadas
             Padding(
               padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF5C3D2E),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(32),
-                    bottomRight: Radius.circular(32),
-                  ),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      '¡Bienvenido${userName.isNotEmpty ? ', $userName' : ''}!',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  double fontSize = 24;
+                  double subFontSize = 15;
+                  double paddingV = 28;
+                  double paddingH = 20;
+                  double borderRadius = 32;
+                  if (constraints.maxWidth < 350) {
+                    fontSize = 18;
+                    subFontSize = 12;
+                    paddingV = 18;
+                    paddingH = 8;
+                    borderRadius = 18;
+                  } else if (constraints.maxWidth < 450) {
+                    fontSize = 20;
+                    subFontSize = 13;
+                    paddingV = 22;
+                    paddingH = 12;
+                    borderRadius = 24;
+                  }
+                  return Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF5C3D2E),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(borderRadius),
+                        bottomRight: Radius.circular(borderRadius),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Descubre productos únicos y apoya a vendedores locales.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.1,
-                      ),
+                    padding: EdgeInsets.symmetric(
+                        vertical: paddingV, horizontal: paddingH),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '¡Bienvenido${userName.isNotEmpty ? ', $userName' : ''}!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        SizedBox(height: fontSize > 20 ? 8 : 4),
+                        Text(
+                          'Descubre productos únicos y apoya a vendedores locales.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: subFontSize,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 8),

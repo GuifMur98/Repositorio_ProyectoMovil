@@ -1,31 +1,32 @@
 import 'package:flutter/material.dart';
+import '../models/address.dart';
 import '../widgets/custom_image_spinner.dart';
+import '../services/address_service.dart';
 
 class EditAddressScreen extends StatefulWidget {
-  final int addressId;
-  const EditAddressScreen({super.key, required this.addressId});
+  final Address address;
+  const EditAddressScreen({super.key, required this.address});
 
   @override
   State<EditAddressScreen> createState() => _EditAddressScreenState();
 }
 
 class _EditAddressScreenState extends State<EditAddressScreen> {
-  final _streetController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _stateController = TextEditingController();
-  final _zipCodeController = TextEditingController();
-  final _countryController = TextEditingController();
+  late final TextEditingController _streetController;
+  late final TextEditingController _cityController;
+  late final TextEditingController _stateController;
+  late final TextEditingController _zipCodeController;
+  late final TextEditingController _countryController;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    // Cargar datos de ejemplo
-    _streetController.text = 'Calle Principal 123';
-    _cityController.text = 'Ciudad de Ejemplo';
-    _stateController.text = 'Estado de Ejemplo';
-    _zipCodeController.text = '12345';
-    _countryController.text = 'País de Ejemplo';
+    _streetController = TextEditingController(text: widget.address.street);
+    _cityController = TextEditingController(text: widget.address.city);
+    _stateController = TextEditingController(text: widget.address.state);
+    _zipCodeController = TextEditingController(text: widget.address.zipCode);
+    _countryController = TextEditingController(text: widget.address.country);
   }
 
   @override
@@ -38,7 +39,7 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
     super.dispose();
   }
 
-  void _saveChanges() {
+  void _saveChanges() async {
     final street = _streetController.text.trim();
     final city = _cityController.text.trim();
     final state = _stateController.text.trim();
@@ -57,14 +58,34 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
       return;
     }
 
-    // Mostrar mensaje de funcionalidad no disponible
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Funcionalidad no disponible en la versión de demostración',
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final updated = widget.address.copyWith(
+        street: street,
+        city: city,
+        state: state,
+        zipCode: zipCode,
+        country: country,
+      );
+      await AddressService.updateAddress(updated);
+      if (mounted) {
+        Navigator.pop(context, updated);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al guardar cambios: $e'),
+          backgroundColor: Colors.red,
         ),
-      ),
-    );
+      );
+    } finally {
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+        });
+    }
   }
 
   void _deleteAddress() {
@@ -178,7 +199,7 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
                     ),
                     icon: const Icon(Icons.save, color: Colors.white),
                     label: const Text(
-                      'Guardar cambios',
+                      'Guardar Cambios',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

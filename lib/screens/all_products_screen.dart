@@ -227,19 +227,28 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                 Expanded(
                   child: _filteredProducts.isEmpty
                       ? const Center(child: Text('No hay productos'))
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(12),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.60,
-                            crossAxisSpacing: 16.0,
-                            mainAxisSpacing: 20.0,
-                          ),
-                          itemCount: _filteredProducts.length,
-                          itemBuilder: (context, index) {
-                            return ProductCard(
-                                product: _filteredProducts[index]);
+                      : LayoutBuilder(
+                          builder: (context, constraints) {
+                            final crossAxisCount = constraints.maxWidth < 600 ? 2 : 3;
+                            final childAspectRatio = constraints.maxWidth < 400
+                                ? 0.60
+                                : constraints.maxWidth < 600
+                                    ? 0.65
+                                    : 0.75;
+                            return GridView.builder(
+                              padding: const EdgeInsets.all(12),
+                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                childAspectRatio: childAspectRatio,
+                                crossAxisSpacing: 16.0,
+                                mainAxisSpacing: 20.0,
+                              ),
+                              itemCount: _filteredProducts.length,
+                              itemBuilder: (context, index) {
+                                return ProductCard(
+                                    product: _filteredProducts[index]);
+                              },
+                            );
                           },
                         ),
                 ),

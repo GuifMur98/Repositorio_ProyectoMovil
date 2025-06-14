@@ -74,187 +74,386 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
               ? Center(child: Text(_errorMessage!))
               : _products.isEmpty
                   ? const Center(child: Text('No has publicado productos.'))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _products.length,
-                      itemBuilder: (context, index) {
-                        final product = _products[index];
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => UserProductDetailScreen(
-                                      productId: product.id),
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 600) {
+                          // Single column list for small screens
+                          return ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _products.length,
+                            itemBuilder: (context, index) {
+                              final product = _products[index];
+                              return Card(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => UserProductDetailScreen(
+                                            productId: product.id),
+                                      ),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 120,
+                                        height: 120,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFE1D4C2),
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(16),
+                                            bottomLeft: Radius.circular(16),
+                                          ),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(16),
+                                            bottomLeft: Radius.circular(16),
+                                          ),
+                                          child: Builder(
+                                            builder: (context) {
+                                              if (product.imageUrls.isNotEmpty) {
+                                                final img = product.imageUrls.first;
+                                                bool isBase64Image(String s) {
+                                                  return (s.startsWith('/9j') ||
+                                                          s.startsWith('iVBOR')) &&
+                                                      s.length > 100;
+                                                }
+
+                                                if (isBase64Image(img)) {
+                                                  try {
+                                                    final bytes = base64Decode(img);
+                                                    if (bytes.lengthInBytes >
+                                                        5 * 1024 * 1024) {
+                                                      throw Exception(
+                                                          'Imagen demasiado grande');
+                                                    }
+                                                    return Image.memory(
+                                                      bytes,
+                                                      width: 120,
+                                                      height: 120,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error,
+                                                          stackTrace) {
+                                                        return Container(
+                                                          width: 120,
+                                                          height: 120,
+                                                          color:
+                                                              const Color(0xFFE1D4C2),
+                                                          child: const Icon(
+                                                            Icons
+                                                                .image_not_supported_outlined,
+                                                            size: 40,
+                                                            color: Color(0xFF5C3D2E),
+                                                          ),
+                                                        );
+                                                      },
+                                                    );
+                                                  } catch (e) {
+                                                    return Container(
+                                                      width: 120,
+                                                      height: 120,
+                                                      color: const Color(0xFFE1D4C2),
+                                                      child: const Icon(
+                                                        Icons
+                                                            .image_not_supported_outlined,
+                                                        size: 40,
+                                                        color: Color(0xFF5C3D2E),
+                                                      ),
+                                                    );
+                                                  }
+                                                } else {
+                                                  return Image.network(
+                                                    img,
+                                                    width: 120,
+                                                    height: 120,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (context, error, stackTrace) {
+                                                      return Container(
+                                                        width: 120,
+                                                        height: 120,
+                                                        color:
+                                                            const Color(0xFFE1D4C2),
+                                                        child: const Icon(
+                                                          Icons
+                                                              .image_not_supported_outlined,
+                                                          size: 40,
+                                                          color: Color(0xFF5C3D2E),
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                }
+                                              } else {
+                                                return Image.asset(
+                                                  'assets/images/Logo_PMiniatura.png',
+                                                  width: 120,
+                                                  height: 120,
+                                                  fit: BoxFit.cover,
+                                                );
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                product.title,
+                                                style: const TextStyle(
+                                                  fontSize: 20, // Aumentado
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF5C3D2E),
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '\$ ${product.price.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF5C3D2E),
+                                                  fontSize: 22, // Aumentado
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.category,
+                                                    size: 18, // Aumentado
+                                                    color: Colors.grey,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      product.category,
+                                                      style: const TextStyle(
+                                                        color: Colors.grey,
+                                                        fontSize: 16, // Aumentado
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               );
                             },
-                            borderRadius: BorderRadius.circular(16),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 120,
-                                  height: 120,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFE1D4C2),
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: Radius.circular(16),
-                                      bottomLeft: Radius.circular(16),
-                                    ),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(16),
-                                      bottomLeft: Radius.circular(16),
-                                    ),
-                                    child: Builder(
-                                      builder: (context) {
-                                        if (product.imageUrls.isNotEmpty) {
-                                          final img = product.imageUrls.first;
-                                          bool isBase64Image(String s) {
-                                            return (s.startsWith('/9j') ||
-                                                    s.startsWith('iVBOR')) &&
-                                                s.length > 100;
-                                          }
+                          );
+                        } else {
+                          // Two-column grid for larger screens
+                          final crossAxisCount = 2;
+                          final childAspectRatio = constraints.maxWidth < 900 ? 2.8 : 3.2;
+                          return GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: childAspectRatio,
+                              crossAxisSpacing: 24.0,
+                              mainAxisSpacing: 24.0,
+                            ),
+                            itemCount: _products.length,
+                            itemBuilder: (context, index) {
+                              final product = _products[index];
+                              return Card(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => UserProductDetailScreen(
+                                            productId: product.id),
+                                      ),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 120,
+                                        height: 120,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFE1D4C2),
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: Radius.circular(16),
+                                            bottomLeft: Radius.circular(16),
+                                          ),
+                                        ),
+                                        child: ClipRRect(
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(16),
+                                            bottomLeft: Radius.circular(16),
+                                          ),
+                                          child: Builder(
+                                            builder: (context) {
+                                              if (product.imageUrls.isNotEmpty) {
+                                                final img = product.imageUrls.first;
+                                                bool isBase64Image(String s) {
+                                                  return (s.startsWith('/9j') ||
+                                                          s.startsWith('iVBOR')) &&
+                                                      s.length > 100;
+                                                }
 
-                                          if (isBase64Image(img)) {
-                                            try {
-                                              final bytes = base64Decode(img);
-                                              if (bytes.lengthInBytes >
-                                                  5 * 1024 * 1024) {
-                                                throw Exception(
-                                                    'Imagen demasiado grande');
-                                              }
-                                              return Image.memory(
-                                                bytes,
-                                                width: 120,
-                                                height: 120,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error,
-                                                    stackTrace) {
-                                                  return Container(
+                                                if (isBase64Image(img)) {
+                                                  try {
+                                                    final bytes = base64Decode(img);
+                                                    if (bytes.lengthInBytes >
+                                                        5 * 1024 * 1024) {
+                                                      throw Exception(
+                                                          'Imagen demasiado grande');
+                                                    }
+                                                    return Image.memory(
+                                                      bytes,
+                                                      width: 120,
+                                                      height: 120,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder: (context, error,
+                                                          stackTrace) {
+                                                        return Container(
+                                                          width: 120,
+                                                          height: 120,
+                                                          color:
+                                                              const Color(0xFFE1D4C2),
+                                                          child: const Icon(
+                                                            Icons
+                                                                .image_not_supported_outlined,
+                                                            size: 40,
+                                                            color: Color(0xFF5C3D2E),
+                                                          ),
+                                                        );
+                                                      },
+                                                    );
+                                                  } catch (e) {
+                                                    return Container(
+                                                      width: 120,
+                                                      height: 120,
+                                                      color: const Color(0xFFE1D4C2),
+                                                      child: const Icon(
+                                                        Icons
+                                                            .image_not_supported_outlined,
+                                                        size: 40,
+                                                        color: Color(0xFF5C3D2E),
+                                                      ),
+                                                    );
+                                                  }
+                                                } else {
+                                                  return Image.network(
+                                                    img,
                                                     width: 120,
                                                     height: 120,
-                                                    color:
-                                                        const Color(0xFFE1D4C2),
-                                                    child: const Icon(
-                                                      Icons
-                                                          .image_not_supported_outlined,
-                                                      size: 40,
-                                                      color: Color(0xFF5C3D2E),
-                                                    ),
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder:
+                                                        (context, error, stackTrace) {
+                                                      return Container(
+                                                        width: 120,
+                                                        height: 120,
+                                                        color:
+                                                            const Color(0xFFE1D4C2),
+                                                        child: const Icon(
+                                                          Icons
+                                                              .image_not_supported_outlined,
+                                                          size: 40,
+                                                          color: Color(0xFF5C3D2E),
+                                                        ),
+                                                      );
+                                                    },
                                                   );
-                                                },
-                                              );
-                                            } catch (e) {
-                                              return Container(
-                                                width: 120,
-                                                height: 120,
-                                                color: const Color(0xFFE1D4C2),
-                                                child: const Icon(
-                                                  Icons
-                                                      .image_not_supported_outlined,
-                                                  size: 40,
-                                                  color: Color(0xFF5C3D2E),
-                                                ),
-                                              );
-                                            }
-                                          } else {
-                                            return Image.network(
-                                              img,
-                                              width: 120,
-                                              height: 120,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Container(
+                                                }
+                                              } else {
+                                                return Image.asset(
+                                                  'assets/images/Logo_PMiniatura.png',
                                                   width: 120,
                                                   height: 120,
-                                                  color:
-                                                      const Color(0xFFE1D4C2),
-                                                  child: const Icon(
-                                                    Icons
-                                                        .image_not_supported_outlined,
-                                                    size: 40,
-                                                    color: Color(0xFF5C3D2E),
-                                                  ),
+                                                  fit: BoxFit.cover,
                                                 );
-                                              },
-                                            );
-                                          }
-                                        } else {
-                                          return Image.asset(
-                                            'assets/images/Logo_PMiniatura.png',
-                                            width: 120,
-                                            height: 120,
-                                            fit: BoxFit.cover,
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          product.title,
-                                          style: const TextStyle(
-                                            fontSize: 20, // Aumentado
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF5C3D2E),
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '\$ ${product.price.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            color: Color(0xFF5C3D2E),
-                                            fontSize: 22, // Aumentado
-                                            fontWeight: FontWeight.bold,
+                                              }
+                                            },
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.category,
-                                              size: 18, // Aumentado
-                                              color: Colors.grey,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                product.category,
+                                      ),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                product.title,
                                                 style: const TextStyle(
-                                                  color: Colors.grey,
-                                                  fontSize: 16, // Aumentado
+                                                  fontSize: 20, // Aumentado
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF5C3D2E),
                                                 ),
-                                                maxLines: 1,
+                                                maxLines: 2,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
-                                            ),
-                                          ],
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '\$ ${product.price.toStringAsFixed(2)}',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF5C3D2E),
+                                                  fontSize: 22, // Aumentado
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Row(
+                                                children: [
+                                                  const Icon(
+                                                    Icons.category,
+                                                    size: 18, // Aumentado
+                                                    color: Colors.grey,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Expanded(
+                                                    child: Text(
+                                                      product.category,
+                                                      style: const TextStyle(
+                                                        color: Colors.grey,
+                                                        fontSize: 16, // Aumentado
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
+                              );
+                            },
+                          );
+                        }
                       },
                     ),
     );

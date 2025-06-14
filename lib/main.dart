@@ -30,6 +30,7 @@ import 'package:flutter/services.dart';
 import 'package:proyecto/screens/all_products_screen.dart';
 import 'package:proyecto/screens/chats_screen.dart';
 import 'package:proyecto/services/local_notifications_service.dart';
+import 'models/address.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -124,10 +125,14 @@ class MyApp extends StatelessWidget {
             ProtectedRoute(child: const AddAddressScreen()),
         '/edit-address': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
-          final addressId = args is Map && args['addressId'] != null
-              ? args['addressId'] as int
-              : -1;
-          return ProtectedRoute(child: EditAddressScreen(addressId: addressId));
+          // Espera un objeto Address como argumento
+          if (args is Address) {
+            return ProtectedRoute(child: EditAddressScreen(address: args));
+          }
+          // Si no se pasa un Address, muestra error o regresa
+          return const Scaffold(
+            body: Center(child: Text('No se encontró la dirección a editar.')),
+          );
         },
         '/all-products': (context) =>
             ProtectedRoute(child: AllProductsScreen()),

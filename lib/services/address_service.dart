@@ -45,6 +45,18 @@ class AddressService {
         .doc(addressId)
         .delete();
   }
+
+  /// Actualiza una dirección existente para el usuario autenticado
+  static Future<void> updateAddress(Address address) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('Usuario no autenticado');
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('addresses')
+        .doc(address.id)
+        .set(address.copyWith(userId: user.uid).toJson());
+  }
 }
 
 extension AddressCopyWith on Address {

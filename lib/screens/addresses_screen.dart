@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/address.dart';
 import '../services/address_service.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class AddressesScreen extends StatefulWidget {
   const AddressesScreen({super.key});
@@ -104,7 +105,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : _addresses.isEmpty
               ? const Center(
                   child: Text(
@@ -152,9 +153,27 @@ class _AddressesScreenState extends State<AddressesScreen> {
                             ),
                           ],
                         ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteAddress(address),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () async {
+                                final result = await Navigator.pushNamed(
+                                  context,
+                                  '/edit-address',
+                                  arguments: address,
+                                );
+                                if (result is Address) {
+                                  await _fetchAddresses();
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => _deleteAddress(address),
+                            ),
+                          ],
                         ),
                       ),
                     );
