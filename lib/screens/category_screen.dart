@@ -85,21 +85,36 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     )
                   : LayoutBuilder(
                       builder: (context, constraints) {
-                        final crossAxisCount =
-                            constraints.maxWidth < 600 ? 2 : 3;
-                        final childAspectRatio = constraints.maxWidth < 400
-                            ? 0.60
-                            : constraints.maxWidth < 600
-                                ? 0.65
-                                : 0.75;
+                        int crossAxisCount;
+                        double childAspectRatio;
+                        double padding;
+
+                        if (constraints.maxWidth < 400) {
+                          crossAxisCount = 1;
+                          childAspectRatio = 0.60;
+                          padding = 4.0;
+                        } else if (constraints.maxWidth < 600) {
+                          crossAxisCount = 2;
+                          childAspectRatio = 0.65;
+                          padding = 8.0;
+                        } else if (constraints.maxWidth < 900) {
+                          crossAxisCount = 3;
+                          childAspectRatio = 0.75;
+                          padding = 16.0;
+                        } else {
+                          crossAxisCount = 4;
+                          childAspectRatio = 0.85;
+                          padding = 24.0;
+                        }
+
                         return GridView.builder(
-                          padding: const EdgeInsets.all(8.0),
+                          padding: EdgeInsets.all(padding),
                           gridDelegate:
                               SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: crossAxisCount,
                             childAspectRatio: childAspectRatio,
-                            crossAxisSpacing: 8.0,
-                            mainAxisSpacing: 8.0,
+                            crossAxisSpacing: padding,
+                            mainAxisSpacing: padding,
                           ),
                           itemCount: _products.length,
                           itemBuilder: (context, index) {
