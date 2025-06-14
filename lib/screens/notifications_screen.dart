@@ -18,10 +18,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     _notificationsStream = NotificationService.getUserNotificationsStream();
   }
 
-  Future<void> _markAsRead(String id) async {
-    await NotificationService.markAsRead(id);
-  }
-
   Future<void> _deleteNotification(String id) async {
     await NotificationService.deleteNotification(id);
   }
@@ -106,13 +102,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (!n.read)
-                            IconButton(
-                              icon: const Icon(Icons.mark_email_read,
-                                  color: Colors.green),
-                              tooltip: 'Marcar como leída',
-                              onPressed: () => _markAsRead(n.id),
-                            ),
+                          // Eliminado: opción de marcar como leída
                         ],
                       ),
                       // Eliminado onTap: ahora no hace nada al hacer click
@@ -129,10 +119,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
+    int hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    String ampm = date.hour < 12 ? 'a.m.' : 'p.m.';
+    String hourMinute = '$hour:${date.minute.toString().padLeft(2, '0')} $ampm';
     if (now.difference(date).inDays == 0) {
-      return 'Hoy, ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      return 'Hoy, $hourMinute';
     } else {
-      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+      return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} $hourMinute';
     }
   }
 }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
 
 class UserProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -16,6 +18,15 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
   Product? _product;
   bool _isLoading = true;
   String? _errorMessage;
+
+  final List<String> categories = [
+    'Electrónica',
+    'Ropa',
+    'Hogar',
+    'Deportes',
+    'Libros',
+    'Mascotas',
+  ];
 
   @override
   void initState() {
@@ -66,6 +77,10 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
     }
   }
 
+  Future<String> imageToBase64(Uint8List bytes) async {
+    return base64Encode(bytes);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -81,6 +96,283 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          if (_product != null)
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.white),
+              onPressed: () async {
+                await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  builder: (context) {
+                    final _titleController =
+                        TextEditingController(text: _product!.title);
+                    final _descController =
+                        TextEditingController(text: _product!.description);
+                    final _priceController =
+                        TextEditingController(text: _product!.price.toString());
+                    final _stockController =
+                        TextEditingController(text: _product!.stock.toString());
+                    final _categoryController =
+                        TextEditingController(text: _product!.category);
+                    final _formKey = GlobalKey<FormState>();
+                    bool isSaving = false;
+                    String? newImageBase64;
+                    String? imageError;
+                    return StatefulBuilder(
+                      builder: (context, setModalState) {
+                        Future<void> pickImage() async {
+                          final picker = ImagePicker();
+                          final picked = await picker.pickImage(
+                              source: ImageSource.gallery, imageQuality: 80);
+                          if (picked != null) {
+                            final bytes = await picked.readAsBytes();
+                            if (bytes.length > 5 * 1024 * 1024) {
+                              setModalState(() => imageError =
+                                  'La imagen es demasiado grande (máx 5MB)');
+                              return;
+                            }
+                            newImageBase64 =
+                                await compute(imageToBase64, bytes);
+                            setModalState(() {
+                              imageError = null;
+                            });
+                          }
+                        }
+
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            left: 16,
+                            right: 16,
+                            top: 24,
+                            bottom:
+                                MediaQuery.of(context).viewInsets.bottom + 16,
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('Editar producto',
+                                      style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 16),
+                                  Center(
+                                    child: GestureDetector(
+                                      onTap: pickImage,
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: newImageBase64 != null
+                                            ? Image.memory(
+                                                base64Decode(newImageBase64!),
+                                                height: 120,
+                                                width: 120,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : (_product!.imageUrls.isNotEmpty
+                                                ? (isBase64Image(_product!
+                                                        .imageUrls.first)
+                                                    ? Image.memory(
+                                                        base64Decode(_product!
+                                                            .imageUrls.first),
+                                                        height: 120,
+                                                        width: 120,
+                                                        fit: BoxFit.cover,
+                                                      )
+                                                    : Image.network(
+                                                        _product!
+                                                            .imageUrls.first,
+                                                        height: 120,
+                                                        width: 120,
+                                                        fit: BoxFit.cover,
+                                                      ))
+                                                : Image.asset(
+                                                    'assets/images/Logo_PMiniatura.png',
+                                                    height: 120,
+                                                    width: 120,
+                                                    fit: BoxFit.cover,
+                                                  )),
+                                      ),
+                                    ),
+                                  ),
+                                  if (imageError != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8.0),
+                                      child: Text(imageError!,
+                                          style: const TextStyle(
+                                              color: Colors.red)),
+                                    ),
+                                  const SizedBox(height: 16),
+                                  TextFormField(
+                                    controller: _titleController,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Título'),
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Campo requerido'
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _descController,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Descripción'),
+                                    maxLines: 2,
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Campo requerido'
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _priceController,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Precio'),
+                                    keyboardType:
+                                        TextInputType.numberWithOptions(
+                                            decimal: true),
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty)
+                                        return 'Campo requerido';
+                                      final n = double.tryParse(v);
+                                      if (n == null || n < 0)
+                                        return 'Precio inválido';
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _stockController,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Stock'),
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) {
+                                      if (v == null || v.isEmpty)
+                                        return 'Campo requerido';
+                                      final n = int.tryParse(v);
+                                      if (n == null || n < 0)
+                                        return 'Stock inválido';
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  DropdownButtonFormField<String>(
+                                    value: categories
+                                            .contains(_categoryController.text)
+                                        ? _categoryController.text
+                                        : null,
+                                    decoration: const InputDecoration(
+                                        labelText: 'Categoría'),
+                                    items: categories.map((cat) {
+                                      return DropdownMenuItem<String>(
+                                        value: cat,
+                                        child: Text(cat),
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      _categoryController.text = val ?? '';
+                                    },
+                                    validator: (v) => v == null || v.isEmpty
+                                        ? 'Campo requerido'
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor:
+                                            const Color(0xFF5C3D2E),
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      onPressed: isSaving
+                                          ? null
+                                          : () async {
+                                              if (!_formKey.currentState!
+                                                  .validate()) return;
+                                              setModalState(
+                                                  () => isSaving = true);
+                                              try {
+                                                final updateData = {
+                                                  'title': _titleController.text
+                                                      .trim(),
+                                                  'description': _descController
+                                                      .text
+                                                      .trim(),
+                                                  'price': double.parse(
+                                                      _priceController.text
+                                                          .trim()),
+                                                  'stock': int.parse(
+                                                      _stockController.text
+                                                          .trim()),
+                                                  'category':
+                                                      _categoryController.text
+                                                          .trim(),
+                                                };
+                                                if (newImageBase64 != null) {
+                                                  updateData['imageUrls'] = [
+                                                    newImageBase64
+                                                  ];
+                                                }
+                                                await FirebaseFirestore.instance
+                                                    .collection('products')
+                                                    .doc(_product!.id)
+                                                    .update(updateData);
+                                                if (mounted) {
+                                                  Navigator.pop(context);
+                                                  await _fetchProductDetail();
+                                                  ScaffoldMessenger.of(context)
+                                                      .showSnackBar(
+                                                    const SnackBar(
+                                                        content: Text(
+                                                            'Producto actualizado')),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                setModalState(
+                                                    () => isSaving = false);
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                      content: Text(
+                                                          'Error al actualizar: $e'),
+                                                      backgroundColor:
+                                                          Colors.red),
+                                                );
+                                              }
+                                            },
+                                      child: isSaving
+                                          ? const SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.white),
+                                            )
+                                          : const Text('Guardar cambios'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -280,4 +572,9 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                     ),
     );
   }
+}
+
+// Helper para base64
+bool isBase64Image(String s) {
+  return (s.startsWith('/9j') || s.startsWith('iVBOR')) && s.length > 100;
 }

@@ -87,7 +87,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
-                        childAspectRatio: 0.72,
+                        childAspectRatio: 0.65, // Ajustado para evitar overflow
                         crossAxisSpacing: 8.0,
                         mainAxisSpacing: 8.0,
                       ),

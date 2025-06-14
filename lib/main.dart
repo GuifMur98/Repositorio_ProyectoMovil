@@ -29,6 +29,7 @@ import 'package:proyecto/widgets/protected_route.dart';
 import 'package:flutter/services.dart';
 import 'package:proyecto/screens/all_products_screen.dart';
 import 'package:proyecto/screens/chats_screen.dart';
+import 'package:proyecto/services/local_notifications_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,8 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
+  // Inicializar notificaciones locales
+  await NotificationsService().init();
 
   try {} catch (e) {
     print('Error al inicializar la aplicación: $e');
@@ -183,7 +186,7 @@ class AuthWrapper extends StatelessWidget {
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/welcome',
-              (route) => false, 
+              (route) => false,
             );
           });
           return const Scaffold(
@@ -199,5 +202,22 @@ class AuthWrapper extends StatelessWidget {
     final localSession = await AuthService.loadSession();
     final fbUser = fb_auth.FirebaseAuth.instance.currentUser;
     return localSession && fbUser != null;
+  }
+}
+
+class TestNotificationButton extends StatelessWidget {
+  const TestNotificationButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () async {
+        await NotificationsService().showNotification(
+          title: '¡Notificación local!',
+          body: 'Este es un ejemplo de notificación local.',
+        );
+      },
+      child: const Text('Probar notificación local'),
+    );
   }
 }

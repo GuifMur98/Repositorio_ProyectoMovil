@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification.dart';
+import 'local_notifications_service.dart';
 
 class NotificationService {
   static final _firestore = FirebaseFirestore.instance;
@@ -96,5 +97,14 @@ class NotificationService {
         .doc(userId)
         .collection('notifications')
         .add(notificationData);
+
+    // Show local notification if the user is the current user
+    final currentUser = _auth.currentUser;
+    if (currentUser != null && currentUser.uid == userId) {
+      await NotificationsService().showNotification(
+        title: title,
+        body: body,
+      );
+    }
   }
 }
