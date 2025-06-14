@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -220,10 +221,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                                  child: CustomImageSpinner(
+                                      size: 20, color: Colors.white),
                                 )
                               : const Text(
                                   'Recuperar Contraseña',

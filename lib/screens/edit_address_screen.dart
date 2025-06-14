@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class EditAddressScreen extends StatefulWidget {
   final int addressId;
@@ -99,7 +100,7 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Column(

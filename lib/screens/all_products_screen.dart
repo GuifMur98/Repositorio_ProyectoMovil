@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 import '../widgets/product_card.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class AllProductsScreen extends StatefulWidget {
   const AllProductsScreen({Key? key}) : super(key: key);
@@ -109,7 +110,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : Column(
               children: [
                 const SizedBox(height: 16),

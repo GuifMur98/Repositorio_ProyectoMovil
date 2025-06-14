@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/models/user.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -259,10 +260,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                                  child: CustomImageSpinner(
+                                      size: 20, color: Colors.white),
                                 )
                               : const Text(
                                   'Iniciar Sesión',

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/widgets/product_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class CategoryScreen extends StatefulWidget {
   final String category;
@@ -61,7 +62,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
         backgroundColor: const Color(0xFF5C3D2E),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : _errorMessage != null
               ? Center(child: Text(_errorMessage!))
               : _products.isEmpty

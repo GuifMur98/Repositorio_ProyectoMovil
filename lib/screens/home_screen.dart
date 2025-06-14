@@ -6,6 +6,7 @@ import 'package:proyecto/models/product.dart';
 import 'package:proyecto/widgets/product_card.dart';
 import 'package:proyecto/services/notification_service.dart';
 import '../models/notification.dart' as model;
+import '../widgets/custom_image_spinner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -110,7 +111,11 @@ class _HomeScreenState extends State<HomeScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          // Mover el spinner más abajo usando un Padding
+          return const Padding(
+            padding: EdgeInsets.only(top: 80), // Ajusta la distancia aquí
+            child: Center(child: CustomImageSpinner(size: 40)),
+          );
         }
         if (snapshot.hasError) {
           return Center(child: Text('Error al cargar productos'));

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/widgets/base_screen.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/widgets/product_card.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -100,7 +101,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : _errorMessage != null
               ? const Center(
                   child: Column(

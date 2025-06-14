@@ -8,6 +8,7 @@ import '../models/product.dart';
 import '../models/address.dart';
 import '../services/address_service.dart';
 import '../services/notification_service.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -458,7 +459,7 @@ class _CartScreenState extends State<CartScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : _errorMessage != null
               ? Center(
                   child: Text(

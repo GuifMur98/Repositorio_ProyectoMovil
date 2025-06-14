@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/user_product_detail_screen.dart';
 import '../models/product.dart';
+import '../widgets/custom_image_spinner.dart';
 import 'dart:convert';
 
 class UserProductsScreen extends StatefulWidget {
@@ -68,7 +69,7 @@ class _UserProductsScreenState extends State<UserProductsScreen> {
         ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : _errorMessage != null
               ? Center(child: Text(_errorMessage!))
               : _products.isEmpty

@@ -5,6 +5,7 @@ import 'dart:convert';
 import '../models/message.dart';
 import '../models/user.dart' as app_model;
 import '../services/notification_service.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class ChatScreen extends StatefulWidget {
   final String? sellerId;
@@ -270,7 +271,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CustomImageSpinner(size: 40))
                 : _messagesStream == null
                     ? const SizedBox.shrink()
                     : StreamBuilder<List<Message>>(
@@ -279,7 +280,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
                             return const Center(
-                                child: CircularProgressIndicator());
+                                child: CustomImageSpinner(size: 40));
                           }
                           final messages = snapshot.data ?? [];
                           if (messages.isEmpty) {

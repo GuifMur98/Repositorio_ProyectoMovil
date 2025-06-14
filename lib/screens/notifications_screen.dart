@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/notification_service.dart';
 import '../models/notification.dart' as model;
+import '../widgets/custom_image_spinner.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -41,7 +42,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         stream: _notificationsStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CustomImageSpinner(size: 40));
           }
           if (snapshot.hasError) {
             return Center(child: Text('Error al cargar notificaciones'));

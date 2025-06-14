@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/models/product.dart';
 import 'package:proyecto/services/notification_service.dart';
 import 'dart:convert';
+import '../widgets/custom_image_spinner.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -273,7 +274,7 @@ class _ProductCardState extends State<ProductCard> {
                             child: SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CustomImageSpinner(size: 16),
                             ),
                           )
                         : IconButton(
@@ -365,7 +366,7 @@ class _ProductCardState extends State<ProductCard> {
                         ? const SizedBox(
                             width: 32,
                             height: 32,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CustomImageSpinner(size: 32),
                           )
                         : SizedBox(
                             width: double.infinity,

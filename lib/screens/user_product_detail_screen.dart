@@ -4,6 +4,7 @@ import '../models/product.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class UserProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -104,6 +105,8 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                 await showModalBottomSheet(
                   context: context,
                   isScrollControlled: true,
+                  useSafeArea:
+                      true, // <-- Agregado para evitar cierre inesperado con el teclado
                   shape: const RoundedRectangleBorder(
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(24)),
@@ -354,8 +357,8 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                           ? const SizedBox(
                                               width: 24,
                                               height: 24,
-                                              child: CircularProgressIndicator(
-                                                  strokeWidth: 2,
+                                              child: CustomImageSpinner(
+                                                  size: 24,
                                                   color: Colors.white),
                                             )
                                           : const Text('Guardar cambios'),
@@ -375,7 +378,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : _errorMessage != null
               ? Center(child: Text(_errorMessage!))
               : _product == null
@@ -404,11 +407,6 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                     ? Builder(
                                         builder: (context) {
                                           final img = _product!.imageUrls.first;
-                                          bool isBase64Image(String s) {
-                                            return (s.startsWith('/9j') ||
-                                                    s.startsWith('iVBOR')) &&
-                                                s.length > 100;
-                                          }
 
                                           if (isBase64Image(img)) {
                                             try {
@@ -484,7 +482,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                         fit: BoxFit.cover,
                                       ),
                               ),
-                            ),
+                            ), // <-- Asegura que este paréntesis y coma cierran el Center correctamente
                             const SizedBox(height: 24),
                             Text(_product!.title,
                                 style: const TextStyle(

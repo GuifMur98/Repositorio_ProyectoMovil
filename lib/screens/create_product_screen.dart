@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class CreateProductScreen extends StatefulWidget {
   const CreateProductScreen({super.key});
@@ -202,7 +203,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
             ElevatedButton(
               onPressed: _isLoading ? null : _publishProduct,
               child: _isLoading
-                  ? const CircularProgressIndicator(color: Colors.white)
+                  ? const CustomImageSpinner(size: 24, color: Colors.white)
                   : const Text('Publicar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5C3D2E),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:proyecto/services/auth_service.dart';
 import 'package:proyecto/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -340,10 +341,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
+                                  child: CustomImageSpinner(
+                                      size: 20, color: Colors.white),
                                 )
                               : const Text(
                                   'Registrarse',

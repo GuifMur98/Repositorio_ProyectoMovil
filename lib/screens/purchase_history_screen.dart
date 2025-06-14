@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/purchase.dart';
+import '../widgets/custom_image_spinner.dart';
 
 class PurchaseHistoryScreen extends StatefulWidget {
   const PurchaseHistoryScreen({super.key});
@@ -82,7 +83,7 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
       ),
       backgroundColor: Colors.white,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CustomImageSpinner(size: 40))
           : _purchases.isEmpty
               ? const Center(child: Text('No has realizado compras.'))
               : ListView.builder(

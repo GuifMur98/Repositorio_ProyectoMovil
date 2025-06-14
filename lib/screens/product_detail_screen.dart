@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb_auth;
 import 'package:proyecto/services/notification_service.dart';
 import '../models/product.dart';
+import '../widgets/custom_image_spinner.dart';
 import 'dart:convert';
 
 class ProductDetailScreen extends StatefulWidget {
@@ -171,7 +172,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(
-          child: CircularProgressIndicator(),
+          child: CustomImageSpinner(size: 40),
         ),
       );
     }

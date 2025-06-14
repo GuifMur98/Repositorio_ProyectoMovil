@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/base_screen.dart';
+import '../widgets/custom_image_spinner.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -540,7 +541,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               const SizedBox(height: 24.0),
 
               _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CustomImageSpinner(size: 40))
                   : ElevatedButton(
                       onPressed: _saveProduct,
                       child: const Text('Publicar Producto'),
