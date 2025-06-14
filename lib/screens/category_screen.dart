@@ -85,42 +85,36 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     )
                   : LayoutBuilder(
                       builder: (context, constraints) {
-                        int crossAxisCount;
-                        double childAspectRatio;
-                        double padding;
-
-                        if (constraints.maxWidth < 400) {
-                          crossAxisCount = 1;
-                          childAspectRatio = 0.60;
-                          padding = 4.0;
-                        } else if (constraints.maxWidth < 600) {
-                          crossAxisCount = 2;
-                          childAspectRatio = 0.65;
-                          padding = 8.0;
-                        } else if (constraints.maxWidth < 900) {
-                          crossAxisCount = 3;
-                          childAspectRatio = 0.75;
-                          padding = 16.0;
-                        } else {
-                          crossAxisCount = 4;
-                          childAspectRatio = 0.85;
-                          padding = 24.0;
-                        }
-
-                        return GridView.builder(
-                          padding: EdgeInsets.all(padding),
-                          gridDelegate:
-                              SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: crossAxisCount,
-                            childAspectRatio: childAspectRatio,
-                            crossAxisSpacing: padding,
-                            mainAxisSpacing: padding,
+                        final crossAxisCount =
+                            constraints.maxWidth < 600 ? 2 : 3;
+                        final childAspectRatio = constraints.maxWidth < 400
+                            ? 0.60
+                            : constraints.maxWidth < 600
+                                ? 0.65
+                                : 0.75;
+                        final double maxGridWidth = 900;
+                        final double horizontalPadding =
+                            constraints.maxWidth > maxGridWidth
+                                ? (constraints.maxWidth - maxGridWidth) / 2
+                                : 8.0;
+                        return Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: horizontalPadding),
+                          child: GridView.builder(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: childAspectRatio,
+                              crossAxisSpacing: 16.0,
+                              mainAxisSpacing: 20.0,
+                            ),
+                            itemCount: _products.length,
+                            itemBuilder: (context, index) {
+                              final product = _products[index];
+                              return ProductCard(product: product);
+                            },
                           ),
-                          itemCount: _products.length,
-                          itemBuilder: (context, index) {
-                            final product = _products[index];
-                            return ProductCard(product: product);
-                          },
                         );
                       },
                     ),
