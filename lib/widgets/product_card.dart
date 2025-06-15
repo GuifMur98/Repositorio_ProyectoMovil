@@ -293,7 +293,7 @@ class _ProductCardState extends State<ProductCard> {
                 ),
               ],
             ),
-            Expanded(
+            Flexible(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(6, 6, 6, 0),
                 child: Column(
@@ -306,7 +306,7 @@ class _ProductCardState extends State<ProductCard> {
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF2C1810),
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 8),
@@ -358,40 +358,37 @@ class _ProductCardState extends State<ProductCard> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: Container(),
-                    ),
-                    loadingCart
-                        ? const SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: CustomImageSpinner(size: 32),
-                          )
-                        : SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              icon:
-                                  const Icon(Icons.add_shopping_cart, size: 20),
-                              label: const Text('Añadir al carrito',
-                                  style: TextStyle(fontSize: 15)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF5C3D2E),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                elevation: 0,
-                              ),
-                              onPressed: () => _addToCart(context),
-                            ),
-                          ),
                     const SizedBox(height: 4),
                   ],
                 ),
               ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(6, 0, 6, 4),
+              child: loadingCart
+                  ? const SizedBox(
+                      width: 32,
+                      height: 32,
+                      child: CustomImageSpinner(size: 32),
+                    )
+                  : SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.add_shopping_cart, size: 20),
+                        label: const Text('Añadir al carrito',
+                            style: TextStyle(fontSize: 15)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF5C3D2E),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          elevation: 0,
+                        ),
+                        onPressed: () => _addToCart(context),
+                      ),
+                    ),
             ),
           ],
         ),

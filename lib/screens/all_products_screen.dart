@@ -108,6 +108,10 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         ),
         backgroundColor: const Color(0xFF5C3D2E),
         iconTheme: const IconThemeData(color: Colors.white),
+        elevation: 0,
+        shape: const Border(
+          bottom: BorderSide(color: Colors.transparent, width: 0),
+        ),
       ),
       body: _isLoading
           ? const Center(child: CustomImageSpinner(size: 40))

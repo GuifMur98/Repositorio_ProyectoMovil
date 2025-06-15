@@ -449,6 +449,9 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF5C3D2E),
         elevation: 0,
+        shape: const Border(
+          bottom: BorderSide(color: Colors.transparent, width: 0),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Mi Carrito',

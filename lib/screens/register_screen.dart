@@ -128,6 +128,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFE1D4C2),
         elevation: 0,
+        shape: const Border(
+          bottom: BorderSide(color: Colors.transparent, width: 0),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF5C3D2E)),
           onPressed: () {

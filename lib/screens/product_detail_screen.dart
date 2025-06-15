@@ -187,6 +187,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ),
           backgroundColor: const Color(0xFF5C3D2E),
           elevation: 0,
+          shape: const Border(
+            bottom: BorderSide(color: Colors.transparent, width: 0),
+          ),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
@@ -207,6 +210,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         ),
         backgroundColor: const Color(0xFF5C3D2E),
         elevation: 0,
+        shape: const Border(
+          bottom: BorderSide(color: Colors.transparent, width: 0),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),

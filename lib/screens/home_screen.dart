@@ -350,6 +350,10 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         backgroundColor: const Color(0xFF5C3D2E),
         toolbarHeight: 70,
+        elevation: 0,
+        shape: const Border(
+          bottom: BorderSide(color: Colors.transparent, width: 0),
+        ),
         title: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Row(
