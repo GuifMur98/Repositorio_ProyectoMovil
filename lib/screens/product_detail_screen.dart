@@ -134,10 +134,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       );
       return;
     }
+    if (_product!.stock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Producto agotado.')),
+      );
+      return;
+    }
     final cartRef = FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
         .collection('cart');
+    final productRef =
+        FirebaseFirestore.instance.collection('products').doc(_product!.id);
     try {
       final cartItemQuery = await cartRef
           .where('productId', isEqualTo: _product!.id)
@@ -155,6 +163,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           'productId': _product!.id,
           'quantity': 1,
         });
+      }
+      // Reducir el stock en la base de datos
+      final newStock = _product!.stock - 1;
+      await productRef.update({'stock': newStock});
+      setState(() {
+        _product = Product(
+          id: _product!.id,
+          title: _product!.title,
+          description: _product!.description,
+          price: _product!.price,
+          imageUrls: _product!.imageUrls,
+          category: _product!.category,
+          sellerId: _product!.sellerId,
+          stock: newStock,
+        );
+      });
+      // Notificar al vendedor
+      if (_product!.sellerId != user.uid) {
+        await NotificationService.createNotificationForUser(
+          userId: _product!.sellerId,
+          title: '¡Has realizado una venta!',
+          body:
+              'El producto "${_product!.title}" ha sido vendido. Stock restante: $newStock',
+        );
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Producto agregado al carrito.')),
@@ -217,15 +249,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : Colors.white,
-            ),
-            onPressed: _toggleFavorite,
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -340,26 +363,54 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Título (expandido para ocupar el espacio disponible)
                       Expanded(
-                        child: Text(
-                          _product!.title,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final screenWidth =
+                                MediaQuery.of(context).size.width;
+                            double fontSize = 24;
+                            if (screenWidth < 350) {
+                              fontSize = 18;
+                            } else if (screenWidth < 400) {
+                              fontSize = 20;
+                            } else if (screenWidth < 500) {
+                              fontSize = 22;
+                            }
+                            return Text(
+                              _product!.title,
+                              style: TextStyle(
+                                fontSize: fontSize,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            );
+                          },
                         ),
                       ),
-                      Text(
-                        '\$${_product!.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF5C3D2E),
+                      IconButton(
+                        icon: Icon(
+                          _isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: _isFavorite ? Colors.red : Colors.grey,
                         ),
+                        onPressed: _toggleFavorite,
+                        tooltip: _isFavorite
+                            ? 'Quitar de favoritos'
+                            : 'Agregar a favoritos',
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '\$${_product!.price.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF5C3D2E),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -379,9 +430,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           color: Color(0xFF5C3D2E), size: 20),
                       const SizedBox(width: 4),
                       Text(
-                        'Stock: ${_product!.stock}',
-                        style: const TextStyle(
-                          color: Color(0xFF5C3D2E),
+                        _product!.stock > 0
+                            ? 'Stock: ${_product!.stock}'
+                            : 'Sin existencia',
+                        style: TextStyle(
+                          color: _product!.stock > 0
+                              ? Color(0xFF5C3D2E)
+                              : Colors.red,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

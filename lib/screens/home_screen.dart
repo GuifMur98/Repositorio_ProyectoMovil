@@ -17,6 +17,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   int _currentIndex = 0;
   List<Map<String, dynamic>> _allProducts = [];
   int _unreadNotifications = 0;
@@ -78,6 +79,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -376,10 +378,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                   child: TextField(
+                    focusNode: _searchFocusNode,
                     controller: _searchController,
                     onChanged: (_) {
                       setState(() {});
-                    }, // Actualiza el filtro en tiempo real
+                    },
                     style: const TextStyle(
                       fontSize: 14,
                       color: Color(0xFF5C3D2E),
@@ -474,96 +477,102 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Sección de bienvenida con fondo café, texto blanco, centrado y esquinas inferiores redondeadas
-            Padding(
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  double fontSize = 24;
-                  double subFontSize = 15;
-                  double paddingV = 28;
-                  double paddingH = 20;
-                  double borderRadius = 32;
-                  if (constraints.maxWidth < 350) {
-                    fontSize = 18;
-                    subFontSize = 12;
-                    paddingV = 18;
-                    paddingH = 8;
-                    borderRadius = 18;
-                  } else if (constraints.maxWidth < 450) {
-                    fontSize = 20;
-                    subFontSize = 13;
-                    paddingV = 22;
-                    paddingH = 12;
-                    borderRadius = 24;
-                  }
-                  return Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF5C3D2E),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(borderRadius),
-                        bottomRight: Radius.circular(borderRadius),
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              // Sección de bienvenida con fondo café, texto blanco, centrado y esquinas inferiores redondeadas
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    double fontSize = 24;
+                    double subFontSize = 15;
+                    double paddingV = 28;
+                    double paddingH = 20;
+                    double borderRadius = 32;
+                    if (constraints.maxWidth < 350) {
+                      fontSize = 18;
+                      subFontSize = 12;
+                      paddingV = 18;
+                      paddingH = 8;
+                      borderRadius = 18;
+                    } else if (constraints.maxWidth < 450) {
+                      fontSize = 20;
+                      subFontSize = 13;
+                      paddingV = 22;
+                      paddingH = 12;
+                      borderRadius = 24;
+                    }
+                    return Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF5C3D2E),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(borderRadius),
+                          bottomRight: Radius.circular(borderRadius),
+                        ),
+                      ),
+                      padding: EdgeInsets.symmetric(
+                          vertical: paddingV, horizontal: paddingH),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            '¡Bienvenido${userName.isNotEmpty ? ', $userName' : ''}!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: fontSize,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          SizedBox(height: fontSize > 20 ? 8 : 4),
+                          Text(
+                            'Descubre productos únicos y apoya a vendedores locales.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: subFontSize,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildCategories(),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Productos destacados',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF5C3D2E),
                       ),
                     ),
-                    padding: EdgeInsets.symmetric(
-                        vertical: paddingV, horizontal: paddingH),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          '¡Bienvenido${userName.isNotEmpty ? ', $userName' : ''}!',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: fontSize,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        SizedBox(height: fontSize > 20 ? 8 : 4),
-                        Text(
-                          'Descubre productos únicos y apoya a vendedores locales.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: subFontSize,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                    const SizedBox(height: 12),
+                    _buildProductsGrid(),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            _buildCategories(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Productos destacados',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF5C3D2E),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildProductsGrid(),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: CustomBottomNavigation(

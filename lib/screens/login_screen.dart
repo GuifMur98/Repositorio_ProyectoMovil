@@ -179,6 +179,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _emailController,
                           decoration: InputDecoration(
                             labelText: 'Correo electrónico',
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
+                            floatingLabelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
                             hintText: 'ejemplo@correo.com',
                             prefixIcon: const Icon(
                               Icons.email_outlined,
@@ -200,6 +204,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Contraseña',
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
+                            floatingLabelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
                             hintText: '',
                             prefixIcon: const Icon(
                               Icons.lock_outline,

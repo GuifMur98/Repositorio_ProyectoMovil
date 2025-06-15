@@ -180,6 +180,23 @@ class _CartScreenState extends State<CartScreen> {
           'sellerId': product?.sellerId ?? '',
         };
       }).toList();
+
+      // 1.1 Actualizar el stock de cada producto según la cantidad comprada
+      for (final item in _cartItems) {
+        final product = _products[item.productId];
+        if (product == null) continue;
+        final productRef =
+            FirebaseFirestore.instance.collection('products').doc(product.id);
+        // Leer el stock actual para evitar condiciones de carrera
+        final prodDoc = await productRef.get();
+        if (!prodDoc.exists) continue;
+        final currentStock = (prodDoc.data()?['stock'] ?? 0) as int;
+        final newStock = (currentStock - item.quantity) < 0
+            ? 0
+            : (currentStock - item.quantity);
+        await productRef.update({'stock': newStock});
+      }
+
       // 2. Crear el objeto de compra
       final purchase = {
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
@@ -201,21 +218,26 @@ class _CartScreenState extends State<CartScreen> {
         body:
             'Tu compra por un total de L. ${_total.toStringAsFixed(2)} fue exitosa.',
       );
-      // Notificar a cada vendedor involucrado
-      final notifiedSellers = <String>{};
+      // Notificar a cada vendedor solo una vez, indicando la cantidad total y los títulos de los productos vendidos
+      final Map<String, List<Map<String, dynamic>>> ventasPorVendedor = {};
       for (final prod in products) {
         final sellerId = prod['sellerId'] as String?;
-        if (sellerId != null &&
-            sellerId.isNotEmpty &&
-            sellerId != user.uid &&
-            !notifiedSellers.contains(sellerId)) {
-          await NotificationService.createNotificationForUser(
-            userId: sellerId,
-            title: '¡Has realizado una venta!',
-            body: 'Has vendido "${prod['title']}".',
-          );
-          notifiedSellers.add(sellerId);
+        if (sellerId != null && sellerId.isNotEmpty && sellerId != user.uid) {
+          ventasPorVendedor.putIfAbsent(sellerId, () => []).add(prod);
         }
+      }
+      for (final entry in ventasPorVendedor.entries) {
+        final sellerId = entry.key;
+        final ventas = entry.value;
+        final totalCantidad =
+            ventas.fold<int>(0, (sum, p) => sum + (p['quantity'] as int? ?? 0));
+        final titulos =
+            ventas.map((p) => '"${p['title']}" (x${p['quantity']})').join(', ');
+        await NotificationService.createNotificationForUser(
+          userId: sellerId,
+          title: '¡Has realizado una venta!',
+          body: 'Vendiste $totalCantidad producto(s): $titulos.',
+        );
       }
       // 4. Limpiar el carrito
       final cartRef = userRef.collection('cart');

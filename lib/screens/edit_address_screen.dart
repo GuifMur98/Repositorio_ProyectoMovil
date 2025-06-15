@@ -88,15 +88,47 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
     }
   }
 
-  void _deleteAddress() {
-    // Mostrar mensaje de funcionalidad no disponible
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Funcionalidad no disponible en la versión de demostración',
-        ),
+  void _deleteAddress() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar dirección'),
+        content:
+            const Text('¿Estás seguro de que deseas eliminar esta dirección?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
       ),
     );
+    if (confirm != true) return;
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      await AddressService.deleteAddress(widget.address.id);
+      if (mounted) {
+        Navigator.pop(context, null); // Regresa y notifica que se eliminó
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al eliminar dirección: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted)
+        setState(() {
+          _isLoading = false;
+        });
+    }
   }
 
   @override

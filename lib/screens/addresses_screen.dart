@@ -64,7 +64,8 @@ class _AddressesScreenState extends State<AddressesScreen> {
               child: const Text('Cancelar')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Eliminar')),
+              child: const Text('Eliminar', style: TextStyle(color: Colors.red))
+              ),
         ],
       ),
     );

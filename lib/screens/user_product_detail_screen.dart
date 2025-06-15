@@ -101,7 +101,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          if (_product != null)
+          if (_product != null) ...[
             IconButton(
               icon: const Icon(Icons.edit, color: Colors.white),
               onPressed: () async {
@@ -378,6 +378,58 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                 );
               },
             ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.white),
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Eliminar producto'),
+                    content: const Text(
+                        '¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancelar'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Eliminar',
+                            style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  try {
+                    await FirebaseFirestore.instance
+                        .collection('products')
+                        .doc(_product!.id)
+                        .delete();
+                    if (mounted) {
+                      Navigator.pop(
+                          context, true); // Regresa y notifica que se eliminó
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      setState(() {
+                        _isLoading = false;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error al eliminar producto: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                }
+              },
+            ),
+          ],
         ],
       ),
       body: _isLoading

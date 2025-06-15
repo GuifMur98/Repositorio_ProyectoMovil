@@ -205,6 +205,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _nameController,
                           decoration: InputDecoration(
                             labelText: 'Nombre completo',
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
+                            floatingLabelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
                             hintText: 'Ingresa tu nombre',
                             prefixIcon: const Icon(
                               Icons.person_outline,
@@ -225,6 +229,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _emailController,
                           decoration: InputDecoration(
                             labelText: 'Correo electrónico',
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
+                            floatingLabelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
                             hintText: 'ejemplo@correo.com',
                             prefixIcon: const Icon(
                               Icons.email_outlined,
@@ -246,6 +254,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _passwordController,
                           decoration: InputDecoration(
                             labelText: 'Contraseña',
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
+                            floatingLabelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
                             hintText: '',
                             prefixIcon: const Icon(
                               Icons.lock_outline,
@@ -280,6 +292,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _confirmPasswordController,
                           decoration: InputDecoration(
                             labelText: 'Confirmar contraseña',
+                            labelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
+                            floatingLabelStyle:
+                                const TextStyle(color: Color(0xFF5C3D2E)),
                             hintText: '',
                             prefixIcon: const Icon(
                               Icons.lock_outline,

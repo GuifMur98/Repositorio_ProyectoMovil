@@ -24,6 +24,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 40), // Espacio extra antes del Card
             Card(
               margin: EdgeInsets.zero,
               color: const Color(0xFFE1D4C2),
@@ -42,14 +43,41 @@ class WelcomeScreen extends StatelessWidget {
                       style: TextStyle(
                         color: Color(0xFF5C3D2E),
                         fontSize: 40,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Descubre una amplia variedad de productos al mejor precio, todo en un solo lugar. En TradeNest te ofrecemos una experiencia de compra rápida, segura y fácil, con artículos seleccionados para ti. ¡Empieza a comprar con un solo clic!',
-                      style: TextStyle(color: Color(0xFF5C3D2E), fontSize: 21),
-                      textAlign: TextAlign.center,
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        double fontSize = 21;
+                        if (constraints.maxWidth < 350) {
+                          fontSize = 17;
+                        } else if (constraints.maxWidth < 450) {
+                          fontSize = 19;
+                        } else if (constraints.maxWidth < 600) {
+                          fontSize = 21;
+                        }
+                        return Column(
+                          children: [
+                            Text(
+                              'Descubre una amplia variedad de productos al mejor precio, todo en un solo lugar. En TradeNest te ofrecemos una experiencia de compra rápida, segura y fácil, con artículos seleccionados para ti.',
+                              style:
+                                  TextStyle(color: Color(0xFF5C3D2E), fontSize: fontSize),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '¡Empieza a comprar con un solo clic!',
+                              style: TextStyle(
+                                color: Color(0xFF5C3D2E),
+                                fontSize: fontSize + 2,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 70),
                     Padding(
@@ -96,7 +124,7 @@ class WelcomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 100),
+                    const SizedBox(height: 77),
                   ],
                 ),
               ),

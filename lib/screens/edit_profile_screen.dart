@@ -262,10 +262,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         controller: _nameController,
                         decoration: InputDecoration(
                           labelText: 'Nombre',
+                          labelStyle: const TextStyle(color: Color(0xFF5C3D2E)),
+                          floatingLabelStyle:
+                              const TextStyle(color: Color(0xFF5C3D2E)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          prefixIcon: const Icon(Icons.person_outline),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF5C3D2E), width: 2),
+                          ),
+                          prefixIcon: const Icon(Icons.person_outline,
+                              color: Color(0xFF5C3D2E)),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -273,10 +282,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         controller: _emailController,
                         decoration: InputDecoration(
                           labelText: 'Correo',
+                          labelStyle: const TextStyle(color: Color(0xFF5C3D2E)),
+                          floatingLabelStyle:
+                              const TextStyle(color: Color(0xFF5C3D2E)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          prefixIcon: const Icon(Icons.email_outlined),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF5C3D2E), width: 2),
+                          ),
+                          prefixIcon: const Icon(Icons.email_outlined,
+                              color: Color(0xFF5C3D2E)),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -285,10 +303,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         controller: _passwordController,
                         decoration: InputDecoration(
                           labelText: 'Nueva contraseña',
+                          labelStyle: const TextStyle(color: Color(0xFF5C3D2E)),
+                          floatingLabelStyle:
+                              const TextStyle(color: Color(0xFF5C3D2E)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          prefixIcon: const Icon(Icons.lock_outline),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF5C3D2E), width: 2),
+                          ),
+                          prefixIcon: const Icon(Icons.lock_outline,
+                              color: Color(0xFF5C3D2E)),
                         ),
                         obscureText: true,
                       ),
@@ -297,10 +324,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         controller: _confirmPasswordController,
                         decoration: InputDecoration(
                           labelText: 'Confirmar nueva contraseña',
+                          labelStyle: const TextStyle(color: Color(0xFF5C3D2E)),
+                          floatingLabelStyle:
+                              const TextStyle(color: Color(0xFF5C3D2E)),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          prefixIcon: const Icon(Icons.lock_outline),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(
+                                color: Color(0xFF5C3D2E), width: 2),
+                          ),
+                          prefixIcon: const Icon(Icons.lock_outline,
+                              color: Color(0xFF5C3D2E)),
                         ),
                         obscureText: true,
                       ),
