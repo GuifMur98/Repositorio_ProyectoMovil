@@ -131,6 +131,15 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _updateQuantity(CartItem item, int newQty) async {
     if (newQty < 1) return;
+    final product = _products[item.productId];
+    if (product != null && newQty > product.stock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(
+                'No puedes agregar más de lo disponible en stock (${product.stock}).')),
+      );
+      return;
+    }
     final user = await fb_auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
