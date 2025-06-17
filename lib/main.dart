@@ -30,6 +30,7 @@ import 'package:flutter/services.dart';
 import 'package:proyecto/screens/all_products_screen.dart';
 import 'package:proyecto/screens/chats_screen.dart';
 import 'package:proyecto/services/local_notifications_service.dart';
+import 'package:proyecto/services/notification_service.dart';
 import 'models/address.dart';
 
 void main() async {
@@ -44,6 +45,27 @@ void main() async {
   ]);
   // Inicializar notificaciones locales
   await NotificationsService().init();
+
+  // --- Listener global de notificaciones de chat ---
+  final userId = NotificationService.getCurrentUserId();
+  if (userId != null) {
+    NotificationService.getUserNotificationsStream().listen((notifications) async {
+      final now = DateTime.now();
+      for (final n in notifications) {
+        final isRecent = now.difference(n.date).inSeconds.abs() < 5;
+        if (n.read == false &&
+            n.title == 'Nuevo mensaje' &&
+            n.userId == userId &&
+            isRecent) {
+          await NotificationsService().showNotification(
+            title: n.title,
+            body: n.body,
+          );
+        }
+      }
+    });
+  }
+  // --- Fin listener global ---
 
   try {} catch (e) {
     print('Error al inicializar la aplicación: $e');

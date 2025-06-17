@@ -107,4 +107,9 @@ class NotificationService {
       );
     }
   }
+
+  static String? getCurrentUserId() {
+    final user = _auth.currentUser;
+    return user?.uid;
+  }
 }

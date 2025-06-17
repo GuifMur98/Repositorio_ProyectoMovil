@@ -20,9 +20,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   String? _chatId;
   bool _isLoading = true;
+  bool _isSending = false;
   final ScrollController _scrollController = ScrollController();
   app_model.User? _otherUser;
   Stream<List<Message>>? _messagesStream;
+  int _lastMessageCount = 0;
 
   @override
   void dispose() {
@@ -35,6 +37,15 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _initChat();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Si cambia el chatId, reinicializa y scrollea al final
+    if (widget.chatId != oldWidget.chatId) {
+      _initChat();
+    }
   }
 
   Future<void> _initChat() async {
@@ -63,7 +74,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final users = List<String>.from(chatDoc.data()?['users'] ?? []);
       otherUserId = users.firstWhere((id) => id != user.uid, orElse: () => '');
     }
-    if (otherUserId == null || otherUserId.isEmpty) return;
+    if (otherUserId.isEmpty) return;
     final otherUserDoc = await FirebaseFirestore.instance
         .collection('users')
         .doc(otherUserId)
@@ -99,12 +110,23 @@ class _ChatScreenState extends State<ChatScreen> {
       _otherUser = otherUser;
       _isLoading = false;
     });
+    // Espera un frame y scrollea al final
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   Future<void> _sendMessage() async {
+    if (_isSending) return;
     if (_messageController.text.trim().isEmpty || _chatId == null) return;
+    setState(() {
+      _isSending = true;
+    });
     final user = fb_auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (user == null) {
+      setState(() {
+        _isSending = false;
+      });
+      return;
+    }
     final content = _messageController.text.trim();
     final now = DateTime.now();
     final messageData = {
@@ -133,6 +155,9 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     _messageController.clear();
     _scrollToBottom();
+    setState(() {
+      _isSending = false;
+    });
   }
 
   void _scrollToBottom() {
@@ -283,6 +308,15 @@ class _ChatScreenState extends State<ChatScreen> {
                                 child: CustomImageSpinner(size: 40));
                           }
                           final messages = snapshot.data ?? [];
+                          // --- SCROLL INSTANTÁNEO AL FINAL ---
+                          if (messages.isNotEmpty) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (_scrollController.hasClients) {
+                                _scrollController.jumpTo(
+                                    _scrollController.position.maxScrollExtent);
+                              }
+                            });
+                          }
                           if (messages.isEmpty) {
                             return Center(
                               child: Column(
@@ -381,7 +415,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     backgroundColor: const Color(0xFF5C3D2E),
                     child: IconButton(
                       icon: const Icon(Icons.send, color: Colors.white),
-                      onPressed: _sendMessage,
+                      onPressed: _isSending ? null : _sendMessage,
                     ),
                   ),
                 ],

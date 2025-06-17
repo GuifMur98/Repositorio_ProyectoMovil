@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:proyecto/services/notification_service.dart';
+import 'package:proyecto/services/local_notifications_service.dart';
 import '../models/notification.dart' as model;
 import '../widgets/custom_image_spinner.dart';
 
@@ -12,11 +13,31 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   late Stream<List<model.AppNotification>> _notificationsStream;
+  final Set<String> _shownNotificationIds = {};
 
   @override
   void initState() {
     super.initState();
     _notificationsStream = NotificationService.getUserNotificationsStream();
+    // Suscribirse a nuevas notificaciones y mostrar local si es de chat y no es mía
+    final user = NotificationService.getCurrentUserId();
+    _notificationsStream.listen((notifications) async {
+      final now = DateTime.now();
+      for (final n in notifications) {
+        final isRecent = now.difference(n.date).inSeconds.abs() < 5;
+        if (n.read == false &&
+            n.title == 'Nuevo mensaje' &&
+            n.userId == user &&
+            !_shownNotificationIds.contains(n.id) &&
+            isRecent) {
+          _shownNotificationIds.add(n.id);
+          await NotificationsService().showNotification(
+            title: n.title,
+            body: n.body,
+          );
+        }
+      }
+    });
   }
 
   Future<void> _deleteNotification(String id) async {
