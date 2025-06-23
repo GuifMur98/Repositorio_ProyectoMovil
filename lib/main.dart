@@ -49,7 +49,8 @@ void main() async {
   // --- Listener global de notificaciones de chat ---
   final userId = NotificationService.getCurrentUserId();
   if (userId != null) {
-    NotificationService.getUserNotificationsStream().listen((notifications) async {
+    NotificationService.getUserNotificationsStream()
+        .listen((notifications) async {
       final now = DateTime.now();
       for (final n in notifications) {
         final isRecent = now.difference(n.date).inSeconds.abs() < 5;
@@ -67,9 +68,9 @@ void main() async {
   }
   // --- Fin listener global ---
 
-  try {} catch (e) {
-    print('Error al inicializar la aplicación: $e');
-  }
+  try {
+    // No-op: intentionally left empty to catch and ignore errors
+  } catch (e) {}
 
   runApp(const MyApp());
 }
@@ -117,21 +118,21 @@ class MyApp extends StatelessWidget {
           return ProtectedRoute(child: CategoryScreen(category: category));
         },
         '/categories': (context) =>
-            ProtectedRoute(child: const CategoriesScreen()),
+            const ProtectedRoute(child: CategoriesScreen()),
         '/edit-profile': (context) =>
-            ProtectedRoute(child: const EditProfileScreen()),
+            const ProtectedRoute(child: EditProfileScreen()),
         '/addresses': (context) =>
-            ProtectedRoute(child: const AddressesScreen()),
+            const ProtectedRoute(child: AddressesScreen()),
         '/notifications': (context) =>
-            ProtectedRoute(child: const NotificationsScreen()),
+            const ProtectedRoute(child: NotificationsScreen()),
         '/user-products': (context) =>
-            ProtectedRoute(child: const UserProductsScreen()),
+            const ProtectedRoute(child: UserProductsScreen()),
         '/purchase-history': (context) =>
-            ProtectedRoute(child: const PurchaseHistoryScreen()),
+            const ProtectedRoute(child: PurchaseHistoryScreen()),
         '/help-support': (context) =>
-            ProtectedRoute(child: const HelpSupportScreen()),
+            const ProtectedRoute(child: HelpSupportScreen()),
         '/privacy-security': (context) =>
-            ProtectedRoute(child: const PrivacySecurityScreen()),
+            const ProtectedRoute(child: PrivacySecurityScreen()),
         '/chat': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           final sellerId = args is Map && args['sellerId'] != null
@@ -144,7 +145,7 @@ class MyApp extends StatelessWidget {
               child: ChatScreen(sellerId: sellerId, chatId: chatId));
         },
         '/add-address': (context) =>
-            ProtectedRoute(child: const AddAddressScreen()),
+            const ProtectedRoute(child: AddAddressScreen()),
         '/edit-address': (context) {
           final args = ModalRoute.of(context)?.settings.arguments;
           // Espera un objeto Address como argumento
@@ -157,8 +158,8 @@ class MyApp extends StatelessWidget {
           );
         },
         '/all-products': (context) =>
-            ProtectedRoute(child: AllProductsScreen()),
-        '/chats': (context) => ProtectedRoute(child: const ChatsScreen()),
+            const ProtectedRoute(child: AllProductsScreen()),
+        '/chats': (context) => const ProtectedRoute(child: ChatsScreen()),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/product-detail') {
@@ -192,59 +193,62 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool? _isAuthenticated;
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkSessionAndAuth().then((isAuth) async {
+      if (!mounted) return;
+      if (!isAuth) {
+        await AuthService.logout();
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/welcome',
+          (route) => false,
+        );
+      } else {
+        setState(() {
+          _isAuthenticated = true;
+        });
+      }
+    }).catchError((_) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+        });
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: _checkSessionAndAuth(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasError || snapshot.data != true) {
-          // Redirigir a welcome y limpiar sesión local
-          WidgetsBinding.instance.addPostFrameCallback((_) async {
-            await AuthService.logout();
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/welcome',
-              (route) => false,
-            );
-          });
-          return const Scaffold(
-              body: Center(child: CircularProgressIndicator()));
-        }
-
-        return const HomeScreen();
-      },
-    );
+    if (_isAuthenticated == null && !_hasError) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_hasError || _isAuthenticated == false) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return const HomeScreen();
   }
 
   Future<bool> _checkSessionAndAuth() async {
     final localSession = await AuthService.loadSession();
     final fbUser = fb_auth.FirebaseAuth.instance.currentUser;
     return localSession && fbUser != null;
-  }
-}
-
-class TestNotificationButton extends StatelessWidget {
-  const TestNotificationButton({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ElevatedButton(
-      onPressed: () async {
-        await NotificationsService().showNotification(
-          title: '¡Notificación local!',
-          body: 'Este es un ejemplo de notificación local.',
-        );
-      },
-      child: const Text('Probar notificación local'),
-    );
   }
 }

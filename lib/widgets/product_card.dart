@@ -73,22 +73,27 @@ class _ProductCardState extends State<ProductCard> {
       await userRef.update({'favoriteProducts': favs});
       if (widget.onFavoriteToggle != null) widget.onFavoriteToggle!();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(
-              isFavorite ? 'Agregado a favoritos' : 'Eliminado de favoritos')));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(isFavorite
+                ? 'Agregado a favoritos'
+                : 'Eliminado de favoritos')));
+      }
     } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        isFavorite = !isFavorite;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Error al actualizar favoritos: $e'),
-          backgroundColor: Colors.red));
+      if (mounted && context.mounted) {
+        setState(() {
+          isFavorite = !isFavorite;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error al actualizar favoritos: $e'),
+            backgroundColor: Colors.red));
+      }
     } finally {
-      if (!mounted) return;
-      setState(() {
-        loadingFavorite = false;
-      });
+      if (mounted) {
+        setState(() {
+          loadingFavorite = false;
+        });
+      }
     }
   }
 
@@ -99,14 +104,17 @@ class _ProductCardState extends State<ProductCard> {
     });
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Debes iniciar sesión para agregar al carrito.')),
-      );
-      setState(() {
-        loadingCart = false;
-      });
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Debes iniciar sesión para agregar al carrito.')),
+        );
+      }
+      if (mounted) {
+        setState(() {
+          loadingCart = false;
+        });
+      }
       return;
     }
     final cartRef = FirebaseFirestore.instance
@@ -129,17 +137,18 @@ class _ProductCardState extends State<ProductCard> {
           'quantity': 1,
         });
       }
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Producto agregado al carrito.')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Producto agregado al carrito.')),
+        );
+      }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al agregar al carrito: $e')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al agregar al carrito: $e')),
+        );
+      }
     }
-    if (!mounted) return;
     setState(() {
       loadingCart = false;
     });
@@ -161,7 +170,7 @@ class _ProductCardState extends State<ProductCard> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withAlpha(26), // 0.1 * 255 = 26
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -262,7 +271,7 @@ class _ProductCardState extends State<ProductCard> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withAlpha(26), // 0.1 * 255 = 26
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -378,7 +387,7 @@ class _ProductCardState extends State<ProductCard> {
                         label: const Text('Añadir al carrito',
                             style: TextStyle(fontSize: 15)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF5C3D2E),
+                          backgroundColor: const Color(0xFF5C3D2E),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),

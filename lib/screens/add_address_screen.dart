@@ -60,10 +60,10 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
         country: country,
       );
       final saved = await AddressService.addAddress(address);
-      if (mounted) {
-        Navigator.pop(context, saved); // Regresa el Address real
-      }
+      if (!mounted) return;
+      Navigator.pop(context, saved); // Regresa el Address real
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al guardar dirección: ${e.toString()}'),
@@ -71,10 +71,11 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
         ),
       );
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
+      }
     }
   }
 

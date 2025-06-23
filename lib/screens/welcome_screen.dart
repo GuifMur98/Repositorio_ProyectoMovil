@@ -24,7 +24,7 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 40), // Espacio extra antes del Card
+            const SizedBox(height: 40),
             Card(
               margin: EdgeInsets.zero,
               color: const Color(0xFFE1D4C2),
@@ -49,28 +49,20 @@ class WelcomeScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                     LayoutBuilder(
                       builder: (context, constraints) {
-                        double fontSize = 21;
-                        if (constraints.maxWidth < 350) {
-                          fontSize = 17;
-                        } else if (constraints.maxWidth < 450) {
-                          fontSize = 19;
-                        } else if (constraints.maxWidth < 600) {
-                          fontSize = 21;
-                        }
                         return Column(
-                          children: [
+                          children: const [
                             Text(
                               'Descubre una amplia variedad de productos al mejor precio, todo en un solo lugar. En TradeNest te ofrecemos una experiencia de compra rápida, segura y fácil, con artículos seleccionados para ti.',
-                              style:
-                                  TextStyle(color: Color(0xFF5C3D2E), fontSize: fontSize),
+                              style: TextStyle(
+                                  color: Color(0xFF5C3D2E), fontSize: 21),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10),
                             Text(
                               '¡Empieza a comprar con un solo clic!',
                               style: TextStyle(
                                 color: Color(0xFF5C3D2E),
-                                fontSize: fontSize + 2,
+                                fontSize: 23,
                                 fontWeight: FontWeight.w700,
                               ),
                               textAlign: TextAlign.center,
@@ -96,7 +88,8 @@ class WelcomeScreen extends StatelessWidget {
                                   vertical: 16,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(30)),
                                 ),
                               ),
                               child: const Text('Iniciar sesión'),
@@ -115,7 +108,8 @@ class WelcomeScreen extends StatelessWidget {
                                   vertical: 16,
                                 ),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(30)),
                                 ),
                               ),
                               child: const Text('Registrarse'),

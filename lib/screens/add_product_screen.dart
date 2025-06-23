@@ -22,7 +22,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
-  List<File> _images = [];
+  final List<File> _images = [];
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
   bool _imageError = false;
@@ -114,6 +114,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         }
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error al seleccionar imagen: $e'),
@@ -194,6 +195,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       setState(() {
         _isLoading = false;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Producto publicado con éxito!'),
@@ -315,6 +317,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFE1D4C2)),
                   ),
+                  alignment: _images.isEmpty ? Alignment.center : null,
                   child: _images.isEmpty
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -330,7 +333,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             Text(
                               'Cámara o galería',
                               style: TextStyle(
-                                color: Color(0xFF5C3D2E).withOpacity(0.7),
+                                color: const Color(0xFF5C3D2E)
+                                    .withAlpha((0.7 * 255).toInt()),
                                 fontSize: 12,
                               ),
                             ),
@@ -381,7 +385,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             );
                           },
                         ),
-                  alignment: _images.isEmpty ? Alignment.center : null,
                 ),
               ),
               if (_imageError)
@@ -458,7 +461,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ),
                   labelStyle: const TextStyle(color: Color(0xFF5C3D2E)),
                 ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 validator: _validatePrice,
               ),
               const SizedBox(height: 16.0),
@@ -544,7 +548,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   ? const Center(child: CustomImageSpinner(size: 40))
                   : ElevatedButton(
                       onPressed: _saveProduct,
-                      child: const Text('Publicar Producto'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12.0),
                         shape: RoundedRectangleBorder(
@@ -556,6 +559,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             Colors.white, // Color del texto del botón
                         elevation: 2,
                       ),
+                      child: const Text('Publicar Producto'),
                     ),
             ],
           ),

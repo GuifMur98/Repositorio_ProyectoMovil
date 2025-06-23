@@ -75,8 +75,8 @@ class NotificationService {
     required String userId,
     required String title,
     required String body,
-    String? chatId, // Nuevo campo opcional
-    String? senderId, // Nuevo campo opcional
+    String? chatId,
+    String? senderId,
   }) async {
     final notificationData = AppNotification(
       id: '',
@@ -98,7 +98,7 @@ class NotificationService {
         .collection('notifications')
         .add(notificationData);
 
-    // Show local notification if the user is the current user
+    // Mostrar notificación local si el usuario actual es el destinatario
     final currentUser = _auth.currentUser;
     if (currentUser != null && currentUser.uid == userId) {
       await NotificationsService().showNotification(

@@ -35,6 +35,7 @@ class _AddressesScreenState extends State<AddressesScreen> {
         _addresses = [];
         _isLoading = false;
       });
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al cargar direcciones: $e')),
       );
@@ -43,12 +44,14 @@ class _AddressesScreenState extends State<AddressesScreen> {
 
   void _navigateToAddAddressScreen() async {
     final result = await Navigator.pushNamed(context, '/add-address');
+    if (!mounted) return;
     if (result is Address) {
       setState(() {
         _addresses.add(result);
       });
     }
     await _fetchAddresses(); // Refresca la lista tras agregar
+    if (!mounted) return;
   }
 
   Future<void> _deleteAddress(Address address) async {
@@ -64,19 +67,22 @@ class _AddressesScreenState extends State<AddressesScreen> {
               child: const Text('Cancelar')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Eliminar', style: TextStyle(color: Colors.red))
-              ),
+              child:
+                  const Text('Eliminar', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
+    if (!mounted) return;
     if (confirm == true) {
       try {
         await AddressService.deleteAddress(address.id);
         await _fetchAddresses();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Dirección eliminada.')),
         );
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al eliminar dirección: $e')),
         );

@@ -66,7 +66,7 @@ class _CartScreenState extends State<CartScreen> {
       _errorMessage = null;
     });
     try {
-      final user = await fb_auth.FirebaseAuth.instance.currentUser;
+      final user = fb_auth.FirebaseAuth.instance.currentUser;
       if (user == null) {
         setState(() {
           _cartItems = [];
@@ -109,7 +109,7 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _removeCartItem(String id) async {
-    final user = await fb_auth.FirebaseAuth.instance.currentUser;
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
       await FirebaseFirestore.instance
@@ -119,10 +119,12 @@ class _CartScreenState extends State<CartScreen> {
           .doc(id)
           .delete();
       await _fetchCartItems();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Producto eliminado del carrito.')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al eliminar: $e')),
       );
@@ -133,6 +135,7 @@ class _CartScreenState extends State<CartScreen> {
     if (newQty < 1) return;
     final product = _products[item.productId];
     if (product != null && newQty > product.stock) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
@@ -140,7 +143,7 @@ class _CartScreenState extends State<CartScreen> {
       );
       return;
     }
-    final user = await fb_auth.FirebaseAuth.instance.currentUser;
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
       await FirebaseFirestore.instance
@@ -150,20 +153,22 @@ class _CartScreenState extends State<CartScreen> {
           .doc(item.id)
           .update({'quantity': newQty});
       await _fetchCartItems();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Cantidad actualizada a $newQty.')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al actualizar cantidad: $e')),
       );
     }
   }
 
-  double get _subtotal => _cartItems.fold(0, (sum, item) {
+  double get _subtotal => _cartItems.fold(0, (acc, item) {
         final product = _products[item.productId];
-        if (product == null) return sum;
-        return sum + product.price * item.quantity;
+        if (product == null) return acc;
+        return acc + product.price * item.quantity;
       });
 
   double get _isv => _subtotal * 0.15; // 15% ISV
@@ -176,7 +181,7 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _finalizePurchase() async {
     if (_cartItems.isEmpty) return;
-    final user = await fb_auth.FirebaseAuth.instance.currentUser;
+    final user = fb_auth.FirebaseAuth.instance.currentUser;
     if (user == null) return;
     try {
       // 1. Obtener los productos del carrito
@@ -239,7 +244,7 @@ class _CartScreenState extends State<CartScreen> {
         final sellerId = entry.key;
         final ventas = entry.value;
         final totalCantidad =
-            ventas.fold<int>(0, (sum, p) => sum + (p['quantity'] as int? ?? 0));
+            ventas.fold<int>(0, (acc, p) => acc + (p['quantity'] as int? ?? 0));
         final titulos =
             ventas.map((p) => '"${p['title']}" (x${p['quantity']})').join(', ');
         await NotificationService.createNotificationForUser(
@@ -264,6 +269,7 @@ class _CartScreenState extends State<CartScreen> {
         Navigator.pushNamed(context, '/purchase-history');
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al finalizar la compra: $e')),
       );
@@ -334,14 +340,7 @@ class _CartScreenState extends State<CartScreen> {
                                         .map((address) => DropdownMenuItem(
                                               value: address,
                                               child: Text(
-                                                address.street +
-                                                    ', ' +
-                                                    address.city +
-                                                    (address.state.isNotEmpty
-                                                        ? ', ' + address.state
-                                                        : '') +
-                                                    ', ' +
-                                                    address.country,
+                                                '${address.street}, ${address.city}${address.state.isNotEmpty ? ', ${address.state}' : ''}, ${address.country}',
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ))
@@ -525,7 +524,7 @@ class _CartScreenState extends State<CartScreen> {
                     )
                   : LayoutBuilder(
                       builder: (context, constraints) {
-                        final double maxContentWidth = 700;
+                        const double maxContentWidth = 700;
                         final double horizontalPadding =
                             constraints.maxWidth > maxContentWidth
                                 ? (constraints.maxWidth - maxContentWidth) / 2

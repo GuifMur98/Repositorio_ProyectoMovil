@@ -94,9 +94,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const SizedBox(height: 20),
                   // Logo y título
                   Center(
-                    child: Column(
+                    child: const Column(
                       children: [
-                        const Text(
+                        Text(
                           'TradeNest',
                           style: TextStyle(
                             fontSize: 30,
@@ -104,8 +104,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             color: Color(0xFF5C3D2E),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
+                        SizedBox(height: 8),
+                        Text(
                           'Recuperar contraseña',
                           style: TextStyle(
                               fontSize: 18,
@@ -121,11 +121,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
+                      boxShadow: const [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Color(0x1A000000), // 0.1 * 255 = 26
                           blurRadius: 10,
-                          offset: const Offset(0, 5),
+                          offset: Offset(0, 5),
                         ),
                       ],
                     ),
@@ -167,7 +167,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                            fillColor: const Color(0xFFE1D4C2)
+                                .withAlpha(77), // 0.3 * 255 = 77
                           ),
                           keyboardType: TextInputType.emailAddress,
                           validator: _validateEmail,
@@ -178,7 +179,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Color(0x1AFF0000), // 0.1 * 255 = 26, red
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -195,7 +196,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: Color(0x1A00FF00), // 0.1 * 255 = 26, green
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
@@ -216,8 +217,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             backgroundColor: const Color(0xFF5C3D2E),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius:
+                                  BorderRadius.all(Radius.circular(12)),
                             ),
                             elevation: 2,
                           ),

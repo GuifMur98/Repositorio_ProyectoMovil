@@ -136,8 +136,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     padding:
                         const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
                     decoration: BoxDecoration(
-                      color: const Color(
-                          0xFFD7CCC8), 
+                      color: const Color(0xFFD7CCC8),
                       borderRadius: BorderRadius.circular(22),
                     ),
                     child: Column(
@@ -152,7 +151,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.10),
+                                    color: Colors.black
+                                        .withAlpha((0.10 * 255).toInt()),
                                     spreadRadius: 0,
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
@@ -170,7 +170,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                                   prefixIcon: const Icon(Icons.search,
                                       color: Color(0xFF5C3D2E)),
                                   filled: true,
-                                  fillColor: Color(0xFFF5F0E8), 
+                                  fillColor: const Color(0xFFF5F0E8),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     borderSide: BorderSide.none,

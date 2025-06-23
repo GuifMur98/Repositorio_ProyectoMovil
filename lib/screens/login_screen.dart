@@ -127,8 +127,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   // Logo y título
                   Center(
                     child: Column(
-                      children: [
-                        const Text(
+                      children: const [
+                        Text(
                           'TradeNest',
                           style: TextStyle(
                             fontSize: 28,
@@ -136,8 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: Color(0xFF5C3D2E),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
+                        SizedBox(height: 8),
+                        Text(
                           'Inicia sesión',
                           style: TextStyle(
                               fontSize: 18,
@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withAlpha(26), // 0.1 * 255 = 26
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -193,7 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                            fillColor: const Color(0xFFE1D4C2)
+                                .withAlpha(77), // 0.3 * 255 = 77
                           ),
                           keyboardType: TextInputType.emailAddress,
                           validator: _validateEmail,
@@ -231,7 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                            fillColor: const Color(0xFFE1D4C2).withAlpha(77),
                           ),
                           obscureText: _obscurePassword,
                           validator: _validatePassword,
@@ -242,7 +243,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Colors.red.withAlpha(26), // 0.1 * 255 = 26
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(

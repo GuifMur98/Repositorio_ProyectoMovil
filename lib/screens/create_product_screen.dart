@@ -14,7 +14,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
   final _priceController = TextEditingController();
   String? _category;
   final _addressController = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
   String? _errorMessage;
 
   @override
@@ -107,7 +107,8 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               decoration: InputDecoration(
                 labelText: 'Nombre del producto',
                 filled: true,
-                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                fillColor:
+                    const Color(0xFFE1D4C2).withAlpha(77), // 0.3 * 255 = 77
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -121,7 +122,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               decoration: InputDecoration(
                 labelText: 'Descripción',
                 filled: true,
-                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                fillColor: const Color(0xFFE1D4C2).withAlpha(77),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -136,7 +137,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                 labelText: 'Precio',
                 prefixText: '\$',
                 filled: true,
-                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                fillColor: const Color(0xFFE1D4C2).withAlpha(77),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -154,7 +155,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               decoration: InputDecoration(
                 labelText: 'Categoría',
                 filled: true,
-                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                fillColor: const Color(0xFFE1D4C2).withAlpha(77),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -179,7 +180,7 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                   color: Color(0xFF5C3D2E),
                 ),
                 filled: true,
-                fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                fillColor: const Color(0xFFE1D4C2).withAlpha(77),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -202,9 +203,6 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
               ),
             ElevatedButton(
               onPressed: _isLoading ? null : _publishProduct,
-              child: _isLoading
-                  ? const CustomImageSpinner(size: 24, color: Colors.white)
-                  : const Text('Publicar'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF5C3D2E),
                 foregroundColor: Colors.white,
@@ -213,6 +211,9 @@ class _CreateProductScreenState extends State<CreateProductScreen> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
+              child: _isLoading
+                  ? const CustomImageSpinner(size: 24, color: Colors.white)
+                  : const Text('Publicar'),
             ),
           ],
         ),

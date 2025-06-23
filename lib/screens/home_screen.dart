@@ -18,8 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  int _currentIndex = 0;
-  List<Map<String, dynamic>> _allProducts = [];
+  final int _currentIndex = 0;
   int _unreadNotifications = 0;
   late final Stream<List<model.AppNotification>> _notificationsStream;
 
@@ -115,7 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           // Mover el spinner más abajo usando un Padding
           return const Padding(
-            padding: EdgeInsets.only(top: 80), // Ajusta la distancia aquí
+            padding:
+                EdgeInsets.only(top: 80), // Ajusta el valor según sea necesario
             child: Center(child: CustomImageSpinner(size: 40)),
           );
         }
@@ -130,10 +130,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
-                Text(
+                const Text(
                   'No se encontraron productos',
                   style: TextStyle(
-                    color: Colors.grey[600],
+                    color: Color(0xFF757575),
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
@@ -218,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategories() {
-    final List<Color> grad = [
+    final List<Color> grad = const [
       Color(0xFF3E2723),
       Color(0xFF5C3D2E)
     ]; // degradado café oscuro
@@ -296,7 +296,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 44,
                           height: 44,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.92),
+                            color:
+                                Colors.white.withAlpha(235), // 0.92 * 255 = 235
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -370,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withAlpha(38), // 0.15 * 255 = 38
                         spreadRadius: 0,
                         blurRadius: 8,
                         offset: const Offset(0, 4),
@@ -582,10 +583,10 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: const Color(0xFF5C3D2E),
         child: const Icon(Icons.chat, color: Colors.white),
+        tooltip: 'Chats',
         onPressed: () {
           Navigator.pushNamed(context, '/chats');
         },
-        tooltip: 'Chats',
       ),
     );
   }

@@ -36,7 +36,6 @@ class User {
     };
   }
 
-  // Constructor de fábrica para crear un objeto User desde un mapa JSON (de MongoDB)
   factory User.fromJson(Map<String, dynamic> json, {String? id}) {
     return User(
       id: id ?? json['id'] ?? '',

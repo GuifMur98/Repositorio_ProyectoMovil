@@ -90,6 +90,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         favs.remove(_product!.id);
       }
       await userRef.update({'favoriteProducts': favs});
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isFavorite
@@ -348,7 +349,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               shape: BoxShape.circle,
                               color: _currentImageIndex == index
                                   ? const Color(0xFF5C3D2E)
-                                  : Colors.white.withOpacity(0.5),
+                                  : Colors.white
+                                      .withAlpha(128), // 0.5 * 255 = 128
                             ),
                           ),
                         ),

@@ -79,7 +79,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
       // Actualizar email
       if (email != user.email) {
-        await user.updateEmail(email);
+        await user.verifyBeforeUpdateEmail(email);
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -92,6 +92,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Perfil actualizado correctamente.')),
       );
+      if (!mounted) return;
       Navigator.pop(context);
     } catch (e) {
       setState(() {
@@ -226,7 +227,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color:
+                                  Colors.black.withAlpha((0.1 * 255).toInt()),
                               blurRadius: 2,
                             ),
                           ],

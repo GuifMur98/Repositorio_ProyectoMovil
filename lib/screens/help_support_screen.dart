@@ -35,7 +35,7 @@ class HelpSupportScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withAlpha(15), // 0.06 * 255 = 15
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -102,7 +102,7 @@ class HelpSupportScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withAlpha(10), // 0.04 * 255 = 10
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -154,7 +154,7 @@ class HelpSupportScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withAlpha(8), // 0.03 * 255 = 8
                       blurRadius: 4,
                       offset: const Offset(0, 2),
                     ),

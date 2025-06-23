@@ -66,9 +66,6 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
       List<Purchase> purchases = [];
       if (data != null && data['purchaseHistory'] != null) {
         final purchaseList = data['purchaseHistory'] as List<dynamic>;
-        for (var i = 0; i < purchaseList.length; i++) {
-          print('purchaseHistory[$i]: ' + purchaseList[i].toString());
-        }
         purchases = purchaseList
             .where((json) => json is Map<String, dynamic> || json is Map)
             .map((json) =>
@@ -82,7 +79,7 @@ class _PurchaseHistoryScreenState extends State<PurchaseHistoryScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      print('Error al obtener historial: ${e.toString()}');
+      debugPrint('Error al obtener historial: $e');
       setState(() {
         _purchases = [];
         _filteredPurchases = [];

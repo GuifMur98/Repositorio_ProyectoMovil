@@ -70,9 +70,8 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
         country: country,
       );
       await AddressService.updateAddress(updated);
-      if (mounted) {
-        Navigator.pop(context, updated);
-      }
+      if (!mounted) return;
+      Navigator.pop(context, updated);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -81,10 +80,11 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
         ),
       );
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
+      }
     }
   }
 
@@ -113,9 +113,8 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
     });
     try {
       await AddressService.deleteAddress(widget.address.id);
-      if (mounted) {
-        Navigator.pop(context, null); // Regresa y notifica que se eliminó
-      }
+      if (!mounted) return;
+      Navigator.pop(context, null); // Regresa y notifica que se eliminó
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -124,10 +123,11 @@ class _EditAddressScreenState extends State<EditAddressScreen> {
         ),
       );
     } finally {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _isLoading = false;
         });
+      }
     }
   }
 

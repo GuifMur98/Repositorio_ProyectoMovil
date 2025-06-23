@@ -24,7 +24,6 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   app_model.User? _otherUser;
   Stream<List<Message>>? _messagesStream;
-  int _lastMessageCount = 0;
 
   @override
   void dispose() {
@@ -206,7 +205,7 @@ class _ChatScreenState extends State<ChatScreen> {
               style: TextStyle(
                 color: isMe
                     ? Colors.white70
-                    : const Color(0xFF5C3D2E).withOpacity(0.7),
+                    : const Color(0xFF5C3D2E).withAlpha(179),
                 fontSize: 12,
               ),
             ),
@@ -364,7 +363,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withAlpha(51), // 0.2 * 255 = 51
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, -1),

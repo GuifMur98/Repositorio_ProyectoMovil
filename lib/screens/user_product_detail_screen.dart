@@ -115,17 +115,17 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                         BorderRadius.vertical(top: Radius.circular(24)),
                   ),
                   builder: (context) {
-                    final _titleController =
+                    final titleController =
                         TextEditingController(text: _product!.title);
-                    final _descController =
+                    final descController =
                         TextEditingController(text: _product!.description);
-                    final _priceController =
+                    final priceController =
                         TextEditingController(text: _product!.price.toString());
-                    final _stockController =
+                    final stockController =
                         TextEditingController(text: _product!.stock.toString());
-                    final _categoryController =
+                    final categoryController =
                         TextEditingController(text: _product!.category);
-                    final _formKey = GlobalKey<FormState>();
+                    final formKey = GlobalKey<FormState>();
                     bool isSaving = false;
                     String? newImageBase64;
                     String? imageError;
@@ -159,7 +159,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                 MediaQuery.of(context).viewInsets.bottom + 16,
                           ),
                           child: Form(
-                            key: _formKey,
+                            key: formKey,
                             child: SingleChildScrollView(
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
@@ -217,7 +217,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                     ),
                                   const SizedBox(height: 16),
                                   TextFormField(
-                                    controller: _titleController,
+                                    controller: titleController,
                                     decoration: const InputDecoration(
                                         labelText: 'Título'),
                                     validator: (v) => v == null || v.isEmpty
@@ -226,7 +226,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   TextFormField(
-                                    controller: _descController,
+                                    controller: descController,
                                     decoration: const InputDecoration(
                                         labelText: 'Descripción'),
                                     maxLines: 2,
@@ -236,41 +236,45 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   TextFormField(
-                                    controller: _priceController,
+                                    controller: priceController,
                                     decoration: const InputDecoration(
                                         labelText: 'Precio'),
                                     keyboardType:
                                         TextInputType.numberWithOptions(
                                             decimal: true),
                                     validator: (v) {
-                                      if (v == null || v.isEmpty)
+                                      if (v == null || v.isEmpty) {
                                         return 'Campo requerido';
+                                      }
                                       final n = double.tryParse(v);
-                                      if (n == null || n < 0)
+                                      if (n == null || n < 0) {
                                         return 'Precio inválido';
+                                      }
                                       return null;
                                     },
                                   ),
                                   const SizedBox(height: 12),
                                   TextFormField(
-                                    controller: _stockController,
+                                    controller: stockController,
                                     decoration: const InputDecoration(
                                         labelText: 'Stock'),
                                     keyboardType: TextInputType.number,
                                     validator: (v) {
-                                      if (v == null || v.isEmpty)
+                                      if (v == null || v.isEmpty) {
                                         return 'Campo requerido';
+                                      }
                                       final n = int.tryParse(v);
-                                      if (n == null || n < 0)
+                                      if (n == null || n < 0) {
                                         return 'Stock inválido';
+                                      }
                                       return null;
                                     },
                                   ),
                                   const SizedBox(height: 12),
                                   DropdownButtonFormField<String>(
                                     value: categories
-                                            .contains(_categoryController.text)
-                                        ? _categoryController.text
+                                            .contains(categoryController.text)
+                                        ? categoryController.text
                                         : null,
                                     decoration: const InputDecoration(
                                         labelText: 'Categoría'),
@@ -281,7 +285,7 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                       );
                                     }).toList(),
                                     onChanged: (val) {
-                                      _categoryController.text = val ?? '';
+                                      categoryController.text = val ?? '';
                                     },
                                     validator: (v) => v == null || v.isEmpty
                                         ? 'Campo requerido'
@@ -303,26 +307,26 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                       onPressed: isSaving
                                           ? null
                                           : () async {
-                                              if (!_formKey.currentState!
+                                              if (!formKey.currentState!
                                                   .validate()) return;
                                               setModalState(
                                                   () => isSaving = true);
                                               try {
                                                 final updateData = {
-                                                  'title': _titleController.text
+                                                  'title': titleController.text
                                                       .trim(),
-                                                  'description': _descController
+                                                  'description': descController
                                                       .text
                                                       .trim(),
                                                   'price': double.parse(
-                                                      _priceController.text
+                                                      priceController.text
                                                           .trim()),
                                                   'stock': int.parse(
-                                                      _stockController.text
+                                                      stockController.text
                                                           .trim()),
-                                                  'category':
-                                                      _categoryController.text
-                                                          .trim(),
+                                                  'category': categoryController
+                                                      .text
+                                                      .trim(),
                                                 };
                                                 if (newImageBase64 != null) {
                                                   updateData['imageUrls'] = [
@@ -333,9 +337,9 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                                     .collection('products')
                                                     .doc(_product!.id)
                                                     .update(updateData);
+                                                await _fetchProductDetail();
                                                 if (mounted) {
                                                   Navigator.pop(context);
-                                                  await _fetchProductDetail();
                                                   ScaffoldMessenger.of(context)
                                                       .showSnackBar(
                                                     const SnackBar(
@@ -451,7 +455,8 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
+                                      color: Colors.black
+                                          .withAlpha((0.08 * 255).toInt()),
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
                                     ),
@@ -573,7 +578,8 @@ class _UserProductDetailScreenState extends State<UserProductDetailScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.04),
+                                    color: Colors.black
+                                        .withAlpha((0.04 * 255).toInt()),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),

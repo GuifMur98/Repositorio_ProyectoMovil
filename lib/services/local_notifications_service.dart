@@ -40,16 +40,15 @@ class NotificationsService {
     required String body,
     String? subTitle,
   }) async {
-    // print for debug
-    // print('showNotification called: title=\"$title\", body=\"$body\"');
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    final AndroidNotificationDetails androidDetails =
+        const AndroidNotificationDetails(
       'channelId',
       'Local Notification',
       channelDescription: 'This is a channel for local notification',
       importance: Importance.max,
       priority: Priority.high,
     );
-    DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,

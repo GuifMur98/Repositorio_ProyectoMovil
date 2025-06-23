@@ -160,6 +160,7 @@ class _ChatsScreenState extends State<ChatsScreen> {
                                       .collection('chats')
                                       .doc(chat.chatId)
                                       .delete();
+                                  if (!mounted) return;
                                   setState(() {
                                     _chats.removeAt(index);
                                   });
@@ -168,6 +169,10 @@ class _ChatsScreenState extends State<ChatsScreen> {
                                         content: Text('Chat eliminado')),
                                   );
                                 } catch (e) {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    // Optionally handle error state
+                                  });
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                         content:

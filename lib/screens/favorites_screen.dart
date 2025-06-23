@@ -158,7 +158,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         final double horizontalPadding =
                             constraints.maxWidth > maxGridWidth
                                 ? (constraints.maxWidth - maxGridWidth) / 2
-                                : 8.0;
+                                : 0.0;
                         return Padding(
                           padding: EdgeInsets.symmetric(
                               horizontal: horizontalPadding),

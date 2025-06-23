@@ -13,7 +13,6 @@ class AuthService {
       try {
         _prefs = await SharedPreferences.getInstance();
       } catch (e) {
-        print('Error al inicializar SharedPreferences: $e');
         rethrow;
       }
     }
@@ -32,10 +31,7 @@ class AuthService {
       await _prefs?.setString(_userKey, jsonEncode(userJsonMap));
 
       // Establecer el usuario actual en memoria si es necesario
-      // Puedes agregar aquí lógica propia si necesitas mantener el usuario en memoria
-      print('Sesión guardada para usuario: ${user.email}');
     } catch (e) {
-      print('Error al guardar sesión: $e');
       await logout(); // Limpiar sesión en caso de error
       rethrow;
     }
@@ -50,30 +46,13 @@ class AuthService {
 
       if (userJson != null) {
         // Convertir el JSON guardado de vuelta a objeto User
-        final userMap = jsonDecode(userJson) as Map<String, dynamic>;
+        jsonDecode(userJson);
 
-        final user = User(
-          id: userMap['id'] as String,
-          name: userMap['name'] as String,
-          email: userMap['email'] as String,
-          password: '', // No hay password en el almacenamiento local
-          avatarUrl: userMap['avatarUrl'] as String?,
-          addresses: List<String>.from(userMap['addresses'] ?? []),
-          favoriteProducts:
-              List<String>.from(userMap['favoriteProducts'] ?? []),
-          publishedProducts:
-              List<String>.from(userMap['publishedProducts'] ?? []),
-          purchaseHistory: List<String>.from(userMap['purchaseHistory'] ?? []),
-        );
-        // Puedes guardar el usuario en memoria aquí si lo necesitas
-        print('Sesión cargada para usuario: ${user.email}');
         return true;
       }
 
-      print('No hay sesión válida para cargar.');
       return false;
     } catch (e) {
-      print('Error al cargar sesión: $e');
       await logout(); // Limpiar sesión en caso de error
       return false;
     }
@@ -86,10 +65,7 @@ class AuthService {
       await _prefs?.remove(_userKey);
       // Cerrar sesión en FirebaseAuth
       await fb_auth.FirebaseAuth.instance.signOut();
-      // Si tienes lógica para limpiar usuario en memoria, agrégala aquí
-      print('Sesión cerrada.');
     } catch (e) {
-      print('Error al cerrar sesión: $e');
       rethrow;
     }
   }
@@ -133,7 +109,6 @@ class AuthService {
         throw Exception('Error de autenticación');
       }
     } catch (e) {
-      print('Error en loginWithEmailPassword: $e');
       rethrow;
     }
   }
@@ -159,7 +134,6 @@ class AuthService {
       }
       return null;
     } catch (e) {
-      print('Error en registerWithEmailPassword: $e');
       rethrow;
     }
   }

@@ -86,7 +86,7 @@ class CategoriesScreen extends StatelessWidget {
                 gradient: LinearGradient(
                   colors: [
                     const Color(0xFF5C3D2E),
-                    const Color(0xFF5C3D2E).withOpacity(0.8),
+                    const Color(0xFF5C3D2E).withAlpha(204), // 0.8 * 255 = 204
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -94,7 +94,7 @@ class CategoriesScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withAlpha(26), // 0.1 * 255 = 26
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -106,7 +106,7 @@ class CategoriesScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withAlpha(51), // 0.2 * 255 = 51
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

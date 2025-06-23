@@ -181,7 +181,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withAlpha((0.1 * 255).toInt()),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -219,7 +219,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                            fillColor: const Color(0xFFE1D4C2)
+                                .withAlpha((0.3 * 255).toInt()),
                           ),
                           validator: _validateName,
                         ),
@@ -243,7 +244,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                            fillColor: const Color(0xFFE1D4C2)
+                                .withAlpha((0.3 * 255).toInt()),
                           ),
                           keyboardType: TextInputType.emailAddress,
                           validator: _validateEmail,
@@ -281,7 +283,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                            fillColor: const Color(0xFFE1D4C2)
+                                .withAlpha((0.3 * 255).toInt()),
                           ),
                           obscureText: _obscurePassword,
                           validator: _validatePassword,
@@ -320,7 +323,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide.none,
                             ),
                             filled: true,
-                            fillColor: const Color(0xFFE1D4C2).withOpacity(0.3),
+                            fillColor: const Color(0xFFE1D4C2)
+                                .withAlpha((0.3 * 255).toInt()),
                           ),
                           obscureText: _obscureConfirmPassword,
                           validator: _validateConfirmPassword,
@@ -331,7 +335,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Colors.red.withAlpha((0.1 * 255).toInt()),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(

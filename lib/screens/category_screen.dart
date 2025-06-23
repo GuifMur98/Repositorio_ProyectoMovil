@@ -96,7 +96,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             : constraints.maxWidth < 600
                                 ? 0.65
                                 : 0.75;
-                        final double maxGridWidth = 900;
+                        const double maxGridWidth = 900;
                         final double horizontalPadding =
                             constraints.maxWidth > maxGridWidth
                                 ? (constraints.maxWidth - maxGridWidth) / 2
