@@ -114,8 +114,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           // Mover el spinner más abajo usando un Padding
           return const Padding(
-            padding:
-                EdgeInsets.only(top: 80), // Ajusta el valor según sea necesario
+            padding: EdgeInsets.only(
+                top: 80), // Ajustar el valor según sea necesario
             child: Center(child: CustomImageSpinner(size: 40)),
           );
         }
